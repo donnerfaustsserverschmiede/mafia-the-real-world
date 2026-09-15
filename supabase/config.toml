@@ -1,0 +1,4 @@
+project_id = "ufqdntsxgqcxtszufbtv"
+
+[functions.world-tile]
+verify_jwt = true
