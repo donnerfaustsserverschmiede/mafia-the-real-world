@@ -1,7 +1,7 @@
 -- MTRW GLOBAL WORLD CACHE
--- Run once in Supabase SQL Editor before deploying the world-tile Edge Function.
+-- Production bootstrap: world cache + player presence.
 -- Requires PostGIS (Supabase Dashboard -> Database -> Extensions -> postgis).
--- Deployment trigger: world-service deployment after Supabase secrets are configured.
+-- This idempotent migration is applied by GitHub Actions.
 
 create extension if not exists postgis with schema extensions;
 
@@ -22,13 +22,8 @@ create index if not exists world_tiles_xyz_idx on public.world_tiles(z,x,y);
 alter table public.world_tiles enable row level security;
 drop policy if exists world_tiles_public_read on public.world_tiles;
 create policy world_tiles_public_read on public.world_tiles for select to authenticated using (true);
-
--- Only the Edge Function/service role writes world cache rows.
 revoke insert, update, delete on public.world_tiles from anon, authenticated;
 
--- Lightweight global player presence snapshot. This is NOT a GPS history table.
--- Clients should publish live positions through Supabase Realtime Broadcast;
--- this table is only for the last known online position when the game explicitly saves it.
 create table if not exists public.player_presence (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   lat double precision not null,
@@ -48,8 +43,6 @@ create policy player_presence_own_update on public.player_presence for update to
 grant select on public.world_tiles to authenticated;
 grant select,insert,update on public.player_presence to authenticated;
 
--- Server-side geographic lookup for already cached OSM/game objects.
--- The client asks only for its current ~1 km world cell.
 create or replace function public.get_world_tile(p_tile_key text)
 returns json
 language sql
@@ -68,5 +61,3 @@ as $$
   where tile_key=p_tile_key;
 $$;
 grant execute on function public.get_world_tile(text) to authenticated;
-
--- Claiming remains in claim_place; this table only supplies the global OSM cache.
