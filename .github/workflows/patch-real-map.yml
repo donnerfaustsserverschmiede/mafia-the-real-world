@@ -46,7 +46,7 @@ jobs:
           if old in s:
               s=s.replace(old,new,1)
           blocking="message(startMessage,'Gebiete werden geladen…');await Promise.race([loadTerritories(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Gebiete konnten nicht geladen werden. Bitte prüfe die Supabase-Verbindung.')),10000))]);startBox.hidden=true;game.hidden=false;document.getElementById('status').textContent='Spiel geladen.';"
-          nonblocking="startBox.hidden=true;game.hidden=false;document.getElementById('status').textContent='Spiel geladen.';Promise.resolve().then(()=>loadTerritories()).catch(e=>console.warn('[MTRW] Legacy-Gebiete konnten nicht geladen werden; Weltkarte läuft trotzdem:',e));"
+          nonblocking="startBox.hidden=true;game.hidden=false;document.getElementById('status').textContent='Spiel geladen.';Promise.resolve().then(()=>loadTerritories()).catch(e=>console.warn('[MTRW] Legacy-Gebiete konnten nicht geladen werden; Weltkarte läuft trotzdem:',e));window.mtrwGameEvent?.('Spiel gestartet',{version:'0.7'});"
           if blocking in s:
               s=s.replace(blocking,nonblocking,1)
           p.write_text(s)
