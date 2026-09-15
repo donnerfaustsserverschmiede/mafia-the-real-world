@@ -4,6 +4,7 @@ on:
     paths:
       - 'places.js'
       - 'gps.js'
+      - 'auth-fix.js'
       - 'supabase/places.sql'
 permissions:
   contents: write
@@ -12,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject map integration
+      - name: Inject map and authentication integration
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -32,10 +33,13 @@ jobs:
           gps='<script src="./gps.js"></script>'
           if gps not in s:
               s=s.replace('</body>',gps+'\n</body>')
+          auth='<script src="./auth-fix.js?v=2"></script>'
+          if auth not in s:
+              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',auth+'\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>')
           p.write_text(s)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'feat: integrate device GPS permission and precise location'
+          git diff --cached --quiet || git commit -m 'fix: harden authentication boot and login'
           git push
