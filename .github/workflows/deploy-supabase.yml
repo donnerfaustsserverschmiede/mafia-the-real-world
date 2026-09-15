@@ -5,6 +5,7 @@ on:
       - 'supabase/config.toml'
       - 'supabase/functions/world-tile/**'
       - 'supabase/world_production.sql'
+      - 'supabase/places_production.sql'
 permissions:
   contents: read
 jobs:
@@ -21,12 +22,38 @@ jobs:
       - name: Check deployment credentials
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
-            echo "Supabase deployment secrets are not configured; skipping deployment."
-            exit 0
+            echo "Supabase deployment secrets are not configured."
+            exit 1
           fi
+      - name: Apply world database schema
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary @- <<'JSON'
+          {
+            "query": "$(python - <<'PY'
+          import json
+          print(json.dumps(open('supabase/world_production.sql', encoding='utf-8').read())[1:-1])
+          PY
+          )"
+          }
+          JSON
+      - name: Apply places database schema
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/query.json
+          import json
+          print(json.dumps({'query': open('supabase/places_production.sql', encoding='utf-8').read()}))
+          PY
+          curl --fail-with-body --silent --show-error \
+            -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/query.json
       - name: Link project
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_REF != '' }}
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - name: Deploy world tile function
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_REF != '' }}
         run: supabase functions deploy world-tile --project-ref "$SUPABASE_PROJECT_REF"
