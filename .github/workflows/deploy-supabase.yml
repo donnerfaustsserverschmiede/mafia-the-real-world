@@ -4,8 +4,10 @@ on:
     paths:
       - 'supabase/config.toml'
       - 'supabase/functions/world-tile/**'
+      - 'supabase/functions/game-logs/**'
       - 'supabase/world_production.sql'
       - 'supabase/places_production.sql'
+      - 'supabase/logs_production.sql'
 permissions:
   contents: read
 jobs:
@@ -32,11 +34,7 @@ jobs:
           import json
           print(json.dumps({'query': open('supabase/world_production.sql', encoding='utf-8').read()}))
           PY
-          curl --fail-with-body --silent --show-error \
-            -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
-            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data-binary @/tmp/world-query.json
+          curl --fail-with-body --silent --show-error -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Content-Type: application/json" --data-binary @/tmp/world-query.json
       - name: Apply places database schema
         run: |
           set -euo pipefail
@@ -44,12 +42,18 @@ jobs:
           import json
           print(json.dumps({'query': open('supabase/places_production.sql', encoding='utf-8').read()}))
           PY
-          curl --fail-with-body --silent --show-error \
-            -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
-            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data-binary @/tmp/places-query.json
+          curl --fail-with-body --silent --show-error -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Content-Type: application/json" --data-binary @/tmp/places-query.json
+      - name: Apply logging database schema
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/logs-query.json
+          import json
+          print(json.dumps({'query': open('supabase/logs_production.sql', encoding='utf-8').read()}))
+          PY
+          curl --fail-with-body --silent --show-error -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Content-Type: application/json" --data-binary @/tmp/logs-query.json
       - name: Link project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - name: Deploy world tile function
         run: supabase functions deploy world-tile --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Deploy game log function
+        run: supabase functions deploy game-logs --project-ref "$SUPABASE_PROJECT_REF"
