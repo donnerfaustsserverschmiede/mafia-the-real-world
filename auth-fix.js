@@ -42,3 +42,4 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+// deployment trigger 2026-09-15
