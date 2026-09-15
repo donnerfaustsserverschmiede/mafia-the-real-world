@@ -31,20 +31,21 @@ jobs:
           replacement='updateZone(latitude,longitude);window.updateZoneReal?.(latitude,longitude);'
           if hook in s and 'window.updateZoneReal?.(latitude,longitude)' not in s:
               s=s.replace(hook,replacement,1)
+          # Make the game startup function available to the external email auth module.
+          s=s.replace('async function startGame(session){','window.startGame=async function startGame(session){',1)
           if '<script src="./places.js' not in s:
               s=s.replace('</body>','<script src="./places.js?v=10"></script>\n</body>')
           if '<script src="./gps.js' not in s:
               s=s.replace('</body>','<script src="./gps.js?v=10"></script>\n</body>')
-          s=re.sub(r'<script src="\./auth-fix\.js\?v=\d+"></script>\s*', '', s)
-          if './guest-safety.js' not in s:
-              s=s.replace('</body>','<script src="./guest-safety.js?v=1"></script>\n</body>')
-          s=re.sub(r'<script src="\./google-auth\.js\?v=\d+"></script>\s*', '', s)
+          s=re.sub(r'<script src="\\./auth-fix\\.js\\?v=\\d+"></script>\\s*', '', s)
+          s=re.sub(r'<script src="\\./guest-safety\\.js\\?v=\\d+"></script>\\s*', '', s)
+          s=re.sub(r'<script src="\\./google-auth\\.js\\?v=\\d+"></script>\\s*', '', s)
           if './email-auth.js' not in s:
-              s=s.replace('</body>','<script src="./email-auth.js?v=1"></script>\n</body>')
+              s=s.replace('</body>','<script src="./email-auth.js?v=2"></script>\n</body>')
           p.write_text(s)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'feat: inject email authentication'
+          git diff --cached --quiet || git commit -m 'fix: finalize email auth and game startup'
           git push
