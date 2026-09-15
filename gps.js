@@ -1,5 +1,7 @@
 /* MTRW GPS v1.0 - request and use the device's real geolocation. */
 (()=>{
+  if(window.mtrwGpsInstalled)return;
+  window.mtrwGpsInstalled=true;
   const game=document.getElementById('game');
   const button=document.getElementById('locate');
   const status=document.getElementById('status');
@@ -55,4 +57,3 @@
     setTimeout(startWhenGameVisible,700);
   }
 })();
-// Trigger GitHub Pages reinjection.
