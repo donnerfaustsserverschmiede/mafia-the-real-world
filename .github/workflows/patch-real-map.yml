@@ -21,6 +21,10 @@ jobs:
           expose="gridLayer=L.layerGroup().addTo(map);window.map=map;window.gridLayer=gridLayer;window.getMtrwState=()=>({user,profile,marker,territories:window.territories||[]});"
           if marker in s and 'window.getMtrwState' not in s:
               s=s.replace(marker,expose)
+          hook='updateZone(latitude,longitude);'
+          replacement='updateZone(latitude,longitude);window.updateZoneReal?.(latitude,longitude);'
+          if hook in s and 'window.updateZoneReal?.(latitude,longitude)' not in s:
+              s=s.replace(hook,replacement,1)
           tag='<script src="./places.js"></script>'
           if tag not in s:
               s=s.replace('</body>',tag+'\n</body>')
