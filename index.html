@@ -18,4 +18,5 @@ async function startGame(session){if(starting)return;starting=true;try{const s=s
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session)startGame(session)});(async()=>{const{data}=await db.auth.getSession();if(data.session)await startGame(data.session)})();
 setInterval(async()=>{if(!user)return;const{data}=await db.rpc('player_access_status');if(data&&!data.allowed){await db.auth.signOut();alert(data.type==='ban'?'Du wurdest gebannt.\n'+(data.reason||''):'Du wurdest gekickt.');location.reload()}},30000);
 </script><script src="./places.js"></script>
+<script src="./gps.js"></script>
 </body></html>
