@@ -33,6 +33,8 @@ jobs:
           if hook in s and 'window.updateZoneReal?.(latitude,longitude)' not in s:
               s=s.replace(hook,replacement,1)
           s=s.replace('async function startGame(session){','window.startGame=async function startGame(session){',1)
+          # Email authentication owns startup. Do not start the game from the old inline session bootstrap.
+          s=re.sub(r'\(async\(\)=>\{try\{const\{data\}=await db\.auth\.getSession\(\);if\(data\.session\)await startGame\(data\.session\)\}catch\(e\)\{console\.error\(e\)\}\}\)\(\);', '', s)
           s=re.sub(r'<script src="\./auth-fix\.js\?v=\d+"></script>\s*', '', s)
           s=re.sub(r'<script src="\./guest-safety\.js\?v=\d+"></script>\s*', '', s)
           s=re.sub(r'<script src="\./google-auth\.js\?v=\d+"></script>\s*', '', s)
@@ -41,8 +43,8 @@ jobs:
               s=s.replace('</body>','<script src="./places.js?v=10"></script>\n</body>')
           if '<script src="./gps.js' not in s:
               s=s.replace('</body>','<script src="./gps.js?v=10"></script>\n</body>')
-          s=s.replace('</body>','<script src="./email-auth.js?v=2"></script>\n</body>')
-          old='const message=(el,t)=>{el.textContent=t||\'\'};'
+          s=s.replace('</body>','<script src="./email-auth.js?v=3"></script>\n</body>')
+          old="const message=(el,t)=>{el.textContent=t||''};"
           new="const message=(el,t)=>{const target=(el&&el.isConnected?el:null)||document.getElementById('emailAuthMessage')||el||document.getElementById('startMessage');if(target)target.textContent=t||'';};"
           if old in s:
               s=s.replace(old,new,1)
@@ -51,5 +53,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'fix: sync visible auth startup status'
+          git diff --cached --quiet || git commit -m 'fix: email auth controls game startup'
           git push
