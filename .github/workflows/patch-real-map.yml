@@ -2,6 +2,7 @@ name: Inject real-world map layer
 on:
   push:
     paths:
+      - '.github/workflows/patch-real-map.yml'
       - 'places.js'
       - 'gps.js'
       - 'auth-fix.js'
@@ -32,10 +33,10 @@ jobs:
           if hook in s and 'window.updateZoneReal?.(latitude,longitude)' not in s:
               s=s.replace(hook,replacement,1)
           s=s.replace('async function startGame(session){','window.startGame=async function startGame(session){',1)
-          s=re.sub(r'<script src="\\./auth-fix\\.js\\?v=\\d+"></script>\s*', '', s)
-          s=re.sub(r'<script src="\\./guest-safety\\.js\\?v=\\d+"></script>\s*', '', s)
-          s=re.sub(r'<script src="\\./google-auth\\.js\\?v=\\d+"></script>\s*', '', s)
-          s=re.sub(r'<script src="\\./email-auth\\.js\\?v=\\d+"></script>\s*', '', s)
+          s=re.sub(r'<script src="\./auth-fix\.js\?v=\d+"></script>\s*', '', s)
+          s=re.sub(r'<script src="\./guest-safety\.js\?v=\d+"></script>\s*', '', s)
+          s=re.sub(r'<script src="\./google-auth\.js\?v=\d+"></script>\s*', '', s)
+          s=re.sub(r'<script src="\./email-auth\.js\?v=\d+"></script>\s*', '', s)
           if '<script src="./places.js' not in s:
               s=s.replace('</body>','<script src="./places.js?v=10"></script>\n</body>')
           if '<script src="./gps.js' not in s:
