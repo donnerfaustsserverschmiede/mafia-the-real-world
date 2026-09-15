@@ -1,6 +1,7 @@
 /* MTRW authentication compatibility layer.
-   Owns the LOGIN submit event in capture phase so the legacy inline handler
-   cannot race Supabase initialization/session recovery on mobile browsers.
+   The Supabase client initializes Auth automatically during construction.
+   Do not call auth.initialize() again from the login button: on mobile this
+   can wait on the same Auth lock and leave the UI at "Anmeldung wird geprüft".
 */
 (function(){
   let installed=false;
@@ -11,34 +12,51 @@
   async function install(){
     if(installed)return true;
     const form=el('authForm');
-    if(!form||!window.db)return false;
+    if(!form||!window.db||!window.db.auth)return false;
     installed=true;
     form.addEventListener('submit',async e=>{
       if(el('registerTab')?.classList.contains('active'))return;
-      e.preventDefault();e.stopImmediatePropagation();
+      e.preventDefault();
+      e.stopImmediatePropagation();
       const button=el('authSubmit'),email=el('email'),password=el('password');
       if(button)button.disabled=true;
-      message('Anmeldung wird geprüft…');
       try{
-        if(window.db.auth.initialize)await withTimeout(window.db.auth.initialize(),8000,'Supabase Auth konnte nicht initialisiert werden. Bitte Seite neu laden.');
         const em=(email?.value||'').trim().toLowerCase(),pw=password?.value||'';
         if(!em||!pw)throw new Error('Bitte E-Mail und Passwort eingeben.');
-        const result=await withTimeout(window.db.auth.signInWithPassword({email:em,password:pw}),15000,'Die Anmeldung antwortet nicht. Bitte Seite neu laden und erneut versuchen.');
+        message('Anmeldung wird geprüft…');
+        const result=await withTimeout(
+          window.db.auth.signInWithPassword({email:em,password:pw}),
+          15000,
+          'Die Anmeldung antwortet nicht. Bitte Seite neu laden und erneut versuchen.'
+        );
         if(result.error)throw result.error;
         if(!result.data?.session)throw new Error('Supabase hat keine Sitzung zurückgegeben.');
-        message('Anmeldung erfolgreich. Spiel wird geladen…');
-        await new Promise(r=>setTimeout(r,0));
+        message('Anmeldung erfolgreich · Spiel wird geladen…');
         if(typeof window.startGame!=='function')throw new Error('Spielstart konnte nicht gefunden werden.');
-        await window.startGame(result.data.session);
+        await withTimeout(
+          window.startGame(result.data.session),
+          20000,
+          'Die Anmeldung war erfolgreich, aber das Spiel konnte nicht gestartet werden. Bitte Seite neu laden.'
+        );
       }catch(err){
         console.error('[MTRW AUTH]',err);
         const raw=String(err?.message||err||'Unbekannter Fehler.'),low=raw.toLowerCase();
-        message(low.includes('invalid login credentials')?'E-Mail oder Passwort ist falsch.':low.includes('email not confirmed')?'Die E-Mail ist noch nicht bestätigt. Bitte „Confirm email“ in Supabase deaktivieren.':raw);
+        message(
+          low.includes('invalid login credentials')?'E-Mail oder Passwort ist falsch.':
+          low.includes('email not confirmed')?'Die E-Mail ist noch nicht bestätigt. Bitte „Confirm email“ in Supabase deaktivieren.':
+          raw
+        );
       }finally{if(button)button.disabled=false}
     },true);
     return true;
   }
-  async function boot(){for(let i=0;i<100&&!installed;i++){if(await install())break;await wait(100)}if(!installed)console.error('[MTRW AUTH] Login-Fix konnte nicht installiert werden.');}
+  async function boot(){
+    for(let i=0;i<100&&!installed;i++){
+      if(await install())break;
+      await wait(100);
+    }
+    if(!installed)console.error('[MTRW AUTH] Login-Fix konnte nicht installiert werden.');
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-// deployment trigger 2026-09-15-login-deadlock-fix-v4-final
+// deployment trigger 2026-09-15-login-deadlock-fix-v5
