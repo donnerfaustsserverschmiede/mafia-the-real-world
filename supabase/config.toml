@@ -2,3 +2,6 @@ project_id = "ufqdntsxgqcxtszufbtv"
 
 [functions.world-tile]
 verify_jwt = true
+
+[functions.game-logs]
+verify_jwt = true
