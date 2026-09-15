@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'places.js'
+      - 'gps.js'
       - 'supabase/places.sql'
 permissions:
   contents: write
@@ -28,10 +29,13 @@ jobs:
           tag='<script src="./places.js"></script>'
           if tag not in s:
               s=s.replace('</body>',tag+'\n</body>')
+          gps='<script src="./gps.js"></script>'
+          if gps not in s:
+              s=s.replace('</body>',gps+'\n</body>')
           p.write_text(s)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'feat: integrate real-world OSM map layer'
+          git diff --cached --quiet || git commit -m 'feat: integrate device GPS permission and precise location'
           git push
