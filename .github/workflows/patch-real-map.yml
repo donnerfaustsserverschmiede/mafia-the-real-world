@@ -17,10 +17,10 @@ jobs:
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text()
-          marker='const db=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);window.db=db;'
-          expose="const db=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);window.db=db;"
-          if marker in s and 'window.map=map' not in s:
-              s=s.replace(marker,expose+'window.map=map;window.gridLayer=gridLayer;window.getMtrwState=()=>({user,profile,marker,territories:window.territories||[]});')
+          marker="gridLayer=L.layerGroup().addTo(map);"
+          expose="gridLayer=L.layerGroup().addTo(map);window.map=map;window.gridLayer=gridLayer;window.getMtrwState=()=>({user,profile,marker,territories:window.territories||[]});"
+          if marker in s and 'window.getMtrwState' not in s:
+              s=s.replace(marker,expose)
           tag='<script src="./places.js"></script>'
           if tag not in s:
               s=s.replace('</body>',tag+'\n</body>')
