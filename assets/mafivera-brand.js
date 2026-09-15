@@ -1,10 +1,10 @@
 /* MAFIVERA visual identity */
 (()=>{
-  const NAME='MAFIVERA', TAG='DIE WELT GEHÖRT DIR', LOGO='./assets/mafivera-logo.png';
+  const NAME='MAFIVERA', TAG='DIE WELT GEHÖRT DIR', LOGO='./assets/mafivera-logo.webp';
   function addHead(){
     document.title=NAME+' – '+TAG;
     const head=document.head;
-    [['icon','./assets/favicon-64.png','favicon'],['apple-touch-icon','./assets/apple-touch-icon.png','apple'],['manifest','./manifest.webmanifest','manifest']].forEach(([rel,href,key])=>{
+    [['icon',LOGO,'favicon'],['apple-touch-icon',LOGO,'apple'],['manifest','./manifest.webmanifest','manifest']].forEach(([rel,href,key])=>{
       if(!head.querySelector('link[data-mafivera="'+key+'"]')){const l=document.createElement('link');l.rel=rel;l.href=href;l.dataset.mafivera=key;head.appendChild(l)}
     });
   }

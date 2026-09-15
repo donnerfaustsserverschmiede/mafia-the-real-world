@@ -2,11 +2,9 @@ name: Discord Changelog
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   release:
-    types:
-      - published
+    types: [published]
 
 permissions:
   contents: read
@@ -19,7 +17,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Changelog erstellen
         shell: bash
         env:
@@ -30,7 +27,6 @@ jobs:
           RELEASE_NAME: ${{ github.event.release.name }}
         run: |
           set -euo pipefail
-
           if [[ "$EVENT_NAME" == "release" ]]; then
             title="${RELEASE_NAME:-Neue Version}"
             version="${TAG_NAME:-}"
@@ -44,101 +40,45 @@ jobs:
               commits=$(git log --no-merges --pretty=format:'%s' "$BEFORE..$SHA" || true)
             fi
           fi
-
-          features=""
-          fixes=""
-          changes=""
-
+          features=""; fixes=""; changes=""
           while IFS= read -r subject; do
             [[ -z "${subject:-}" ]] && continue
-
-            # Technische Commit-Präfixe für Spieler verständlich umformulieren.
             clean="$subject"
-            clean="${clean#feat: }"
-            clean="${clean#feature: }"
-            clean="${clean#fix: }"
-            clean="${clean#bugfix: }"
-            clean="${clean#release: }"
-            clean="${clean#version: }"
-            clean="${clean#chore: }"
-            clean="${clean#refactor: }"
-            clean="${clean#docs: }"
-            clean="${clean#style: }"
-            clean="${clean#perf: }"
-            clean="${clean#test: }"
-            clean="${clean#ci: }"
-            clean="${clean#build: }"
-
-            # Technische Begriffe etwas lesbarer machen.
+            for prefix in 'feat: ' 'feature: ' 'fix: ' 'bugfix: ' 'release: ' 'version: ' 'chore: ' 'refactor: ' 'docs: ' 'style: ' 'perf: ' 'test: ' 'ci: ' 'build: '; do clean="${clean#${prefix}}"; done
             clean="${clean//real-world map/echte Weltkarte}"
             clean="${clean//real map/echte Weltkarte}"
-            clean="${clean//GPS/GPS}"
             clean="${clean//auth/Anmeldung}"
             clean="${clean//login/Anmeldung}"
             clean="${clean//register/Registrierung}"
             clean="${clean//logging/Protokollierung}"
             clean="${clean//Discord logging/Discord-Protokollierung}"
-
             item="• ${clean}"
-
-            if [[ "$subject" =~ ^(feat|feature)(\(.+\))?: ]]; then
-              features+="$item"$'\n'
-            elif [[ "$subject" =~ ^(fix|bugfix)(\(.+\))?: ]]; then
-              fixes+="$item"$'\n'
-            else
-              changes+="$item"$'\n'
-            fi
+            if [[ "$subject" =~ ^(feat|feature)(\(.+\))?: ]]; then features+="$item"$'\n'; elif [[ "$subject" =~ ^(fix|bugfix)(\(.+\))?: ]]; then fixes+="$item"$'\n'; else changes+="$item"$'\n'; fi
           done <<< "$commits"
-
           [[ -n "$features" ]] || features="• Keine neuen Funktionen"
           [[ -n "$fixes" ]] || fixes="• Keine Fehlerbehebungen"
           [[ -n "$changes" ]] || changes="• Keine weiteren Änderungen"
-
           export TITLE="$title" VERSION="$version" FEATURES="$features" FIXES="$fixes" CHANGES="$changes"
-
           python3 - <<'PY'
           import json, os
           from datetime import datetime, timezone
-
-          def clip(value, limit=1000):
-              value = value.strip()
-              return value if len(value) <= limit else value[:limit-1] + '…'
-
-          fields = []
-          if os.environ.get('VERSION'):
-              fields.append({'name': '🚀 Version', 'value': clip(os.environ['VERSION']), 'inline': True})
-          fields.append({'name': '✨ Neu', 'value': clip(os.environ['FEATURES']), 'inline': False})
-          fields.append({'name': '🐛 Behoben', 'value': clip(os.environ['FIXES']), 'inline': False})
-          fields.append({'name': '🔧 Geändert', 'value': clip(os.environ['CHANGES']), 'inline': False})
-
-          payload = {
-              'username': 'Mafia – The Real World',
-              'embeds': [{
-                  'title': f'📋 Changelog · {os.environ["TITLE"]}',
-                  'description': 'Hier siehst du kurz und verständlich, was sich im Spiel geändert hat.',
-                  'fields': fields,
-                  'footer': {'text': 'Mafia – The Real World · Changelog'},
-                  'timestamp': datetime.now(timezone.utc).isoformat()
-              }],
-              'allowed_mentions': {'parse': []}
-          }
-
-          with open('/tmp/discord-payload.json', 'w', encoding='utf-8') as f:
-              json.dump(payload, f, ensure_ascii=False)
+          def clip(v, n=1000):
+              v=v.strip(); return v if len(v)<=n else v[:n-1]+'…'
+          fields=[]
+          if os.environ.get('VERSION'): fields.append({'name':'🚀 Version','value':clip(os.environ['VERSION']),'inline':True})
+          fields += [
+            {'name':'✨ Neu','value':clip(os.environ['FEATURES']),'inline':False},
+            {'name':'🐛 Behoben','value':clip(os.environ['FIXES']),'inline':False},
+            {'name':'🔧 Geändert','value':clip(os.environ['CHANGES']),'inline':False}
+          ]
+          payload={'username':'MAFIVERA','embeds':[{'title':f'📋 Changelog · {os.environ["TITLE"]}','description':'Hier siehst du kurz und verständlich, was sich im Spiel geändert hat.','fields':fields,'footer':{'text':'MAFIVERA · Die Welt gehört dir'},'timestamp':datetime.now(timezone.utc).isoformat()}],'allowed_mentions':{'parse':[]}}
+          with open('/tmp/discord-payload.json','w',encoding='utf-8') as f: json.dump(payload,f,ensure_ascii=False)
           PY
-
       - name: Changelog an Discord senden
         env:
           DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${DISCORD_CHANGELOG_WEBHOOK:-}" ]]; then
-            echo 'DISCORD_CHANGELOG_WEBHOOK is not configured.'
-            exit 1
-          fi
-          curl --fail-with-body --silent --show-error \
-            -H 'Content-Type: application/json' \
-            -X POST \
-            --data-binary @/tmp/discord-payload.json \
-            "$DISCORD_CHANGELOG_WEBHOOK"
+          if [[ -z "${DISCORD_CHANGELOG_WEBHOOK:-}" ]]; then echo 'DISCORD_CHANGELOG_WEBHOOK is not configured.'; exit 1; fi
+          curl --fail-with-body --silent --show-error -H 'Content-Type: application/json' -X POST --data-binary @/tmp/discord-payload.json "$DISCORD_CHANGELOG_WEBHOOK"

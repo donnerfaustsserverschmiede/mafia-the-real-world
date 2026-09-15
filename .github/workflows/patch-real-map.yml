@@ -11,6 +11,9 @@ on:
       - 'guest-safety.js'
       - 'google-auth.js'
       - 'email-auth.js'
+      - 'assets/mafivera-brand.js'
+      - 'assets/mafivera-logo.webp'
+      - 'manifest.webmanifest'
       - 'supabase/places.sql'
       - 'supabase/world_production.sql'
       - 'supabase/functions/world-tile/index.ts'
@@ -21,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Synchronize global map, GPS, logging and authentication integration
+      - name: Synchronize global map, GPS, logging, authentication and MAFIVERA branding
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -38,9 +41,9 @@ jobs:
               s=s.replace(hook,replacement,1)
           s=s.replace('async function startGame(session){','window.startGame=async function startGame(session){',1)
           s=re.sub(r'\(async\(\)=>\{try\{const\{data\}=await db\.auth\.getSession\(\);if\(data\.session\)await startGame\(data\.session\)\}catch\(e\)\{console\.error\(e\)\}\}\)\(\);', '', s)
-          for name in ['auth-fix','guest-safety','google-auth','places','gps','presence','logs','email-auth']:
-              s=re.sub(r'<script src="\./'+name+r'\.js\?v=\d+"></script>\s*', '', s)
-          s=s.replace('</body>','<script src="./places.js?v=14"></script>\n<script src="./gps.js?v=14"></script>\n<script src="./presence.js?v=1"></script>\n<script src="./logs.js?v=1"></script>\n<script src="./email-auth.js?v=3"></script>\n</body>')
+          for name in ['auth-fix','guest-safety','google-auth','places','gps','presence','logs','email-auth','assets/mafivera-brand']:
+              s=re.sub(r'<script src="\./'+re.escape(name)+r'\.js\?v=\d+"></script>\s*', '', s)
+          s=s.replace('</body>','<script src="./places.js?v=14"></script>\n<script src="./gps.js?v=14"></script>\n<script src="./presence.js?v=1"></script>\n<script src="./logs.js?v=1"></script>\n<script src="./email-auth.js?v=3"></script>\n<script src="./assets/mafivera-brand.js?v=1"></script>\n</body>')
           old="const message=(el,t)=>{el.textContent=t||''};"
           new="const message=(el,t)=>{const target=(el&&el.isConnected?el:null)||document.getElementById('emailAuthMessage')||el||document.getElementById('startMessage');if(target)target.textContent=t||'';};"
           if old in s:
@@ -54,5 +57,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'feat: inject secure Discord logging bridge'
+          git diff --cached --quiet || git commit -m 'feat: inject MAFIVERA branding'
           git push
