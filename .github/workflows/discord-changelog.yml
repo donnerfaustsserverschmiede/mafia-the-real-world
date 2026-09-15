@@ -15,12 +15,12 @@ jobs:
   changelog:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Repository laden
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Build changelog
+      - name: Changelog erstellen
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -28,52 +28,73 @@ jobs:
           SHA: ${{ github.sha }}
           TAG_NAME: ${{ github.event.release.tag_name }}
           RELEASE_NAME: ${{ github.event.release.name }}
-          RELEASE_URL: ${{ github.event.release.html_url }}
         run: |
           set -euo pipefail
 
           if [[ "$EVENT_NAME" == "release" ]]; then
             title="${RELEASE_NAME:-Neue Version}"
-            version="${TAG_NAME:-Release}"
-            url="$RELEASE_URL"
-            commits=$(git log -1 --pretty=format:'%H%x09%s%x09%an' "$SHA")
+            version="${TAG_NAME:-}"
+            commits=$(git log -1 --pretty=format:'%s' "$SHA")
           else
             title="Neue Änderungen"
             version=""
-            url="https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}"
             if [[ "$BEFORE" =~ ^0+$ ]]; then
-              commits=$(git log -10 --no-merges --pretty=format:'%H%x09%s%x09%an' "$SHA")
+              commits=$(git log -10 --no-merges --pretty=format:'%s' "$SHA")
             else
-              commits=$(git log --no-merges --pretty=format:'%H%x09%s%x09%an' "$BEFORE..$SHA" || true)
+              commits=$(git log --no-merges --pretty=format:'%s' "$BEFORE..$SHA" || true)
             fi
           fi
 
           features=""
           fixes=""
           changes=""
-          versions=""
 
-          while IFS=$'\t' read -r hash subject author; do
+          while IFS= read -r subject; do
             [[ -z "${subject:-}" ]] && continue
-            link="https://github.com/${GITHUB_REPOSITORY}/commit/${hash}"
-            item="• [${subject}](<${link}>) — ${author}"
+
+            # Technische Commit-Präfixe für Spieler verständlich umformulieren.
+            clean="$subject"
+            clean="${clean#feat: }"
+            clean="${clean#feature: }"
+            clean="${clean#fix: }"
+            clean="${clean#bugfix: }"
+            clean="${clean#release: }"
+            clean="${clean#version: }"
+            clean="${clean#chore: }"
+            clean="${clean#refactor: }"
+            clean="${clean#docs: }"
+            clean="${clean#style: }"
+            clean="${clean#perf: }"
+            clean="${clean#test: }"
+            clean="${clean#ci: }"
+            clean="${clean#build: }"
+
+            # Technische Begriffe etwas lesbarer machen.
+            clean="${clean//real-world map/echte Weltkarte}"
+            clean="${clean//real map/echte Weltkarte}"
+            clean="${clean//GPS/GPS}"
+            clean="${clean//auth/Anmeldung}"
+            clean="${clean//login/Anmeldung}"
+            clean="${clean//register/Registrierung}"
+            clean="${clean//logging/Protokollierung}"
+            clean="${clean//Discord logging/Discord-Protokollierung}"
+
+            item="• ${clean}"
 
             if [[ "$subject" =~ ^(feat|feature)(\(.+\))?: ]]; then
               features+="$item"$'\n'
             elif [[ "$subject" =~ ^(fix|bugfix)(\(.+\))?: ]]; then
               fixes+="$item"$'\n'
-            elif [[ "$subject" =~ ^(release|version)(\(.+\))?: ]] || [[ "$subject" =~ [vV][0-9]+\.[0-9]+ ]]; then
-              versions+="$item"$'\n'
             else
               changes+="$item"$'\n'
             fi
           done <<< "$commits"
 
-          [[ -n "$features" ]] || features="Keine neuen Funktionen."
-          [[ -n "$fixes" ]] || fixes="Keine Fehlerbehebungen."
-          [[ -n "$changes" ]] || changes="Keine weiteren Änderungen."
+          [[ -n "$features" ]] || features="• Keine neuen Funktionen"
+          [[ -n "$fixes" ]] || fixes="• Keine Fehlerbehebungen"
+          [[ -n "$changes" ]] || changes="• Keine weiteren Änderungen"
 
-          export TITLE="$title" VERSION="$version" URL="$url" FEATURES="$features" FIXES="$fixes" VERSIONS="$versions" CHANGES="$changes"
+          export TITLE="$title" VERSION="$version" FEATURES="$features" FIXES="$fixes" CHANGES="$changes"
 
           python3 - <<'PY'
           import json, os
@@ -86,20 +107,17 @@ jobs:
           fields = []
           if os.environ.get('VERSION'):
               fields.append({'name': '🚀 Version', 'value': clip(os.environ['VERSION']), 'inline': True})
-          if os.environ.get('VERSIONS', '').strip():
-              fields.append({'name': '📦 Version / Release', 'value': clip(os.environ['VERSIONS']), 'inline': False})
-          fields.append({'name': '✨ Neue Funktionen', 'value': clip(os.environ['FEATURES']), 'inline': False})
-          fields.append({'name': '🐛 Fehlerbehebungen', 'value': clip(os.environ['FIXES']), 'inline': False})
-          fields.append({'name': '🔧 Änderungen', 'value': clip(os.environ['CHANGES']), 'inline': False})
+          fields.append({'name': '✨ Neu', 'value': clip(os.environ['FEATURES']), 'inline': False})
+          fields.append({'name': '🐛 Behoben', 'value': clip(os.environ['FIXES']), 'inline': False})
+          fields.append({'name': '🔧 Geändert', 'value': clip(os.environ['CHANGES']), 'inline': False})
 
           payload = {
               'username': 'Mafia – The Real World',
               'embeds': [{
                   'title': f'📋 Changelog · {os.environ["TITLE"]}',
-                  'url': os.environ['URL'],
-                  'description': 'Automatisch aus den Änderungen im Repository erstellt.',
+                  'description': 'Hier siehst du kurz und verständlich, was sich im Spiel geändert hat.',
                   'fields': fields,
-                  'footer': {'text': 'Mafia – The Real World · Automatischer Changelog'},
+                  'footer': {'text': 'Mafia – The Real World · Changelog'},
                   'timestamp': datetime.now(timezone.utc).isoformat()
               }],
               'allowed_mentions': {'parse': []}
@@ -109,7 +127,7 @@ jobs:
               json.dump(payload, f, ensure_ascii=False)
           PY
 
-      - name: Publish changelog to Discord
+      - name: Changelog an Discord senden
         env:
           DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
         shell: bash
