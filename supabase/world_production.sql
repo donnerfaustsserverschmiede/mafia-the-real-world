@@ -1,6 +1,7 @@
 -- MTRW GLOBAL WORLD CACHE
 -- Run once in Supabase SQL Editor before deploying the world-tile Edge Function.
 -- Requires PostGIS (Supabase Dashboard -> Database -> Extensions -> postgis).
+-- Deployment trigger: world-service deployment after Supabase secrets are configured.
 
 create extension if not exists postgis with schema extensions;
 
