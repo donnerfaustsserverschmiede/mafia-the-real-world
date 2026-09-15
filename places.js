@@ -1,4 +1,4 @@
-/* MTRW v0.9 - Production real-world OSM areas. */
+/* MTRW v1.0 - Fast local real-world map loading. */
 (async()=>{
   if(!window.db||!window.map)return;
   const map=window.map,oldGrid=window.gridLayer;if(oldGrid)oldGrid.clearLayers();
@@ -10,10 +10,38 @@
   const esc=s=>String(s??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
   const center=e=>e.lat!=null&&e.lon!=null?[e.lat,e.lon]:e.center?[e.center.lat,e.center.lon]:e.geometry?.length?[e.geometry.reduce((a,p)=>a+p.lat,0)/e.geometry.length,e.geometry.reduce((a,p)=>a+p.lon,0)/e.geometry.length]:null;
   const area=a=>{if(!a||a.length<3)return Infinity;let s=0;for(let i=0,j=a.length-1;i<a.length;j=i++)s+=a[j].lat*a[i].lon-a[i].lat*a[j].lon;return Math.abs(s)};
-  async function loadOwned(){const{data}=await window.db.from('game_places').select('id,owner_id,tier,influence_value,claim_reward_money,claim_reward_reputation');owned=new Map((data||[]).map(x=>[x.id,x]));}
-  async function fetchPlaces(lat,lng){if(busy||Date.now()-last<5000)return;busy=true;last=Date.now();const d=.008,s=lat-d,w=lng-d,n=lat+d,e=lng+d;const q=`[out:json][timeout:25];(way[building](${s},${w},${n},${e});way[landuse~"^(residential|industrial)$"](${s},${w},${n},${e});way[place~"^(neighbourhood|suburb|quarter|village|hamlet|town|city)$"](${s},${w},${n},${e});relation[place~"^(neighbourhood|suburb|quarter|village|hamlet|town|city)$"](${s},${w},${n},${e});node[place~"^(neighbourhood|suburb|quarter|village|hamlet|town|city)$"](${s},${w},${n},${e}););out center geom;`;
-    try{const r=await fetch(OVERPASS,{method:'POST',body:'data='+encodeURIComponent(q)});if(!r.ok)throw Error('overpass');const j=await r.json();places=(j.elements||[]).map(x=>{const t=x.tags||{},k=tier(t.place||t.building||t.landuse),c=center(x);let g=x.geometry||null;if(!g&&c)g=[{lat:c[0],lon:c[1]}];return{id:`${x.type}/${x.id}`,osmType:x.type,osmId:x.id,name:t.name||TIERS[k].label,kind:t.place||t.building||t.landuse||'area',tier:k,center:c,geometry:g,tags:t}}).filter(x=>x.center);await loadOwned();draw();selectAt(lat,lng)}catch(e){const s=document.getElementById('status');if(s)s.textContent='Kartendaten konnten gerade nicht geladen werden.'}finally{busy=false}}
-  function draw(){layer.clearLayers();for(const p of places){const o=owned.get(p.id),own=!!o,c=own?'#d1a72c':TIERS[p.tier].color;let l;if(p.geometry?.length>=3)l=L.polygon(p.geometry.map(x=>[x.lat,x.lon]),{color:c,weight:own?3:1,fillColor:c,fillOpacity:own?.30:.10});else l=L.circleMarker(p.center,{radius:p.tier==='city'?10:p.tier==='district'?8:p.tier==='settlement'?7:5,color:c,fillColor:c,fillOpacity:.65,weight:2});l.bindTooltip(`${esc(p.name)} · ${TIERS[p.tier].label}`,{sticky:true});l.on('click',()=>select(p));l.addTo(layer)}}
+  async function loadOwned(){
+    if(!places.length)return;
+    const ids=places.map(x=>x.id);
+    const chunk=300;let rows=[];
+    for(let i=0;i<ids.length;i+=chunk){const{data,error}=await window.db.from('game_places').select('id,owner_id,tier,influence_value,claim_reward_money,claim_reward_reputation').in('id',ids.slice(i,i+chunk));if(!error&&data)rows.push(...data)}
+    owned=new Map(rows.map(x=>[x.id,x]));
+  }
+  async function fetchPlaces(lat,lng){
+    if(!Number.isFinite(lat)||!Number.isFinite(lng)||busy||Date.now()-last<4000)return;
+    busy=true;last=Date.now();
+    // Keep the first viewport small: roughly 450 m around the player. More data is loaded later on demand.
+    const d=.004,s=lat-d,w=lng-d,n=lat+d,e=lng+d;
+    const q=`[out:json][timeout:8];(way[building](${s},${w},${n},${e});way[landuse~"^(residential|industrial)$"](${s},${w},${n},${e});way[place~"^(neighbourhood|suburb|quarter|village|hamlet|town|city)$"](${s},${w},${n},${e});relation[place~"^(neighbourhood|suburb|quarter|village|hamlet|town|city)$"](${s},${w},${n},${e});node[place~"^(neighbourhood|suburb|quarter|village|hamlet|town|city)$"](${s},${w},${n},${e}););out center geom;`;
+    try{
+      const r=await fetch(OVERPASS,{method:'POST',body:'data='+encodeURIComponent(q)});
+      if(!r.ok)throw Error('overpass');
+      const j=await r.json();
+      places=(j.elements||[]).map(x=>{const t=x.tags||{},k=tier(t.place||t.building||t.landuse),c=center(x);let g=x.geometry||null;if(!g&&c)g=[{lat:c[0],lon:c[1]}];return{id:`${x.type}/${x.id}`,osmType:x.type,osmId:x.id,name:t.name||TIERS[k].label,kind:t.place||t.building||t.landuse||'area',tier:k,center:c,geometry:g,tags:t}}).filter(x=>x.center);
+      await loadOwned();draw();selectAt(lat,lng);
+      const st=document.getElementById('status');if(st)st.textContent=`Kartendaten aktiv · ${places.length} Objekte in deiner Nähe`;
+    }catch(e){console.warn('[MTRW] nearby map load',e);const st=document.getElementById('status');if(st)st.textContent='Kartendaten werden später nachgeladen.'}
+    finally{busy=false}
+  }
+  function draw(){
+    layer.clearLayers();
+    for(const p of places){
+      const o=owned.get(p.id),own=!!o,c=own?'#d1a72c':TIERS[p.tier].color;let l;
+      if(p.geometry?.length>=3)l=L.polygon(p.geometry.map(x=>[x.lat,x.lon]),{color:c,weight:own?3:1,fillColor:c,fillOpacity:own?.30:.10});
+      else l=L.circleMarker(p.center,{radius:p.tier==='city'?10:p.tier==='district'?8:p.tier==='settlement'?7:5,color:c,fillColor:c,fillOpacity:.65,weight:2});
+      l.bindTooltip(`${esc(p.name)} · ${TIERS[p.tier].label}`,{sticky:true});l.on('click',()=>select(p));l.addTo(layer)
+    }
+  }
   function inside(pt,g){if(!g||g.length<3)return false;let x=pt[1],y=pt[0],ok=false;for(let i=0,j=g.length-1;i<g.length;j=i++){let xi=g[i].lon,yi=g[i].lat,xj=g[j].lon,yj=g[j].lat,hit=((yi>y)!=(yj>y))&&x<(xj-xi)*(y-yi)/(yj-yi)+xi;if(hit)ok=!ok}return ok}
   function selectAt(lat,lng){const hits=places.filter(p=>p.geometry?.length>=3&&inside([lat,lng],p.geometry)).sort((a,b)=>area(a.geometry)-area(b.geometry));if(hits[0])select(hits[0]);else{const near=places.filter(p=>p.center).sort((a,b)=>map.distance([lat,lng],a.center)-map.distance([lat,lng],b.center))[0];if(near&&map.distance([lat,lng],near.center)<120)select(near)}}
   function select(p){selected=p;window.current=p.id;const st=state(),o=owned.get(p.id),v=TIERS[p.tier],mine=o?.owner_id===st.user?.id;document.getElementById('zoneTitle').textContent=`${v.label}: ${p.name}`;document.getElementById('zoneInfo').innerHTML=o?(mine?'Dieses Gebiet gehört deiner Mafia-Familie.':'Dieses Gebiet wird von einer rivalisierenden Mafia kontrolliert.'):`<b>${v.influence.toLocaleString('de-DE')} Einfluss</b> · +$${v.money.toLocaleString('de-DE')} · +${v.rep} Reputation`;const b=document.getElementById('claim');if(b)b.disabled=!!o||!st.user;}
