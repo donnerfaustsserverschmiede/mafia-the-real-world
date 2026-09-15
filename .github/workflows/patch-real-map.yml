@@ -33,9 +33,12 @@ jobs:
           gps='<script src="./gps.js"></script>'
           if gps not in s:
               s=s.replace('</body>',gps+'\n</body>')
-          auth='<script src="./auth-fix.js?v=2"></script>'
-          if auth not in s:
-              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',auth+'\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>')
+          auth_v2='<script src="./auth-fix.js?v=2"></script>'
+          auth_v3='<script src="./auth-fix.js?v=3"></script>'
+          if auth_v2 in s:
+              s=s.replace(auth_v2,auth_v3)
+          elif auth_v3 not in s:
+              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',auth_v3+'\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>')
           p.write_text(s)
           PY
           git config user.name 'github-actions[bot]'
