@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<title>MAFIA — The Real World</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#101010;color:#eee;overflow:hidden}.app{height:100%;display:flex;flex-direction:column}.top{z-index:1000;background:#151515;border-bottom:1px solid #333;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:900;letter-spacing:.08em}.brand small{display:block;color:#999;font-size:10px;letter-spacing:.16em}.stats{display:flex;gap:12px}.stat{font-size:11px;color:#aaa}.stat b{display:block;color:#fff;font-size:14px}.map{flex:1;min-height:0}.panel{position:absolute;z-index:1100;left:12px;right:12px;bottom:12px;max-width:440px;background:rgba(18,18,18,.96);border:1px solid #3b3b3b;border-radius:16px;padding:14px;box-shadow:0 10px 35px #0009}.panel h2{font-size:17px;margin:0 0 5px}.muted{font-size:13px;color:#aaa;line-height:1.4}button{min-height:44px;border:0;border-radius:10px;padding:10px 14px;margin-top:10px;font-weight:800;cursor:pointer}.primary{background:#d1a72c;color:#111}.secondary{background:#333;color:#fff}.primary:disabled{opacity:.45;cursor:not-allowed}.status{font-size:12px;color:#bbb;margin-top:8px;min-height:18px}.leaflet-control-attribution{font-size:9px}.leaflet-container{background:#ddd}@media(max-width:600px){.top{padding:9px}.stats{gap:7px}.stats .stat:nth-child(3){display:none}.panel{left:8px;right:8px;bottom:8px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand">🕴️ MAFIA <small>THE REAL WORLD · v0.1</small></div><div class="stats"><div class="stat">💵<b id="money">$1,000</b></div><div class="stat">⭐<b id="rep">0</b></div><div class="stat">🏴<b id="territory">0</b></div></div></header>
+<main id="map" class="map"></main>
+<section class="panel"><h2 id="zoneTitle">Standort wird ermittelt…</h2><div id="zoneInfo" class="muted">Erlaube den Standortzugriff. Dein Standort wird nur für die Spielmechanik benötigt.</div><button id="claim" class="primary" disabled>🏴 Gebiet übernehmen</button><button id="locate" class="secondary">📍 Meinen Standort</button><div id="status" class="status" aria-live="polite"></div></section>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map=L.map('map').setView([51.1657,10.4515],6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+let marker=null,current=null;const owned=new Set();let money=1000,rep=0;
+const size=.0025;
+function key(lat,lng){return Math.floor(lat/size)+':'+Math.floor(lng/size)}
+function update(lat,lng){current=key(lat,lng);document.getElementById('zoneTitle').textContent='Gebiet '+current;const mine=owned.has(current);document.getElementById('zoneInfo').textContent=mine?'Dieses Gebiet gehört deiner Mafia-Familie.':'Neutrales Gebiet. Du befindest dich darin und kannst es übernehmen.';document.getElementById('claim').disabled=mine}
+function locate(){const s=document.getElementById('status');if(!navigator.geolocation){s.textContent='Standortzugriff wird von diesem Browser nicht unterstützt.';return}s.textContent='Standort wird angefragt…';navigator.geolocation.getCurrentPosition(p=>{const {latitude,longitude}=p.coords;if(marker)map.removeLayer(marker);marker=L.marker([latitude,longitude]).addTo(map).bindPopup('👤 Deine Position').openPopup();map.setView([latitude,longitude],17);update(latitude,longitude);s.textContent='Standort aktiv.'},e=>{s.textContent='Standort konnte nicht ermittelt werden. Bitte HTTPS verwenden und Standortzugriff erlauben.'},{enableHighAccuracy:true,maximumAge:5000,timeout:15000})}
+document.getElementById('locate').onclick=locate;document.getElementById('claim').onclick=()=>{if(!current||owned.has(current))return;owned.add(current);money+=100;rep+=10;document.getElementById('money').textContent='$'+money.toLocaleString('de-DE');document.getElementById('rep').textContent=rep;document.getElementById('territory').textContent=owned.size;document.getElementById('zoneInfo').textContent='Gebiet übernommen. Deine Mafia kontrolliert jetzt dieses Quadrat.';document.getElementById('claim').disabled=true};locate();
+</script>
+</body>
+</html>
