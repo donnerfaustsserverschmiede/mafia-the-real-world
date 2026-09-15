@@ -6,6 +6,7 @@ on:
       - 'gps.js'
       - 'auth-fix.js'
       - 'guest-safety.js'
+      - 'google-auth.js'
       - 'supabase/places.sql'
 permissions:
   contents: write
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject real-world map and guest profile integration
+      - name: Inject real-world map and Google authentication integration
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -36,10 +37,12 @@ jobs:
           s=re.sub(r'<script src="\./auth-fix\.js\?v=\d+"></script>\s*', '', s)
           if './guest-safety.js' not in s:
               s=s.replace('</body>','<script src="./guest-safety.js?v=1"></script>\n</body>')
+          if './google-auth.js' not in s:
+              s=s.replace('</body>','<script src="./google-auth.js?v=1"></script>\n</body>')
           p.write_text(s)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'fix: remove legacy auth injection and add guest safety'
+          git diff --cached --quiet || git commit -m 'feat: inject Google OAuth entry screen'
           git push
