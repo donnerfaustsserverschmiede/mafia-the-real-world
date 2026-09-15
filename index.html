@@ -43,4 +43,5 @@ document.getElementById('logout').onclick=async()=>{document.getElementById('sta
 (async()=>{try{const{data}=await db.auth.getSession();if(data.session)await startGame(data.session)}catch(e){console.error(e)}})();
 setInterval(async()=>{if(!user||starting)return;try{const{data,error}=await db.rpc('player_access_status');if(error)return;if(data&&!data.allowed){await db.auth.signOut();alert(data.type==='ban'?'Du wurdest gebannt.\n'+(data.reason||''):'Du wurdest gekickt.');location.reload()}}catch(e){console.warn(e)}},30000);
 </script><script src="./places.js?v=10"></script><script src="./gps.js?v=10"></script>
+<script src="./guest-safety.js?v=1"></script>
 </body></html>
