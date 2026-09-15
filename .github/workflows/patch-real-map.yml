@@ -13,10 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject map and authentication integration
+      - name: Inject real-world map and authentication integration
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text()
           marker="gridLayer=L.layerGroup().addTo(map);"
@@ -27,22 +28,17 @@ jobs:
           replacement='updateZone(latitude,longitude);window.updateZoneReal?.(latitude,longitude);'
           if hook in s and 'window.updateZoneReal?.(latitude,longitude)' not in s:
               s=s.replace(hook,replacement,1)
-          tag='<script src="./places.js"></script>'
-          if tag not in s:
-              s=s.replace('</body>',tag+'\n</body>')
-          gps='<script src="./gps.js"></script>'
-          if gps not in s:
-              s=s.replace('</body>',gps+'\n</body>')
-          auth_v2='<script src="./auth-fix.js?v=2"></script>'
-          auth_v3='<script src="./auth-fix.js?v=3"></script>'
-          if auth_v2 in s:
-              s=s.replace(auth_v2,auth_v3)
-          elif auth_v3 not in s:
-              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',auth_v3+'\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>')
+          if '<script src="./places.js' not in s:
+              s=s.replace('</body>','<script src="./places.js?v=10"></script>\n</body>')
+          if '<script src="./gps.js' not in s:
+              s=s.replace('</body>','<script src="./gps.js?v=10"></script>\n</body>')
+          s=re.sub(r'<script src="\./auth-fix\.js\?v=\d+"></script>', '<script src="./auth-fix.js?v=4"></script>', s)
+          if './auth-fix.js?v=4' not in s:
+              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>','<script src="./auth-fix.js?v=4"></script>\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>')
           p.write_text(s)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'fix: harden authentication boot and login'
+          git diff --cached --quiet || git commit -m 'fix: refresh auth compatibility script cache'
           git push
