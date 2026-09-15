@@ -57,3 +57,4 @@
     setTimeout(startWhenGameVisible,700);
   }
 })();
+// deployment trigger: guest-profile-safety-v1
