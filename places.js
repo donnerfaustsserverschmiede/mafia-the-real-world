@@ -7,7 +7,7 @@
   const OVERPASS='https://overpass-api.de/api/interpreter';
   const TIERS={property:{label:'Grundstück',influence:1,money:100,rep:5,color:'#5b83b5'},area:{label:'Gebiet',influence:10,money:200,rep:10,color:'#777'},settlement:{label:'Siedlung',influence:50,money:500,rep:20,color:'#4f9b68'},district:{label:'Stadtteil',influence:250,money:1500,rep:40,color:'#d27a32'},city:{label:'Stadt',influence:1000,money:5000,rep:100,color:'#a85b9c'}};
   const tier=k=>{k=String(k||'').toLowerCase();if(k==='city'||k==='town')return'city';if(['suburb','neighbourhood','quarter'].includes(k))return'district';if(['village','hamlet'].includes(k))return'settlement';if(['residential','industrial'].includes(k))return'area';return'property'};
-  const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const esc=s=>String(s??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
   const center=e=>e.lat!=null&&e.lon!=null?[e.lat,e.lon]:e.center?[e.center.lat,e.center.lon]:e.geometry?.length?[e.geometry.reduce((a,p)=>a+p.lat,0)/e.geometry.length,e.geometry.reduce((a,p)=>a+p.lon,0)/e.geometry.length]:null;
   const area=a=>{if(!a||a.length<3)return Infinity;let s=0;for(let i=0,j=a.length-1;i<a.length;j=i++)s+=a[j].lat*a[i].lon-a[i].lat*a[j].lon;return Math.abs(s)};
   async function loadOwned(){const{data}=await window.db.from('game_places').select('id,owner_id,tier,influence_value,claim_reward_money,claim_reward_reputation');owned=new Map((data||[]).map(x=>[x.id,x]));}
@@ -21,4 +21,20 @@
   document.getElementById('claim').onclick=()=>window.claimRealPlace();window.updateZoneReal=(lat,lng)=>{fetchPlaces(lat,lng);selectAt(lat,lng)};window.loadRealPlaces=fetchPlaces;
   const legend=document.createElement('div');legend.style.cssText='position:absolute;top:10px;right:10px;z-index:1200;background:#111d;color:#eee;padding:8px 10px;border:1px solid #444;border-radius:10px;font:11px system-ui;line-height:1.55';legend.innerHTML=Object.entries(TIERS).map(([k,v])=>`<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${v.color};margin-right:5px"></span>${v.label} · ${v.influence} Einfluss</div>`).join('');document.getElementById('map').appendChild(legend);
   if(window.marker){const p=window.marker.getLatLng();fetchPlaces(p.lat,p.lng)}else document.getElementById('status').textContent='Echte Kartenobjekte werden beim GPS-Start geladen.';
+})();
+
+/* Device GPS permission / original device position. */
+(()=>{
+  if(window.mtrwGpsInstalled)return;
+  window.mtrwGpsInstalled=true;
+  const game=document.getElementById('game'),button=document.getElementById('locate'),status=document.getElementById('status');
+  const setStatus=t=>{if(status)status.textContent=t};
+  const originalLocate=window.locate;
+  let requested=false;
+  function errorText(e){if(!e)return'Unbekannter GPS-Fehler.';if(e.code===1)return'Standortzugriff verweigert. Bitte im Browser für diese Website den Standort erlauben und möglichst „Genauen Standort“ aktivieren.';if(e.code===2)return'Der Gerätestandort konnte nicht ermittelt werden. Prüfe GPS/Standortdienste und versuche es erneut.';if(e.code===3)return'Die GPS-Ermittlung dauert zu lange. Bitte prüfe die Standortdienste und versuche es erneut.';return e.message||'GPS-Fehler.'}
+  function requestRealLocation(){if(!navigator.geolocation){setStatus('Dieser Browser unterstützt keinen Gerätestandort.');return}if(typeof originalLocate!=='function'){setStatus('GPS-Modul konnte nicht gestartet werden.');return}setStatus('📍 Originaler Gerätestandort wird angefordert…');navigator.geolocation.getCurrentPosition(pos=>{const a=Math.round(pos.coords.accuracy||0);setStatus(`📍 Gerätestandort aktiv · Genauigkeit ca. ${a} m`);originalLocate()},e=>setStatus(errorText(e)),{enableHighAccuracy:true,maximumAge:0,timeout:20000})}
+  async function checkPermission(){try{if(!navigator.permissions?.query)return'unknown';const p=await navigator.permissions.query({name:'geolocation'});if(p.state==='denied')setStatus('📍 Standort ist blockiert. Bitte Standortberechtigung für MAFIA – The Real World im Browser freigeben.');return p.state}catch{return'unknown'}}
+  if(button)button.onclick=requestRealLocation;
+  async function startWhenGameVisible(){if(requested||!game||game.hidden)return;requested=true;const permission=await checkPermission();if(permission!=='denied')requestRealLocation()}
+  if(game){new MutationObserver(startWhenGameVisible).observe(game,{attributes:true,attributeFilter:['hidden']});setTimeout(startWhenGameVisible,700)}
 })();
