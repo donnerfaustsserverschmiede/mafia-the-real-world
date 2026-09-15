@@ -55,3 +55,4 @@
     setTimeout(startWhenGameVisible,700);
   }
 })();
+// Trigger GitHub Pages reinjection.
