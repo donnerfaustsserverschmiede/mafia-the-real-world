@@ -28,23 +28,19 @@ jobs:
       - name: Apply world database schema
         run: |
           set -euo pipefail
+          python - <<'PY' > /tmp/world-query.json
+          import json
+          print(json.dumps({'query': open('supabase/world_production.sql', encoding='utf-8').read()}))
+          PY
           curl --fail-with-body --silent --show-error \
             -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
             -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
-            --data-binary @- <<'JSON'
-          {
-            "query": "$(python - <<'PY'
-          import json
-          print(json.dumps(open('supabase/world_production.sql', encoding='utf-8').read())[1:-1])
-          PY
-          )"
-          }
-          JSON
+            --data-binary @/tmp/world-query.json
       - name: Apply places database schema
         run: |
           set -euo pipefail
-          python - <<'PY' > /tmp/query.json
+          python - <<'PY' > /tmp/places-query.json
           import json
           print(json.dumps({'query': open('supabase/places_production.sql', encoding='utf-8').read()}))
           PY
@@ -52,7 +48,7 @@ jobs:
             -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
             -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
-            --data-binary @/tmp/query.json
+            --data-binary @/tmp/places-query.json
       - name: Link project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - name: Deploy world tile function
