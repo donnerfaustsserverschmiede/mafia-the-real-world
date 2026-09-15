@@ -1,0 +1,145 @@
+name: Discord Changelog
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build changelog
+        id: changelog
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            title="${RELEASE_NAME:-Neue Version}"
+            version="${TAG_NAME:-Release}"
+            url="$RELEASE_URL"
+            range="$SHA"
+          else
+            title="Neue Änderungen"
+            version=""
+            url="https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}"
+            range="$BEFORE..$SHA"
+          fi
+
+          if [[ "$range" == "$SHA" ]]; then
+            commits=$(git log -1 --pretty=format:'%H%x09%s%x09%an')
+          else
+            commits=$(git log --no-merges --pretty=format:'%H%x09%s%x09%an' "$range" || true)
+          fi
+
+          features=""
+          fixes=""
+          changes=""
+          versions=""
+
+          while IFS=$'\t' read -r hash subject author; do
+            [[ -z "${subject:-}" ]] && continue
+            short="${hash:0:7}"
+            link="https://github.com/${GITHUB_REPOSITORY}/commit/${hash}"
+            item="• [${subject}](<${link}>) — ${author}"
+
+            lower=$(printf '%s' "$subject" | tr '[:upper:]' '[:lower:]')
+            if [[ "$subject" =~ ^(feat|feature)(\(.+\))?: ]]; then
+              features+="$item"$'\n'
+            elif [[ "$subject" =~ ^(fix|bugfix)(\(.+\))?: ]]; then
+              fixes+="$item"$'\n'
+            elif [[ "$subject" =~ ^(release|version)(\(.+\))?: ]] || [[ "$subject" =~ [vV][0-9]+\.[0-9]+ ]]; then
+              versions+="$item"$'\n'
+            else
+              changes+="$item"$'\n'
+            fi
+          done <<< "$commits"
+
+          [[ -n "$features" ]] || features="Keine neuen Funktionen."
+          [[ -n "$fixes" ]] || fixes="Keine Fehlerbehebungen."
+          [[ -n "$versions" ]] || versions=""
+          [[ -n "$changes" ]] || changes="Keine weiteren Änderungen."
+
+          python3 - <<'PY'
+          import json, os
+
+          def clip(value, limit=1000):
+              value = value.strip()
+              return value if len(value) <= limit else value[:limit-1] + '…'
+
+          title = os.environ.get('TITLE', 'Neue Änderungen')
+          version = os.environ.get('VERSION', '')
+          url = os.environ.get('URL', '')
+          features = os.environ.get('FEATURES', '')
+          fixes = os.environ.get('FIXES', '')
+          versions = os.environ.get('VERSIONS', '')
+          changes = os.environ.get('CHANGES', '')
+
+          fields = []
+          if version:
+              fields.append({'name': '🚀 Version', 'value': clip(version), 'inline': True})
+          if versions:
+              fields.append({'name': '📦 Version / Release', 'value': clip(versions), 'inline': False})
+          fields.append({'name': '✨ Neue Funktionen', 'value': clip(features), 'inline': False})
+          fields.append({'name': '🐛 Fehlerbehebungen', 'value': clip(fixes), 'inline': False})
+          fields.append({'name': '🔧 Änderungen', 'value': clip(changes), 'inline': False})
+
+          payload = {
+              'username': 'Mafia – The Real World',
+              'embeds': [{
+                  'title': f'📋 Changelog · {title}',
+                  'url': url,
+                  'description': 'Automatisch aus den Änderungen im Repository erstellt.',
+                  'fields': fields,
+                  'footer': {'text': 'Mafia – The Real World · Automatischer Changelog'},
+                  'timestamp': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()
+              }],
+              'allowed_mentions': {'parse': []}
+          }
+
+          with open('/tmp/discord-payload.json', 'w', encoding='utf-8') as f:
+              json.dump(payload, f, ensure_ascii=False)
+          PY
+        env:
+          TITLE: ${{ env.EVENT_NAME == 'release' && env.RELEASE_NAME || 'Neue Änderungen' }}
+          VERSION: ${{ env.TAG_NAME }}
+          URL: ${{ env.RELEASE_URL || format('https://github.com/{0}/commit/{1}', github.repository, github.sha) }}
+          FEATURES: ${{ env.features }}
+          FIXES: ${{ env.fixes }}
+          VERSIONS: ${{ env.versions }}
+          CHANGES: ${{ env.changes }}
+
+      - name: Publish changelog to Discord
+        env:
+          DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${DISCORD_CHANGELOG_WEBHOOK:-}" ]]; then
+            echo 'DISCORD_CHANGELOG_WEBHOOK is not configured.'
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -X POST \
+            --data-binary @/tmp/discord-payload.json \
+            "$DISCORD_CHANGELOG_WEBHOOK"
