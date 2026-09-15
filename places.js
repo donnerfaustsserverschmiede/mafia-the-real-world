@@ -20,3 +20,4 @@
   document.getElementById('claim').onclick=()=>window.claimRealPlace();window.updateZoneReal=(lat,lng)=>{fetchPlaces(lat,lng);selectAt(lat,lng)};
   if(window.marker)fetchPlaces(window.marker.getLatLng().lat,window.marker.getLatLng().lng);document.getElementById('status').textContent='Echte Kartenobjekte werden geladen…';
 })();
+// Integration trigger: v0.7 real-world areas
