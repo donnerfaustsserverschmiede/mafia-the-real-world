@@ -1,4 +1,4 @@
-/* MTRW Email Authentication v2 */
+/* MTRW Email Authentication v3 */
 (()=>{
   if(window.mtrwEmailAuthInstalled)return;
   window.mtrwEmailAuthInstalled=true;
@@ -10,7 +10,7 @@
     const card=start?.querySelector('.card');
     const button=document.getElementById('startButton');
     if(!db||!start||!card||!button)return;
-    card.innerHTML=`<div class="logo">🕴️ MAFIA</div><div class="sub">THE REAL WORLD</div><h1 id="emailModeTitle">Willkommen</h1><p id="emailModeText">Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.</p><input id="emailAuthEmail" type="email" autocomplete="email" placeholder="E-Mail-Adresse"><input id="emailAuthPassword" type="password" autocomplete="current-password" placeholder="Passwort"><input id="emailAuthUsername" autocomplete="username" maxlength="24" placeholder="Username (nur bei Registrierung)" hidden><button class="primary" id="emailAuthButton" type="button">🔐 Anmelden</button><button class="secondary" id="emailRegisterButton" type="button">📝 Neues Konto erstellen</button><button class="secondary" id="emailForgotButton" type="button">🔑 Passwort vergessen</button><div id="emailAuthMessage" class="message" aria-live="polite"></div><div class="foot">Keine E-Mail-Bestätigung erforderlich · dein Spielstand gehört zu deinem Konto</div>`;
+    card.innerHTML=`<div class="logo">🕴️ MAFIA</div><div class="sub">THE REAL WORLD</div><h1 id="emailModeTitle">Willkommen zurück</h1><p id="emailModeText">Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.</p><input id="emailAuthEmail" type="email" autocomplete="email" placeholder="E-Mail-Adresse"><input id="emailAuthPassword" type="password" autocomplete="current-password" placeholder="Passwort"><input id="emailAuthUsername" autocomplete="username" maxlength="24" placeholder="Username (nur bei Registrierung)" hidden><button class="primary" id="emailAuthButton" type="button">🔐 Anmelden</button><button class="secondary" id="emailRegisterButton" type="button">📝 Neues Konto erstellen</button><button class="secondary" id="emailForgotButton" type="button">🔑 Passwort vergessen</button><div id="emailAuthMessage" class="message" aria-live="polite"></div><div class="foot">Keine E-Mail-Bestätigung erforderlich · dein Spielstand gehört zu deinem Konto</div>`;
     const email=document.getElementById('emailAuthEmail');
     const pass=document.getElementById('emailAuthPassword');
     const uname=document.getElementById('emailAuthUsername');
@@ -77,6 +77,13 @@
     };
     button.onclick=()=>{};
     showLogin();
+    // Resume an already authenticated account only after the email UI is ready.
+    setTimeout(async()=>{
+      try{
+        const {data}=await db.auth.getSession();
+        if(data?.session && document.getElementById('game')?.hidden) await launch(data.session);
+      }catch(e){console.error('[MTRW] session resume',e);set('Die gespeicherte Anmeldung konnte nicht geladen werden. Bitte erneut anmelden.',true)}
+    },50);
   }
   boot();
 })();
