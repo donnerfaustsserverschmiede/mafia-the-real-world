@@ -1,9 +1,9 @@
 {
-  "name": "MAFIVERA – Die Welt gehört dir",
-  "short_name": "MAFIVERA",
-  "description": "MAFIVERA – Das GPS-Mafia-Spiel. Die Welt gehört dir.",
+  "name": "MAFIVERA V2 – Die Welt gehört dir",
+  "short_name": "MAFIVERA V2",
+  "description": "MAFIVERA V2 – Das GPS-Mafia-Spiel. Die Welt gehört dir.",
   "lang": "de",
-  "start_url": "./",
+  "start_url": "./?v=2",
   "scope": "./",
   "display": "standalone",
   "background_color": "#080808",
