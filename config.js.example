@@ -1,7 +1,0 @@
-// Copy this file to config.js for local development.
-// IMPORTANT: only use the Supabase publishable/anon key in the browser.
-// Never put a Supabase secret/service-role key into this file.
-window.MTRW_CONFIG = {
-  SUPABASE_URL: 'https://YOUR-PROJECT.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_YOUR_KEY'
-};
