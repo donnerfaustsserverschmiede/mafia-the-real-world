@@ -1,1 +1,0 @@
-/* Google authentication was removed. MTRW now uses email and password authentication. */
