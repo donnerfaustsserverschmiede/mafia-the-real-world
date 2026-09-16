@@ -1,5 +1,6 @@
 name: Deploy MAFIVERA V1 to GitHub Pages
 
+# LIVE DEPLOY TRIGGER: always publish the current main branch
 on:
   push:
     branches: [main, V1]
