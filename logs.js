@@ -33,4 +33,6 @@
     console.info('[MTRW] Discord logging bridge ready');
   };
   install();
+  const loadRecruitment=()=>{if(window.mtrwRecruitmentLoader)return;window.mtrwRecruitmentLoader=true;const s=document.createElement('script');s.src='./recruitment.js?v=1';s.onload=()=>console.info('[MTRW] Rekrutierungs-System bereit');s.onerror=()=>console.warn('[MTRW] Rekrutierungs-System konnte nicht geladen werden');document.body.appendChild(s)};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadRecruitment,{once:true});else loadRecruitment();
 })();

@@ -2,7 +2,7 @@ name: Deploy MAFIVERA V1 to GitHub Pages
 
 on:
   push:
-    branches: [main, V1]
+    branches: [V1]
     paths-ignore:
       - '.github/workflows/discord-changelog.yml'
   workflow_dispatch:
@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: Checkout V1
         uses: actions/checkout@v4
-        with:
-          ref: V1
       - name: Install Discord logging bridge
         run: |
           python3 - <<'PY'
