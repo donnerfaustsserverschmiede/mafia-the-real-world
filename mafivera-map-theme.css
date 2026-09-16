@@ -3,7 +3,6 @@
 html,body,.mafivera-game{background:#02060b!important}
 .world-map{background:#02060b!important}
 .leaflet-container{background:#10161d!important;filter:none!important}
-/* Dark map, but with enough brightness/contrast for streets, buildings, labels and terrain */
 .leaflet-tile-pane{filter:brightness(1.28) saturate(.72) contrast(1.08)!important}
 .leaflet-tile{opacity:1!important}
 .leaflet-overlay-pane{filter:none!important}
@@ -13,8 +12,8 @@ html,body,.mafivera-game{background:#02060b!important}
 .map-tile{background:rgba(3,9,16,.48)!important;border-color:rgba(110,145,180,.26)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025),0 0 12px rgba(0,0,0,.18)!important}
 .map-tile:hover{background:rgba(18,112,180,.16)!important;border-color:#1687ff!important;box-shadow:0 0 18px rgba(22,135,255,.22)!important}
 .map-tile.claimed{background:rgba(22,135,255,.17)!important;border-color:#1687ff!important;box-shadow:inset 0 0 24px rgba(22,135,255,.14),0 0 15px rgba(22,135,255,.18)!important}
-.map-tile.material{border-color:rgba(34,229,154,.72)!important;background:rgba(34,229,154,.045)!important}
-.map-tile.material.claimed{background:rgba(34,229,154,.15)!important;border-color:#22e59a!important}
+.map-tile.material,.map-tile.reputation,.map-tile.money{background:transparent!important;border-color:rgba(160,170,180,.45)!important}
+.map-tile.material.claimed,.map-tile.reputation.claimed,.map-tile.money.claimed{background:rgba(22,135,255,.17)!important;border-color:#1687ff!important}
 .territory-tile-label{font-size:18px!important;color:#dce7f5!important;text-shadow:0 0 7px #000,0 2px 8px #000!important}
 .territory-tile-label.threat-label{color:#ff4b63!important;text-shadow:0 0 12px rgba(255,51,79,.65),0 2px 8px #000!important}
 .territory-tile-label em{font-size:7px!important;color:#75baff!important;text-shadow:0 0 6px rgba(22,135,255,.5)!important}
@@ -33,7 +32,7 @@ html,body,.mafivera-game{background:#02060b!important}
 .map-overlay.top-left{top:96px!important}.location-pill{background:rgba(3,8,14,.84)!important;border-color:rgba(110,145,180,.22)!important;box-shadow:0 8px 25px #0008!important}
 .map-btn{background:rgba(3,8,14,.9)!important;border-color:rgba(110,145,180,.28)!important;box-shadow:0 8px 25px #0009!important}
 .bottom-nav{background:rgba(3,7,13,.95)!important;border-color:rgba(120,155,190,.18)!important;box-shadow:0 18px 60px #000e, inset 0 1px rgba(255,255,255,.04)!important}
-.bottom-btn{color:#737e8d!important}.bottom-btn.active{color:#ffb52e!important;background:rgba(255,181,46,.09)!important;box-shadow:inset 0 0 20px rgba(255,181,46,.05)!important}
+.bottom-btn{color:#737e8d!important}.bottom-btn.active{color:#ffb52e!important;background:rgba(255,181,46,.09)!important;box-shadow:inset 0 0 20px rgba(255,255,255,.05)!important}
 .drawer{background:rgba(3,7,13,.97)!important;border-color:rgba(120,155,190,.2)!important}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#050a11!important;border-color:#263544!important;box-shadow:0 15px 50px #000c!important}
 .heist-popup{min-width:225px!important}.heist-popup button,.heist-action{background:#ff334f!important;box-shadow:0 0 18px rgba(255,51,79,.2)!important}
