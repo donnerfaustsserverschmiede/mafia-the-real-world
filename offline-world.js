@@ -1,0 +1,21 @@
+/* MAFIVERA — offline-first world cache + reconnect sync */
+(()=>{'use strict';
+if(window.MAFIVERA_OFFLINE_WORLD)return;window.MAFIVERA_OFFLINE_WORLD=true;
+const CACHE='mafivera:v1:world-cache',QUEUE='mafivera:v1:offline-queue';
+const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??d}catch(e){return d}};
+const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const toast=t=>{const e=document.getElementById('toast');if(!e)return;e.textContent=t;e.classList.add('show');clearTimeout(e._offlineT);e._offlineT=setTimeout(()=>e.classList.remove('show'),2800)};
+const status=()=>{document.documentElement.dataset.network=navigator.onLine?'online':'offline';window.dispatchEvent(new CustomEvent('mafivera:network',{detail:{online:navigator.onLine}}))};
+window.MAFIVERA_OFFLINE_CACHE={save(rows){if(Array.isArray(rows))put(CACHE,{savedAt:Date.now(),rows})},load(){return get(CACHE,{savedAt:0,rows:[]})}};
+const queue=(item)=>{const q=get(QUEUE,[]);q.push({...item,queuedAt:Date.now()});put(QUEUE,q);return q.length};
+window.MAFIVERA_OFFLINE_QUEUE={add:queue,get:()=>get(QUEUE,[]),clear:()=>put(QUEUE,[])};
+const sync=async()=>{if(!navigator.onLine||!window.db)return;const q=get(QUEUE,[]);if(!q.length)return;const keep=[];for(const x of q){try{if(x.type==='defense'){const r=await window.db.rpc('update_world_defense',x.args);if(r.error)throw r.error}else if(x.type==='territory'){const r=await window.db.rpc('sync_world_territory',x.args);if(r.error)throw r.error}else{keep.push(x)}}catch(e){keep.push(x)}}put(QUEUE,keep);if(q.length&&!keep.length)toast('☁️ Offline-Änderungen synchronisiert.');else if(keep.length)toast(`☁️ ${keep.length} Änderung(en) warten auf Verbindung.`);window.dispatchEvent(new Event('mafivera:worldRefresh'))};
+const patchWorldSync=()=>{if(!window.db)return setTimeout(patchWorldSync,500);if(window.__mtrwOfflinePatched)return;window.__mtrwOfflinePatched=true;
+ const originalFetch=window.db.from.bind(window.db);
+ window.db.from=(table)=>{const q=originalFetch(table);if(table!=='world_territories')return q;const oldSelect=q.select.bind(q);q.select=(...args)=>{const builder=oldSelect(...args);const oldThen=builder.then?.bind(builder);if(oldThen){builder.then=(resolve,reject)=>oldThen(resolve,reject)}return builder};return q};
+ window.addEventListener('online',()=>setTimeout(sync,500));setInterval(sync,10000);sync();
+};
+window.addEventListener('offline',()=>{status();toast('📴 Offline-Modus: letzter Weltstand bleibt verfügbar.')});
+window.addEventListener('online',()=>{status();toast('🌐 Wieder online · synchronisiere Welt…');setTimeout(sync,500)});
+status();patchWorldSync();
+})();
