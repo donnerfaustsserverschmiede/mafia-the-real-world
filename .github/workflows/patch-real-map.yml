@@ -31,6 +31,10 @@ jobs:
           import re
           p=Path('index.html')
           s=p.read_text()
+          # Fallback text is already MAFIVERA even if a browser blocks a script.
+          s=s.replace('<title>MAFIA — The Real World</title>','<title>MAFIVERA – Die Welt gehört dir</title>')
+          s=s.replace('<div class="logo">🕴️ MAFIA</div><div class="sub">THE REAL WORLD</div>','<div class="logo"><img src="./assets/mafivera-logo.webp" alt="MAFIVERA"></div>')
+          s=s.replace('🕴️ MAFIA <small>THE REAL WORLD · v0.7</small>','MAFIVERA <small>DIE WELT GEHÖRT DIR · v0.7</small>')
           marker="gridLayer=L.layerGroup().addTo(map);"
           expose="gridLayer=L.layerGroup().addTo(map);window.map=map;window.gridLayer=gridLayer;window.getMtrwState=()=>({user,profile,marker,territories:window.territories||[]});"
           if marker in s and 'window.getMtrwState' not in s:
@@ -43,9 +47,9 @@ jobs:
           s=re.sub(r'\(async\(\)=>\{try\{const\{data\}=await db\.auth\.getSession\(\);if\(data\.session\)await startGame\(data\.session\)\}catch\(e\)\{console\.error\(e\)\}\}\)\(\);', '', s)
           for name in ['auth-fix','guest-safety','google-auth','places','gps','presence','logs','email-auth','assets/mafivera-brand']:
               s=re.sub(r'<script src="\./'+re.escape(name)+r'\.js\?v=\d+"></script>\s*', '', s)
-          s=s.replace('</body>','<script src="./places.js?v=14"></script>\n<script src="./gps.js?v=14"></script>\n<script src="./presence.js?v=1"></script>\n<script src="./logs.js?v=1"></script>\n<script src="./email-auth.js?v=3"></script>\n<script src="./assets/mafivera-brand.js?v=1"></script>\n</body>')
+          s=s.replace('</body>','<script src="./places.js?v=14"></script>\n<script src="./gps.js?v=14"></script>\n<script src="./presence.js?v=1"></script>\n<script src="./logs.js?v=1"></script>\n<script src="./email-auth.js?v=4"></script>\n<script src="./assets/mafivera-brand.js?v=2"></script>\n</body>')
           old="const message=(el,t)=>{el.textContent=t||''};"
-          new="const message=(el,t)=>{const target=(el&&el.isConnected?el:null)||document.getElementById('emailAuthMessage')||el||document.getElementById('startMessage');if(target)target.textContent=t||'';};"
+          new="const message=(el,t)=>{const target=(el&&el.isConnected?el:null)||document.getElementById('emailAuthMessage')||el||document.getElementById('startMessage');if(target)target.textContent=t||''};"
           if old in s:
               s=s.replace(old,new,1)
           blocking="message(startMessage,'Gebiete werden geladen…');await Promise.race([loadTerritories(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Gebiete konnten nicht geladen werden. Bitte prüfe die Supabase-Verbindung.')),10000))]);startBox.hidden=true;game.hidden=false;document.getElementById('status').textContent='Spiel geladen.';"
@@ -57,5 +61,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'feat: inject MAFIVERA branding'
+          git diff --cached --quiet || git commit -m 'fix: MAFIVERA Login und Branding'
           git push
