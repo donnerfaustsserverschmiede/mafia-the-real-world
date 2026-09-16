@@ -1,1 +1,0 @@
-Das Logo liegt als Bilddatei im Spiel-Asset. Diese Datei dient nur als Platzhalter.
