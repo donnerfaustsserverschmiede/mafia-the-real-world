@@ -25,5 +25,5 @@ form.addEventListener('submit',async e=>{e.preventDefault();if(!db){message('Ver
 modeBtn.onclick=()=>{mode=mode==='login'?'register':'login';const reg=mode==='register';uf.classList.toggle('hidden',!reg);un.required=reg;title.textContent=reg?'Konto erstellen':'Willkommen zurück';sub.textContent=reg?'Erstelle deinen neuen MAFIVERA-Spieler.':'Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.';submit.textContent=reg?'🚀 Registrieren':'🔐 Anmelden';modeBtn.textContent=reg?'↩️ Zur Anmeldung':'📝 Registrieren';forgot.classList.toggle('hidden',reg);message('')};
 forgot.onclick=async()=>{const em=document.getElementById('email').value.trim().toLowerCase();if(!em)return message('Bitte zuerst deine E-Mail-Adresse eingeben.',true);const r=await db.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});message(r.error?String(r.error.message):'Wenn ein Konto mit dieser E-Mail existiert, wurde der Passwort-Reset angefordert.',!!r.error)};boot()})();
 </script>
-<script src="./logs.js?v=5"></script><script src="./recruitment.js?v=3"></script><script src="./world-sync.js?v=5"></script>
+<script src="./logs.js?v=5"></script><script src="./recruitment.js?v=3"></script><script src="./world-sync.js?v=5"></script><script src="./building-recruitment-merge.js?v=1"></script>
 </body></html>
