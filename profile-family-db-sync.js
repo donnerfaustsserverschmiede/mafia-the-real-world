@@ -13,4 +13,7 @@ const sync=async()=>{if(!window.db?.from||!window.__mtrwUserId)return;const s=re
  s.family=f;s.familyId=f.id;write(s);window.mtrwOpenFamily?.();
  }catch(e){console.warn('Family cloud sync unavailable:',e)}};
 const t=setInterval(()=>{if(window.db&&window.__mtrwUserId){sync();clearInterval(t)}},700);window.mtrwFamilyCloudSync=sync;
+/* Load the definitive visual repair after the game shell exists. */
+const loadRepair=()=>{if(document.querySelector('script[data-mtrw-map-fix-v3]'))return;const s=document.createElement('script');s.src='./ui-map-fix-v3.js?v=3';s.dataset.mtrwMapFixV3='1';document.body.appendChild(s)};
+setTimeout(loadRepair,0);
 })();
