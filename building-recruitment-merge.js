@@ -32,4 +32,5 @@ const inject=()=>{
  });
 };
 let last='';setInterval(()=>{const t=document.getElementById('drawerTitle')?.textContent||'';if(t!==last){last=t;setTimeout(inject,30)}else if(t==='Gebäude errichten'&&!document.querySelector('[data-recruit-merge]'))inject();colorOwned()},250);
+const fix=document.createElement('script');fix.src='./territory-view-fix.js?v=2';document.body.appendChild(fix);
 })();
