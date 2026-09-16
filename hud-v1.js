@@ -19,5 +19,5 @@ css.textContent=`
 `;
 document.head.appendChild(css);
 const setup=()=>{const stats=document.querySelector('.hud-stats'),product=document.getElementById('product'),material=document.getElementById('material');if(!stats||!product||!material)return false;const prepare=(el,label,cls)=>{const box=el?.closest('span');if(!box)return;box.classList.add('hud-stat',cls||'');if(!box.querySelector('.hud-stat-label')){const small=document.createElement('small');small.className='hud-stat-label';small.textContent=label;box.insertBefore(small,el)}};prepare(document.getElementById('money'),'GELD','hud-money');prepare(material,'MATERIAL','hud-material');prepare(product,'DROGEN','hud-drugs');prepare(document.getElementById('level'),'LEVEL','hud-level');if(!document.getElementById('reputation')){const box=document.createElement('span');box.className='hud-stat hud-reputation';box.innerHTML='<small class="hud-stat-label">RUHMPUNKTE</small><b id="reputation">0</b>';stats.appendChild(box)}return true};
-let tries=0;const timer=setInterval(()=>{if(setup()||++tries>120)clearInterval(timer)},250);
+let tries=0;const timer=setInterval(()=>{if(setup()||++tries>120){clearInterval(timer);if(!window.mtrwPassiveResourcesV1){const s=document.createElement('script');s.src='./passive-resources-v1.js?v=1';s.async=false;document.body.appendChild(s)}}},250);
 })();
