@@ -1,36 +1,15 @@
-/* MAFIVERA — gemeinsames Gebäude-/Rekrutierungsmenü + größere feste Navigation */
+/* MAFIVERA — gemeinsames Gebäude-/Rekrutierungsmenü + stabile Navigation */
 (()=>{'use strict';
 const style=document.createElement('style');style.textContent=`
 #recruitNav{display:none!important}
 .bottom-nav{height:108px!important;bottom:0!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(760px,calc(100% - 10px))!important;grid-template-columns:repeat(6,1fr)!important;gap:5px!important;padding:8px!important;border-radius:24px 24px 0 0!important;touch-action:none!important;user-select:none!important}
-.bottom-nav .bottom-btn{min-height:92px!important;font-size:13px!important;gap:7px!important}
-.bottom-nav .bottom-btn span{font-size:29px!important;line-height:1!important}.bottom-nav .bottom-btn small{font-size:11px!important;letter-spacing:.7px!important;white-space:nowrap!important}
-.drawer{bottom:120px!important}
-.recruit-inline{display:none!important}
-.recruit-merge-card{margin-top:8px;padding:13px;border:1px solid rgba(214,173,45,.25);border-radius:14px;background:rgba(214,173,45,.05)}
-.recruit-merge-card b{font-size:13px}.recruit-merge-card small{display:block;color:#888;margin-top:5px;font-size:10px;line-height:1.4}
-.recruit-merge-card button{margin-top:9px}
+.bottom-nav .bottom-btn{min-height:92px!important;font-size:13px!important;gap:7px!important}.bottom-nav .bottom-btn span{font-size:29px!important;line-height:1!important}.bottom-nav .bottom-btn small{font-size:11px!important;letter-spacing:.7px!important;white-space:nowrap!important}.drawer{bottom:120px!important}.recruit-inline{display:none!important}
+.recruit-merge-card{margin-top:8px;padding:13px;border:1px solid rgba(214,173,45,.25);border-radius:14px;background:rgba(214,173,45,.05)}.recruit-merge-card b{font-size:13px}.recruit-merge-card small{display:block;color:#888;margin-top:5px;font-size:10px;line-height:1.4}.recruit-merge-card button{margin-top:9px}
 @media(max-width:480px){.bottom-nav{height:112px!important;width:calc(100% - 10px)!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;padding:8px!important}.bottom-nav .bottom-btn{min-height:96px!important}.bottom-nav .bottom-btn span{font-size:27px!important}.bottom-nav .bottom-btn small{font-size:10px!important}.drawer{bottom:122px!important}}
 `;
 document.head.appendChild(style);
 const save=()=>{try{const k=Object.keys(localStorage).find(k=>k.startsWith('mafivera:v1:save:'));return k?JSON.parse(localStorage.getItem(k)||'{}'):{} }catch(e){return {}}};
-const colorOwned=()=>{const map=window.mtrwMap;if(!map||!window.L)return;const s=save();if(!s.worldOrigin)return;const center=window.mtrwLiveGps||s.gps||s.worldOrigin,pr=Math.floor((center.lat-s.worldOrigin.lat)/.0018),pc=Math.floor((center.lng-s.worldOrigin.lng)/.0025);map.eachLayer(l=>{if(!(l instanceof L.Rectangle)||!l.getBounds)return;const w=Number(l.options?.weight||0);if(w!==1&&w!==2.5)return;const c=l.getBounds().getCenter(),r=Math.floor((c.lat-s.worldOrigin.lat)/.0018),col=Math.floor((c.lng-s.worldOrigin.lng)/.0025);if(Math.abs(r-pr)>50||Math.abs(col-pc)>50)return;if(s.fields?.[`g_${r}_${col}`])l.setStyle({color:'#3b82f6',fillColor:'#3b82f6',weight:3,fillOpacity:.30})});};
-const inject=()=>{
- const title=document.getElementById('drawerTitle'),body=document.getElementById('drawerBody');
- if(!title||!body||title.textContent!=='Gebäude errichten')return;
- if(body.querySelector('[data-recruit-merge]'))return;
- const id=window.__mtrwBuildingCell;if(!id)return;
- const s=save(),centers=s.recruitmentCenters||{},c=centers[id],count=Number(s.hitmen||0),box=document.createElement('div');
- box.className='recruit-merge-card';box.dataset.recruitMerge='1';
- box.innerHTML=c?`🏢 <b>Rekrutierungszentrum · Level ${c.level||1}/10</b><small>Produziert automatisch Schläger. Aktueller Bestand: <strong>${count.toLocaleString('de-DE')}</strong></small><button class="panel-action" data-open-recruit>🕵️ Rekrutierungszentrum verwalten</button>`:`🏢 <b>Rekrutierungszentrum</b><small>Auf diesem eroberten Feld bauen · Start: 1 Schläger alle 120 Sekunden.</small><button class="panel-action" data-build-recruit>🏢 Rekrutierungszentrum bauen · 1.000 $</button>`;
- body.appendChild(box);
- box.querySelector('[data-open-recruit]')?.addEventListener('click',()=>window.mtrwOpenRecruitment?.());
- box.querySelector('[data-build-recruit]')?.addEventListener('click',()=>{
-   if(typeof window.mtrwClaim!=='function')return;
-   window.mtrwClaim(id);
-   setTimeout(()=>document.querySelector('.recruit-build')?.click(),120);
- });
-};
-let last='';setInterval(()=>{const t=document.getElementById('drawerTitle')?.textContent||'';if(t!==last){last=t;setTimeout(inject,30)}else if(t==='Gebäude errichten'&&!document.querySelector('[data-recruit-merge]'))inject();colorOwned()},250);
-const fix=document.createElement('script');fix.src='./territory-view-fix.js?v=2';document.body.appendChild(fix);
+const inject=()=>{const title=document.getElementById('drawerTitle'),body=document.getElementById('drawerBody');if(!title||!body||title.textContent!=='Gebäude errichten'||body.querySelector('[data-recruit-merge]'))return;const id=window.__mtrwBuildingCell;if(!id)return;const s=save(),c=(s.recruitmentCenters||{})[id],count=Number(s.hitmen||0),box=document.createElement('div');box.className='recruit-merge-card';box.dataset.recruitMerge='1';box.innerHTML=c?`🏢 <b>Rekrutierungszentrum · Level ${c.level||1}/10</b><small>Produziert automatisch Schläger. Aktueller Bestand: <strong>${count.toLocaleString('de-DE')}</strong></small><button class="panel-action" data-open-recruit>🕵️ Rekrutierungszentrum verwalten</button>`:`🏢 <b>Rekrutierungszentrum</b><small>Auf diesem eroberten Feld bauen · Start: 1 Schläger alle 120 Sekunden.</small><button class="panel-action" data-build-recruit>🏢 Rekrutierungszentrum bauen · 1.000 $</button>`;body.appendChild(box);box.querySelector('[data-open-recruit]')?.addEventListener('click',()=>window.mtrwOpenRecruitment?.());box.querySelector('[data-build-recruit]')?.addEventListener('click',()=>{if(typeof window.mtrwClaim!=='function')return;window.mtrwClaim(id);setTimeout(()=>document.querySelector('.recruit-build')?.click(),120)});};
+let last='';setInterval(()=>{const t=document.getElementById('drawerTitle')?.textContent||'';if(t!==last){last=t;setTimeout(inject,30)}else if(t==='Gebäude errichten'&&!document.querySelector('[data-recruit-merge]'))inject()},400);
+const fix=document.createElement('script');fix.src='./territory-view-fix.js?v=3';document.body.appendChild(fix);
 })();
