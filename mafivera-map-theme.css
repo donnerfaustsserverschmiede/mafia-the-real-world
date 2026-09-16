@@ -2,9 +2,10 @@
 :root{--gold:#ffb52e;--blue:#1687ff;--cyan:#26d9ff;--green:#22e59a;--purple:#a866ff;--red:#ff334f;--ink:#02060b;--glass:rgba(5,9,15,.88)}
 html,body,.mafivera-game{background:#02060b!important}
 .world-map{background:#02060b!important}
-.leaflet-container{background:#02060b!important;filter:none!important}
-.leaflet-tile-pane{filter:brightness(.58) saturate(.48) contrast(1.18)!important}
-.leaflet-tile{opacity:.95!important}
+.leaflet-container{background:#10161d!important;filter:none!important}
+/* Dark map, but with enough brightness/contrast for streets, buildings, labels and terrain */
+.leaflet-tile-pane{filter:brightness(1.28) saturate(.72) contrast(1.08)!important}
+.leaflet-tile{opacity:1!important}
 .leaflet-overlay-pane{filter:none!important}
 .leaflet-marker-pane,.leaflet-shadow-pane,.leaflet-popup-pane,.leaflet-control-container{filter:none!important}
 .leaflet-control-attribution{background:rgba(2,6,11,.78)!important;color:#9ba6b5!important;border-radius:7px 0 0 0;padding:3px 6px!important}
