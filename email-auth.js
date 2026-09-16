@@ -1,8 +1,9 @@
-/* MTRW Email Authentication v3 */
+/* MAFIVERA Email Authentication v4 */
 (()=>{
   if(window.mtrwEmailAuthInstalled)return;
   window.mtrwEmailAuthInstalled=true;
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const logo='./assets/mafivera-logo.webp';
   async function boot(){
     for(let i=0;i<100&&!window.db;i++)await wait(100);
     const db=window.db;
@@ -10,7 +11,7 @@
     const card=start?.querySelector('.card');
     const button=document.getElementById('startButton');
     if(!db||!start||!card||!button)return;
-    card.innerHTML=`<div class="logo">🕴️ MAFIA</div><div class="sub">THE REAL WORLD</div><h1 id="emailModeTitle">Willkommen zurück</h1><p id="emailModeText">Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.</p><input id="emailAuthEmail" type="email" autocomplete="email" placeholder="E-Mail-Adresse"><input id="emailAuthPassword" type="password" autocomplete="current-password" placeholder="Passwort"><input id="emailAuthUsername" autocomplete="username" maxlength="24" placeholder="Username (nur bei Registrierung)" hidden><button class="primary" id="emailAuthButton" type="button">🔐 Anmelden</button><button class="secondary" id="emailRegisterButton" type="button">📝 Neues Konto erstellen</button><button class="secondary" id="emailForgotButton" type="button">🔑 Passwort vergessen</button><div id="emailAuthMessage" class="message" aria-live="polite"></div><div class="foot">Keine E-Mail-Bestätigung erforderlich · dein Spielstand gehört zu deinem Konto</div>`;
+    card.innerHTML=`<div class="logo mf-auth-logo"><img src="${logo}" alt="MAFIVERA"></div><h1 id="emailModeTitle">Willkommen zurück</h1><p id="emailModeText">Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.</p><input id="emailAuthEmail" type="email" autocomplete="email" placeholder="E-Mail-Adresse"><input id="emailAuthPassword" type="password" autocomplete="current-password" placeholder="Passwort"><input id="emailAuthUsername" autocomplete="username" maxlength="24" placeholder="Username (nur bei Registrierung)" hidden><button class="primary" id="emailAuthButton" type="button">🔐 Anmelden</button><button class="secondary" id="emailRegisterButton" type="button">📝 Neues Konto erstellen</button><button class="secondary" id="emailForgotButton" type="button">🔑 Passwort vergessen</button><div id="emailAuthMessage" class="message" aria-live="polite"></div><div class="mf-auth-tagline">DIE WELT GEHÖRT DIR</div><div class="foot">Keine E-Mail-Bestätigung erforderlich · dein Spielstand gehört zu deinem Konto</div>`;
     const email=document.getElementById('emailAuthEmail');
     const pass=document.getElementById('emailAuthPassword');
     const uname=document.getElementById('emailAuthUsername');
@@ -21,7 +22,7 @@
     const text=document.getElementById('emailModeText');
     const out=document.getElementById('emailAuthMessage');
     let mode='login';
-    const set=(t,err=false)=>{out.textContent=t||'';out.style.color=err?'#f88':'#d1a72c'};
+    const set=(t,err=false)=>{out.textContent=t||'';out.style.color=err?'#f88':'#d1aa4a'};
     const validUser=u=>/^[A-Za-z0-9_.-]{3,24}$/.test(u);
     const showLogin=()=>{mode='login';title.textContent='Willkommen zurück';text.textContent='Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.';uname.hidden=true;action.textContent='🔐 Anmelden';register.textContent='📝 Neues Konto erstellen';set('')};
     register.onclick=()=>{if(mode==='login'){mode='register';title.textContent='Konto erstellen';text.textContent='Erstelle dein Konto. Der Username ist dein Name im Spiel.';uname.hidden=false;action.textContent='🚀 Konto erstellen';register.textContent='↩️ Zur Anmeldung';set('')}else showLogin()};
@@ -77,7 +78,6 @@
     };
     button.onclick=()=>{};
     showLogin();
-    // Resume an already authenticated account only after the email UI is ready.
     setTimeout(async()=>{
       try{
         const {data}=await db.auth.getSession();
