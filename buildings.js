@@ -1,5 +1,6 @@
 /* MAFIVERA V1 — buildings, storage and visible building markers */
 (()=>{'use strict';
+const markerCss=document.createElement('style');markerCss.textContent=`.mtrw-building-pin{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:82px;transform:translateY(-2px);pointer-events:none}.mtrw-building-pin span{font-size:28px;line-height:29px;text-shadow:0 2px 5px #000,0 0 3px #000}.mtrw-building-pin b{margin-top:2px;padding:2px 6px;border-radius:7px;background:rgba(5,8,12,.92);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:9px;line-height:11px;white-space:nowrap;text-shadow:0 1px 2px #000;box-shadow:0 2px 7px rgba(0,0,0,.4)}.leaflet-marker-icon.building-marker{filter:none!important}`;document.head.appendChild(markerCss);
 const BUILDINGS={
  warehouse:{name:'Lager',icon:'📦',cost:800,desc:'+1.000 Lagerkapazität für Material und Produkte.',capacityBonus:1000},
  money:{name:'Geldwäsche',icon:'💵',cost:1200,desc:'+50% Geldproduktion auf diesem Feld.',yield:{money:1.5}},
@@ -7,7 +8,7 @@ const BUILDINGS={
  lab:{name:'Chemielabor',icon:'⚗️',cost:1800,desc:'Verarbeitet automatisch 5 Material zu 1 Produkt pro Minute.',product:true},
  market:{name:'Schwarzmarkt',icon:'🕶️',cost:2200,desc:'+25% Verkaufspreis für Produkte.',sale:1.25},
  watch:{name:'Wachposten',icon:'🛡️',cost:1500,desc:'Schützt dieses und angrenzende Felder (Radius 1) mit +25%.',defense:.25,radius:1},
- hideout:{name:'Gangversteck',icon:'🏚️',cost:2500,desc:'Lagert bis zu 10 Truppen und schützt Radius 2 – auch diagonal – mit +75%.',defense:.75,radius:2,capacity:10}
+ hideout:{name:'Gangversteck',icon:'🏰',cost:2500,desc:'Lagert bis zu 10 Truppen und schützt Radius 2 – auch diagonal – mit +75%.',defense:.75,radius:2,capacity:10}
 };
 const RECRUITMENT={name:'Rekrutierungszentrum',icon:'🏢',cost:1000,desc:'Produziert automatisch Schläger. Start: 1 Schläger alle 120 Sekunden.'};
 const ALL_BUILDINGS={...BUILDINGS,recruitment:RECRUITMENT};
@@ -28,13 +29,11 @@ wait(async()=>{
  const ensureStorageUi=()=>{const hud=document.querySelector('.hud');if(!hud)return;if(!document.getElementById('storageBadge')){const e=document.createElement('div');e.id='storageBadge';e.className='storage-badge';hud.appendChild(e)}updateStorageUi(read())};
  const protection=id=>{const t=cell(id);if(!t)return[];const s=read(),out=[];Object.entries(s.built||{}).forEach(([bid,b])=>{const d=BUILDINGS[b?.type],c=cell(bid);if(!d?.defense||!c||!(s.fields||{})[bid])return;const delta=Math.max(Math.abs(c.row-t.row),Math.abs(c.col-t.col));if(delta<=d.radius)out.push({id:bid,building:d,type:b.type,bonus:d.defense,distance:delta,troops:b.troops||0})});return out};
  const defense=id=>protection(id).reduce((n,x)=>n+x.bonus,0);
- window.MAFIVERA_BUILDINGS=BUILDINGS;
- window.MAFIVERA_ALL_BUILDINGS=ALL_BUILDINGS;
+ window.MAFIVERA_BUILDINGS=BUILDINGS;window.MAFIVERA_ALL_BUILDINGS=ALL_BUILDINGS;
  window.MAFIVERA_STORAGE_CAPACITY=()=>storageCapacity(read());window.MAFIVERA_STORAGE_USED=()=>storageUsed(read());window.mtrwDefense=id=>defense(id);
  const buildingLayer=()=>{const map=window.__mtrwLeafletMap||window.mtrwMap;if(!map||!window.L)return null;let layer=window.__mtrwBuildingLayer;if(!layer){layer=L.layerGroup().addTo(map);window.__mtrwBuildingLayer=layer}return layer};
- const renderBuildingGraphics=()=>{const layer=buildingLayer();if(!layer)return;layer.clearLayers();const s=read(),o=s.worldOrigin||s.gps;if(!o)return;Object.entries(s.built||{}).forEach(([id,b])=>{if(!s.fields?.[id])return;const c=cell(id),d=ALL_BUILDINGS[b?.type];if(!c||!d)return;const lat=o.lat+(c.row+.5)*.0018,lng=o.lng+(c.col+.5)*.0025;const marker=L.marker([lat,lng],{interactive:false,zIndexOffset:500,icon:L.divIcon({className:'building-marker',html:`<div class="mtrw-building-pin"><span>${d.icon}</span><b>${d.name}</b></div>`,iconSize:[96,48],iconAnchor:[48,24]})});layer.addLayer(marker)})};
+ const renderBuildingGraphics=()=>{const layer=buildingLayer();if(!layer)return;layer.clearLayers();const s=read(),o=s.worldOrigin||s.gps;if(!o)return;Object.entries(s.built||{}).forEach(([id,b])=>{if(!s.fields?.[id])return;const c=cell(id),d=ALL_BUILDINGS[b?.type];if(!c||!d)return;const lat=o.lat+(c.row+.5)*.0018,lng=o.lng+(c.col+.5)*.0025;const marker=L.marker([lat,lng],{interactive:false,zIndexOffset:500,icon:L.divIcon({className:'building-marker',html:`<div class="mtrw-building-pin"><span>${d.icon}</span><b>${d.name}</b></div>`,iconSize:[96,52],iconAnchor:[48,26]})});layer.addLayer(marker)})};
  const setCurrent=id=>{window.__mtrwBuildingCell=id;setTimeout(()=>decorate(id),50)};
- const original=window.mtrwClaim;
  const wrap=()=>{if(typeof window.mtrwClaim!=='function'||window.mtrwClaim.__buildingWrapped)return;const fn=window.mtrwClaim;const w=id=>{setCurrent(id);return fn(id)};w.__buildingWrapped=true;window.mtrwClaim=w};
  const buildingPanel=id=>{
   const s=read(),b=(s.built||{})[id],body=document.getElementById('drawerBody');if(!body)return;window.__mtrwBuildingCell=id;
