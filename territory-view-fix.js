@@ -15,11 +15,10 @@ const cellFromLayer=(l,s)=>{if(!l?.getBounds||!s.worldOrigin)return null;const c
 const distance=(l,p)=>{if(!l?.getLatLng)return 1e12;const c=l.getLatLng();const dr=(c.lat-p.lat)/GL,dc=(c.lng-p.lng)/GW;return dr*dr+dc*dc};
 const enforce=()=>{const map=window.mtrwMap;if(!map||!window.L)return;const s=read(),p=center();if(!p||!s.worldOrigin)return;
  const base=[],markers=[];
- map.eachLayer(l=>{if(l instanceof L.Rectangle&&l.getBounds){const w=Number(l.options?.weight||0);if(w===1||w===2.5)base.push(l)}else if(l instanceof L.Marker&&l.getElement?.()&&l.getIcon){const cn=l.getIcon()?.options?.className||'';if(cn==='resource-icons')markers.push(l)}});
+ map.eachLayer(l=>{if(l instanceof L.Rectangle&&l.getBounds){const w=Number(l.options?.weight||0);if(w===1||w===2.5)base.push(l)}else if(l instanceof L.Marker&&l.getIcon){const cn=l.getIcon()?.options?.className||'';if(cn==='resource-icons')markers.push(l)}});
  base.sort((a,b)=>{const ca=a.getBounds().getCenter(),cb=b.getBounds().getCenter();const da=Math.pow((ca.lat-p.lat)/GL,2)+Math.pow((ca.lng-p.lng)/GW,2),db=Math.pow((cb.lat-p.lat)/GL,2)+Math.pow((cb.lng-p.lng)/GW,2);return da-db});
- const keep=new Set(base.slice(0,MAX));base.forEach(l=>{const c=cellFromLayer(l,s),owned=!!(c&&s.fields?.[`g_${c.r}_${c.col}`]);if(!keep.has(l)){map.removeLayer(l);return}const n=Math.abs((c?.r||0)*31+(c?.col||0)*17)%3;color=owned?'#3b82f6':n===0?'#8b5a2b':n===1?'#facc15':'#22c55e';l.setStyle({color,fillColor:color,weight:owned?3:2,fillOpacity:owned?.30:.22});l.bringToBack()});
+ const keep=new Set(base.slice(0,MAX));base.forEach(l=>{const c=cellFromLayer(l,s),owned=!!(c&&s.fields?.[`g_${c.r}_${c.col}`]);if(!keep.has(l)){map.removeLayer(l);return}const n=Math.abs((c?.r||0)*31+(c?.col||0)*17)%3;const color=owned?'#3b82f6':n===0?'#8b5a2b':n===1?'#facc15':'#22c55e';l.setStyle({color,fillColor:color,weight:owned?3:2,fillOpacity:owned?.30:.22});l.bringToBack()});
  markers.sort((a,b)=>distance(a,p)-distance(b,p));const keepM=new Set(markers.slice(0,MAX));markers.forEach(l=>{if(!keepM.has(l))map.removeLayer(l)});
- // Online-owned fields are also blue for their owner; foreign and heist fields remain red.
  map.eachLayer(l=>{if(!(l instanceof L.Rectangle)||!l.getBounds)return;const w=Number(l.options?.weight||0);if(w!==3)return;const c=cellFromLayer(l,s),owned=!!(c&&s.fields?.[`g_${c.r}_${c.col}`]);if(owned)l.setStyle({color:'#3b82f6',fillColor:'#3b82f6',weight:3,fillOpacity:.30})});
 };
 let busy=false;const tick=()=>{if(busy)return;busy=true;try{enforce()}finally{busy=false}};setTimeout(tick,1200);setInterval(tick,700);
