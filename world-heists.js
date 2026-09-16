@@ -1,4 +1,4 @@
-/* MAFIVERA V1 — World Heist Areas */
+/* MAFIVERA V1 — World Heist Areas + Dark Map */
 (()=>{'use strict';
 if(window.mtrwWorldHeistAreasInstalled)return;
 window.mtrwWorldHeistAreasInstalled=true;
@@ -36,11 +36,7 @@ window.fetch=async(input,init)=>{
   return response;
 };
 
-/*
- * Der eigentliche Game-Core liegt bereits auf V1. Wir patchen beim Laden nur die
- * Heist-relevanten Stellen, damit die Logik wirklich auf der gesamten sichtbaren
- * Weltkarte greift und nicht von einem alten Browser-Cache abhängt.
- */
+/* V1 Game-Core patch: Heists, globale entdeckte Ziele und dunkle Ingame-Karte. */
 const nativeAppend=Node.prototype.appendChild;
 Node.prototype.appendChild=function(node){
   try{
@@ -70,7 +66,12 @@ Node.prototype.appendChild=function(node){
         const startNeed="if(activeHeistFor(t)){toast('Für dieses Ziel läuft bereits ein Heist.');return}";
         if(patched.includes(startNeed))patched=patched.replace(startNeed,startNeed+"const cooldown=heistCooldownFor(t);if(cooldown){toast(`🔒 Heist-Cooldown · noch ${Math.ceil(cooldown/60000)} Min.`);open('territory',t);return}");
         patched=patched.replace('Banken, Sparkassen, Geldautomaten, Märkte und Geschäfte können hier Ziele sein.','Industriegebiete, Banken und Geschäfte können hier Ziele sein.');
-        console.info('[MTRW] V1 World-Heist-Patch aktiv');
+
+        /* Dark Carto basemap wie im gewünschten MAFIVERA-Design. */
+        patched=patched.replaceAll('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png','https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+        patched=patched.replaceAll("attribution:'© OpenStreetMap contributors'","attribution:'© OpenStreetMap © CARTO'");
+        patched=patched.replaceAll("attribution:'© OpenStreetMap contributors'","attribution:'© OpenStreetMap © CARTO'");
+        console.info('[MTRW] V1 World-Heist-Patch + Dark-Map aktiv');
         node.src=URL.createObjectURL(new Blob([patched],{type:'text/javascript'}));
         node.dataset.mtrwHeistPatched='done';
         nativeAppend.call(this,node);
