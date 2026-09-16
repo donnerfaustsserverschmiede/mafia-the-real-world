@@ -1,4 +1,4 @@
-/* MAFIVERA V1 — Map-first Game Shell */
+/* MAFIVERA V1 — Map First Game Shell */
 (()=>{
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9,7 +9,7 @@ const start=async()=>{
  if(!data?.session){location.reload();return;}
  const user=data.session.user,meta=user.user_metadata||{},name=meta.username||user.email?.split('@')[0]||'Spieler';
  const root=document.getElementById('gameRoot');if(!root)return;
- if(!document.getElementById('mafiveraGameCss')){const css=document.createElement('link');css.id='mafiveraGameCss';css.rel='stylesheet';css.href='./game.css?v=2';document.head.appendChild(css)}
+ if(!document.getElementById('mafiveraGameCss')){const css=document.createElement('link');css.id='mafiveraGameCss';css.rel='stylesheet';css.href='./game.css?v=3';document.head.appendChild(css)}
  if(!window.L){try{await load('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js')}catch(e){try{await load('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js')}catch(e2){}}}
  let gpsWatchId=null,gpsActive=false,marker=null,accuracyCircle=null,map=null;
  const gpsState={lat:null,lng:null,accuracy:null};
@@ -17,18 +17,19 @@ const start=async()=>{
  <header class="hud">
   <button id="menuBtn" class="icon-btn" aria-label="Menü">☰</button>
   <div class="hud-brand"><b>MAFIVERA</b><span>Die Welt gehört dir</span></div>
-  <div class="hud-stats"><span>💰 <b id="money">0</b></span><span>⭐ <b id="level">1</b></span></div>
+  <div class="hud-stats"><span>💰 <b id="money">0</b></span><span>⭐ <b id="level">1</b></span><span>⚡ <b>100</b></span></div>
  </header>
  <main id="worldMap" class="world-map"></main>
  <div class="map-overlay top-left"><div class="location-pill"><span id="gpsIndicator">●</span><span id="gpsText">Standort nicht aktiviert</span></div></div>
  <div class="map-overlay top-right"><button id="locateBtn" class="map-btn" aria-label="Meinen Standort">⌖</button></div>
  <section id="drawer" class="drawer hidden"><div class="drawer-head"><div><small>MAFIVERA</small><h2 id="drawerTitle">Menü</h2></div><button id="drawerClose" class="close-btn">×</button></div><div id="drawerBody"></div></section>
  <nav class="bottom-nav">
-  <button class="bottom-btn active" data-panel="map"><span>🗺️</span><small>Karte</small></button>
-  <button class="bottom-btn" data-panel="family"><span>🏴</span><small>Familie</small></button>
-  <button class="bottom-btn" data-panel="social"><span>👥</span><small>Sozial</small></button>
-  <button class="bottom-btn" data-panel="business"><span>🏭</span><small>Geschäft</small></button>
-  <button class="bottom-btn" data-panel="profile"><span>👤</span><small>Profil</small></button>
+  <button class="bottom-btn active" data-panel="map"><span>🗺️</span><small>KARTE</small></button>
+  <button class="bottom-btn" data-panel="family"><span>♜</span><small>FAMILIE</small></button>
+  <button class="bottom-btn" data-panel="business"><span>⚗</span><small>GESCHÄFT</small></button>
+  <button class="bottom-btn" data-panel="social"><span>♧</span><small>SOZIAL</small></button>
+  <button class="bottom-btn" data-panel="more"><span>▦</span><small>MEHR</small></button>
+  <button class="bottom-btn" data-panel="profile"><span>◉</span><small>PROFIL</small></button>
  </nav>
  <div id="toast" class="toast" aria-live="polite"></div>
  </div>`;
@@ -37,18 +38,15 @@ const start=async()=>{
  const openDrawer=(panel)=>{
   if(panel==='map'){drawer.classList.add('hidden');return}
   const content={
-   family:`<div class="panel-hero">🏴<div><b>Deine Familie</b><p>Noch keine Familie gegründet.</p></div></div><button class="panel-action" data-action="create-family">+ Familie gründen</button><div class="panel-grid"><div><b>0</b><small>Mitglieder</small></div><div><b>0</b><small>Gebiete</small></div><div><b>0</b><small>Einfluss</small></div></div>`,
+   family:`<div class="panel-hero">♜<div><b>Deine Familie / Allianz</b><p>Noch keine Familie gegründet.</p></div></div><button class="panel-action" data-action="create-family">+ Familie gründen</button><div class="panel-grid"><div><b>0</b><small>Mitglieder</small></div><div><b>0</b><small>Gebiete</small></div><div><b>0</b><small>Einfluss</small></div></div>`,
    social:`<div class="panel-hero">👥<div><b>Sozial</b><p>Spieler, Kontakte und Nachrichten.</p></div></div><button class="panel-action" data-action="friends">👤 Freunde</button><button class="panel-action" data-action="chat">💬 Nachrichten</button><button class="panel-action" data-action="requests">🤝 Anfragen</button>`,
-   business:`<div class="panel-hero">🏭<div><b>Dein Geschäft</b><p>Hier entsteht dein Produktionsbetrieb.</p></div></div><div class="production-card"><div><span>Produktion</span><b>Bereit zum Aufbau</b></div><div class="production-progress"><i></i></div></div><button class="panel-action" data-action="production">⚗️ Produktion verwalten</button><button class="panel-action" data-action="storage">📦 Lager</button>`,
+   business:`<div class="panel-hero">⚗<div><b>Dein Geschäft</b><p>Produktion, Lager und Verkauf.</p></div></div><div class="production-card"><div><span>Produktion</span><b>Drogenproduktion · bereit zum Aufbau</b></div><div class="production-progress"><i></i></div></div><button class="panel-action" data-action="production">⚗ Produktion verwalten</button><button class="panel-action" data-action="storage">📦 Grundmaterial-Lager</button><button class="panel-action" data-action="dealer">💵 Dealer-Netzwerk</button><p class="panel-hint">Spielsystem: Grundmaterial auf der Karte sammeln → produzieren → beim Dealer verkaufen → Geld verdienen.</p>`,
    profile:`<div class="profile-big">👤</div><h3>${esc(name)}</h3><p class="muted">${esc(user.email||'Keine E-Mail hinterlegt')}</p><div class="profile-list"><div><span>Level</span><b>1</b></div><div><span>Vermögen</span><b>0 $</b></div><div><span>GPS</span><b id="profileGps">${gpsActive?'Aktiv':'Aus'}</b></div></div><button class="panel-action danger" data-action="logout">Abmelden</button>`,
-   menu:`<button class="panel-action" data-action="settings">⚙️ Einstellungen</button><button class="panel-action" data-action="help">❓ Hilfe</button><button class="panel-action" data-action="logout">🚪 Abmelden</button>`
+   more:`<div class="panel-hero">▦<div><b>Mehr</b><p>Weitere Spielbereiche.</p></div></div><button class="panel-action" data-action="missions">🎯 Aufträge</button><button class="panel-action" data-action="achievements">🏆 Erfolge</button><button class="panel-action" data-action="settings">⚙ Einstellungen</button><button class="panel-action" data-action="help">❓ Hilfe</button>`,
+   menu:`<button class="panel-action" data-action="settings">⚙ Einstellungen</button><button class="panel-action" data-action="help">❓ Hilfe</button><button class="panel-action" data-action="logout">🚪 Abmelden</button>`
   };
-  title.textContent=panel==='menu'?'Menü':panel==='family'?'Familie':panel==='social'?'Sozial':panel==='business'?'Geschäft':'Profil';body.innerHTML=content[panel]||'';drawer.classList.remove('hidden');
-  body.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{
-   const a=b.dataset.action;
-   if(a==='logout'){stopGps();window.db.auth.signOut().finally(()=>location.reload());return}
-   toast(a==='create-family'?'Familiengründung kommt als nächstes.':a==='production'?'Das Produktionssystem wird als nächstes gebaut.':'Bereich wird vorbereitet.');
-  });
+  title.textContent=panel==='menu'?'Menü':panel==='family'?'Familie':panel==='social'?'Sozial':panel==='business'?'Geschäft':panel==='more'?'Mehr':'Profil';body.innerHTML=content[panel]||'';drawer.classList.remove('hidden');
+  body.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==='logout'){stopGps();window.db.auth.signOut().finally(()=>location.reload());return}toast(a==='create-family'?'Familiengründung kommt als nächstes.':a==='production'?'Das Produktionssystem wird als nächstes gebaut.':'Bereich wird vorbereitet.')});
  };
  document.querySelectorAll('.bottom-btn').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.bottom-btn').forEach(x=>x.classList.remove('active'));btn.classList.add('active');openDrawer(btn.dataset.panel);if(typeof window.mtrwGameEvent==='function')window.mtrwGameEvent('Menü geöffnet',{bereich:btn.dataset.panel})});
  document.getElementById('menuBtn').onclick=()=>openDrawer('menu');document.getElementById('drawerClose').onclick=()=>drawer.classList.add('hidden');drawer.onclick=e=>{if(e.target===drawer)drawer.classList.add('hidden')};
