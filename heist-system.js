@@ -1,8 +1,44 @@
 /* MAFIVERA V1 — functional heist system */
 (()=>{'use strict';
  if(window.MAFIVERA_HEIST_SYSTEM)return; window.MAFIVERA_HEIST_SYSTEM=true;
+ /* Live-GPS + Marker-Radius: Ressourcenmarker bleiben immer maximal 50 Kacheln um den Spieler. */
+ const installLiveGps=()=>{
+  if(!navigator.geolocation||navigator.geolocation.__mtrwLive)return;
+  const native=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
+  const nativeWatch=navigator.geolocation.watchPosition.bind(navigator.geolocation);
+  let watchId=null;
+  const wrapped=function(success,error,options){
+   const onPosition=p=>{window.mtrwLiveGps={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy};if(typeof success==='function')success(p)};
+   const result=native(onPosition,error,options);
+   if(watchId===null){try{watchId=nativeWatch(onPosition,error,options)}catch(e){}}
+   return result;
+  };
+  wrapped.__mtrwLive=true;
+  navigator.geolocation.getCurrentPosition=wrapped;
+  navigator.geolocation.__mtrwLive=true;
+ };
+ const installMarkerRadius=()=>{
+  if(!window.L||!window.L.marker||window.L.marker.__mtrwRadius)return;
+  const native=window.L.marker;
+  const wrapped=function(latlng,options){
+   const opt=options||{},icon=opt.icon,iconClass=icon?.options?.className||'';
+   if(iconClass==='resource-icons'&&window.mtrwLiveGps){
+    const s=window.mtrwLiveGps,o=window.mtrwWorldOrigin,gl=.0018,gw=.0025;
+    if(o){
+     const pr=Math.floor((s.lat-o.lat)/gl),pc=Math.floor((s.lng-o.lng)/gw);
+     const lr=Math.floor((latlng?.[0]-o.lat)/gl),lc=Math.floor((latlng?.[1]-o.lng)/gw);
+     const dr=lr-pr,dc=lc-pc;
+     if(Math.sqrt(dr*dr+dc*dc)>50)return window.L.layerGroup();
+    }
+   }
+   return native.apply(this,arguments);
+  };
+  wrapped.__mtrwRadius=true;
+  window.L.marker=wrapped;
+ };
+ installLiveGps();installMarkerRadius();
  let capturedMap=null;
- const captureLeaflet=()=>{if(!window.L||!window.L.map||window.L.map.__mafiveraHeistWrapped)return;const native=window.L.map;const wrapped=function(){const m=native.apply(this,arguments);capturedMap=m;window.mtrwMap=m;return m};wrapped.__mafiveraHeistWrapped=true;window.L.map=wrapped};
+ const captureLeaflet=()=>{installLiveGps();installMarkerRadius();if(!window.L||!window.L.map||window.L.map.__mafiveraHeistWrapped)return;const native=window.L.map;const wrapped=function(){const m=native.apply(this,arguments);capturedMap=m;window.mtrwMap=m;return m};wrapped.__mafiveraHeistWrapped=true;window.L.map=wrapped};
  captureLeaflet();
  const WAIT=fn=>{let n=0;const t=()=>{captureLeaflet();if(window.db&&window.mtrwClaim)return fn();if(++n<160)setTimeout(t,100)};t()};
  WAIT(async()=>{
@@ -11,7 +47,7 @@
   const read=()=>{try{return JSON.parse(localStorage.getItem(key)||'{}')}catch(e){return {}}};
   const write=s=>{try{localStorage.setItem(key,JSON.stringify(s))}catch(e){}};
   const toast=t=>{const e=document.getElementById('toast');if(!e)return;e.textContent=t;e.classList.add('show');clearTimeout(e._heistToast);e._heistToast=setTimeout(()=>e.classList.remove('show'),3000)};
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const id=(r,c)=>`g_${r}_${c}`;
   const DURATION=30*60*1000,COOLDOWN=60*60*1000,MAX=60;
   const threatType=(r,c)=>{const n=Math.abs(r*19+c*23)%9;return n===0?'Bank':n<3?'Geschäft':'Schwarzmarkt'};
