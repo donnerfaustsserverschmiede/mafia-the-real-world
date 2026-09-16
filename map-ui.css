@@ -4,7 +4,7 @@
 .world-map{background:#050505!important}
 .resource-icons{background:transparent!important;border:0!important;display:flex;align-items:center;justify-content:center;gap:7px;pointer-events:none!important}
 .resource-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:rgba(8,8,10,.86);font-size:20px;font-weight:900;line-height:1;text-shadow:0 2px 6px #000;box-shadow:0 3px 12px #000a}
-.resource-icon.money{color:#e4bb43}.resource-icon.reputation{color:#fff}.resource-icon.material{color:#b9b9b9}
+.resource-icon.money{color:#25c76f!important}.resource-icon.reputation{color:#ffd83d!important}.resource-icon.material{color:#9a6a3a!important}
 .player-marker{width:24px!important;height:24px!important;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#1687ff;border:3px solid #fff;color:#fff;font-size:14px;box-shadow:0 0 0 5px #1687ff44,0 4px 18px #000!important}
 .bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))!important;overflow:hidden!important}
 .bottom-btn{padding:0!important}.bottom-btn span{font-size:20px!important}.bottom-btn small{font-size:7px!important;letter-spacing:.55px!important;white-space:nowrap!important}
