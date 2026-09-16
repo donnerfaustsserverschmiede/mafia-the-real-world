@@ -19,7 +19,7 @@
 <section id="gameScreen" class="game"><div class="game-card"><img src="./assets/mafivera-logo.webp" alt="MAFIVERA"><h2>Angemeldet</h2><p id="welcomeUser"></p><p>Der eigentliche Spielbereich wird als nächster Schritt aufgebaut.</p><button id="logoutButton" class="logout">Abmelden</button></div></section>
 <script>
 (()=>{'use strict';
-const SUPABASE_URL='https://ufqdntsxgqcxtszufbtv.supabase.co';const SUPABASE_KEY='sb_publishable_PDao9J9Pz87uSotESNeGbg_GSGh5u49';
+const SUPABASE_URL='https://ufqdntsxgqcxtszufbtv.supabase.co';const SUPABASE_KEY='sb_publishable_PDao9J9Pz87uSotESNeGbg_GSGh5u49';window.SUPABASE_KEY=SUPABASE_KEY;
 const load=(src)=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});
 const authScreen=document.getElementById('authScreen'),gameScreen=document.getElementById('gameScreen'),form=document.getElementById('authForm'),usernameField=document.getElementById('usernameField'),username=document.getElementById('username'),title=document.getElementById('authTitle'),subtitle=document.getElementById('authSubtitle'),submit=document.getElementById('submitButton'),modeButton=document.getElementById('modeButton'),forgot=document.getElementById('forgotButton'),message=document.getElementById('authMessage');let mode='login',db=null;
 const setMessage=(text,error=false)=>{message.textContent=text||'';message.style.color=error?'#ff8b8b':'#d6ad2d'};
@@ -30,5 +30,5 @@ form.addEventListener('submit',async(e)=>{e.preventDefault();if(!db){setMessage(
 modeButton.addEventListener('click',()=>setMode(mode==='login'?'register':'login'));forgot.addEventListener('click',async()=>{if(!db){setMessage('Verbindung wird noch hergestellt…',true);return}const em=document.getElementById('email').value.trim().toLowerCase();if(!em){setMessage('Bitte zuerst deine E-Mail-Adresse eingeben.',true);return}forgot.disabled=true;try{const r=await db.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});if(r.error)throw r.error;setMessage('Wenn ein Konto mit dieser E-Mail existiert, wurde der Passwort-Reset angefordert.')}catch(err){setMessage(String(err?.message||err),true)}finally{forgot.disabled=false}});
 document.getElementById('logoutButton').addEventListener('click',async()=>{if(db)await db.auth.signOut();gameScreen.style.display='none';authScreen.style.display='flex';form.reset();setMode('login')});setMode('login');boot();
 })();
-</script><script src="./logs.js?v=2"></script>
+</script><script src="./logs.js?v=3"></script>
 </body></html>
