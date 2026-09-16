@@ -1,6 +1,6 @@
-/* MAFIVERA — territory colors + strict 20-field view + stable rendering */
+/* MAFIVERA — stable territory view, 10-field radius, blue/red ownership */
 (()=>{'use strict';
-const GL=.0018,GW=.0025,MAX=20;
+const GL=.0018,GW=.0025,RADIUS=10;
 const css=document.createElement('style');css.textContent=`
 .bottom-nav{position:fixed!important;z-index:9999!important;left:50%!important;right:auto!important;bottom:0!important;transform:translateX(-50%)!important;width:calc(100% - 10px)!important;max-width:760px!important;height:122px!important;min-height:122px!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:6px!important;padding:9px 8px max(9px,env(safe-area-inset-bottom))!important;border-radius:24px 24px 0 0!important;touch-action:none!important;user-select:none!important}
 .bottom-nav .bottom-btn{min-height:98px!important;height:100%!important;border-radius:18px!important;gap:8px!important}.bottom-nav .bottom-btn span{font-size:30px!important;line-height:1!important}.bottom-nav .bottom-btn small{font-size:11px!important;line-height:1.1!important;letter-spacing:.7px!important;white-space:nowrap!important}.drawer{bottom:132px!important}
@@ -12,10 +12,10 @@ const center=()=>{const s=read();return window.mtrwLiveGps||s.gps||s.worldOrigin
 const cellFromLayer=(l,s)=>{if(!l?.getBounds||!s.worldOrigin)return null;const c=l.getBounds().getCenter();return{r:Math.floor((c.lat-s.worldOrigin.lat)/GL),col:Math.floor((c.lng-s.worldOrigin.lng)/GW)};};
 const enforce=()=>{const map=window.mtrwMap;if(!map||!window.L)return;const s=read(),p=center();if(!p||!s.worldOrigin)return;const base=[],markers=[];
  map.eachLayer(l=>{if(l instanceof L.Rectangle&&l.getBounds){const w=Number(l.options?.weight||0);if(w===1||w===2.5)base.push(l)}else if(l instanceof L.Marker&&l.getIcon){const cn=l.getIcon()?.options?.className||'';if(cn==='resource-icons')markers.push(l)}});
- base.sort((a,b)=>{const ca=a.getBounds().getCenter(),cb=b.getBounds().getCenter();return Math.pow((ca.lat-p.lat)/GL,2)+Math.pow((ca.lng-p.lng)/GW,2)-Math.pow((cb.lat-p.lat)/GL,2)-Math.pow((cb.lng-p.lng)/GW,2)});
- const keep=new Set(base.slice(0,MAX));base.forEach(l=>{const c=cellFromLayer(l,s),owned=!!(c&&s.fields?.[`g_${c.r}_${c.col}`]);if(!keep.has(l)){map.removeLayer(l);return}const n=Math.abs((c?.r||0)*31+(c?.col||0)*17)%3,color=owned?'#22c55e':n===0?'#8b5a2b':n===1?'#facc15':'#22c55e';l.setStyle({color,fillColor:color,weight:owned?3:2,fillOpacity:owned?.30:.22});l.bringToBack()});
- markers.sort((a,b)=>{const ca=a.getLatLng(),cb=b.getLatLng();return Math.pow((ca.lat-p.lat)/GL,2)+Math.pow((ca.lng-p.lng)/GW,2)-Math.pow((cb.lat-p.lat)/GL,2)-Math.pow((cb.lng-p.lng)/GW,2)});const keepM=new Set(markers.slice(0,MAX));markers.forEach(l=>{if(!keepM.has(l))map.removeLayer(l)});
+ const pr=Math.floor((p.lat-s.worldOrigin.lat)/GL),pc=Math.floor((p.lng-s.worldOrigin.lng)/GW);
+ base.forEach(l=>{const c=cellFromLayer(l,s),inside=!!(c&&Math.abs(c.r-pr)<=RADIUS&&Math.abs(c.col-pc)<=RADIUS),owned=!!(c&&s.fields?.[`g_${c.r}_${c.col}`]);if(!inside){map.removeLayer(l);return}const color=owned?'#3b82f6':'#777';l.setStyle({color,fillColor:color,weight:owned?3:1,fillOpacity:owned?.30:.025});l.bringToBack()});
+ markers.forEach(l=>{const q=l.getLatLng(),r=Math.floor((q.lat-s.worldOrigin.lat)/GL),c=Math.floor((q.lng-s.worldOrigin.lng)/GW);if(Math.abs(r-pr)>RADIUS||Math.abs(c-pc)>RADIUS)map.removeLayer(l)});
 };
-const bind=()=>{const map=window.mtrwMap;if(!map||map.__mtrwStableBound)return;map.__mtrwStableBound=true;map.on('moveend zoomend',()=>setTimeout(enforce,20));window.addEventListener('mafivera:territoryChanged',()=>setTimeout(enforce,20));window.addEventListener('mafivera:worldRefresh',()=>setTimeout(enforce,20));setTimeout(enforce,300)};
+const bind=()=>{const map=window.mtrwMap;if(!map||map.__mtrwStableBound)return;map.__mtrwStableBound=true;let timer=0;const schedule=()=>{clearTimeout(timer);timer=setTimeout(enforce,120)};map.on('moveend zoomend',schedule);window.addEventListener('mafivera:territoryChanged',schedule);window.addEventListener('mafivera:worldRefresh',schedule);setTimeout(enforce,500)};
 let n=0;const wait=()=>{bind();if(!window.mtrwMap&&n++<80)setTimeout(wait,250)};wait();
 })();
