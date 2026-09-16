@@ -47,6 +47,12 @@ jobs:
           s=re.sub(r'\(async\(\)=>\{try\{const\{data\}=await db\.auth\.getSession\(\);if\(data\.session\)await startGame\(data\.session\)\}catch\(e\)\{console\.error\(e\)\}\}\)\(\);', '', s)
           for name in ['auth-fix','guest-safety','google-auth','places','gps','presence','logs','email-auth','assets/mafivera-brand']:
               s=re.sub(r'<script src="\./'+re.escape(name)+r'\.js\?v=\d+"></script>\s*', '', s)
+          # Do not let a slow third-party CDN keep the entire mobile page blank.
+          head_libs='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>'
+          deferred_libs='<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>window.addEventListener("DOMContentLoaded",()=>{'
+          if head_libs in s:
+              s=s.replace(head_libs,deferred_libs,1)
+              s=s.replace('</script></head>','});</script></head>',1)
           s=s.replace('</body>','<script src="./places.js?v=14"></script>\n<script src="./gps.js?v=14"></script>\n<script src="./presence.js?v=1"></script>\n<script src="./logs.js?v=1"></script>\n<script src="./email-auth.js?v=4"></script>\n<script src="./assets/mafivera-brand.js?v=2"></script>\n</body>')
           old="const message=(el,t)=>{el.textContent=t||''};"
           new="const message=(el,t)=>{const target=(el&&el.isConnected?el:null)||document.getElementById('emailAuthMessage')||el||document.getElementById('startMessage');if(target)target.textContent=t||''};"
@@ -61,5 +67,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'fix: MAFIVERA Login und Branding'
+          git diff --cached --quiet || git commit -m 'fix: MAFIVERA schneller Seitenstart'
           git push
