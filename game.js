@@ -1,21 +1,16 @@
-/* MAFIVERA V1 game shell
-   Authenticated session -> game UI. No gameplay systems are assumed yet.
-*/
+/* MAFIVERA V1 — Game Core */
 (()=>{
-  'use strict';
-  const boot=async()=>{
-    if(!window.db)return setTimeout(boot,100);
-    const {data,error}=await window.db.auth.getSession();
-    if(error||!data?.session){window.location.reload();return;}
-    const user=data.session.user;
-    const meta=user.user_metadata||{};
-    const name=meta.username||user.email?.split('@')[0]||'Spieler';
-    const root=document.getElementById('gameRoot');
-    if(!root)return;
-    root.innerHTML=`<div class="game-shell"><header class="game-top"><div><strong>MAFIVERA</strong><span>Die Welt gehört dir</span></div><div class="player-pill">👤 ${escapeHtml(name)}</div></header><main class="game-main"><section class="game-welcome"><p class="eyebrow">WILLKOMMEN IN DER STADT</p><h1>Hallo, ${escapeHtml(name)}.</h1><p>Dein Spieler ist angemeldet und deine Verbindung zum Spiel steht.</p><div class="status"><span class="dot"></span> Online · Konto verbunden</div></section><section class="game-grid"><div class="game-panel"><h2>🏙️ Deine Stadt</h2><p>Die Spielwelt wird hier als nächstes geladen.</p></div><div class="game-panel"><h2>👤 Dein Spieler</h2><p>Nutzername: <b>${escapeHtml(name)}</b></p><p>E-Mail: <span>${escapeHtml(user.email||'')}</span></p></div><div class="game-panel"><h2>💰 Vermögen</h2><p class="muted">Noch nicht eingerichtet</p></div><div class="game-panel"><h2>⭐ Fortschritt</h2><p class="muted">Noch nicht eingerichtet</p></div></section></main><button id="gameLogout" class="game-logout">Abmelden</button></div>`;
-    document.getElementById('gameLogout').addEventListener('click',async()=>{await window.db.auth.signOut();window.location.reload();});
-    if(typeof window.mtrwGameEvent==='function')window.mtrwGameEvent('Game geladen',{username:name});
-  };
-  const escapeHtml=(value)=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  boot();
+'use strict';
+const start=async()=>{
+ if(!window.db)return setTimeout(start,100);
+ const {data}=await window.db.auth.getSession();
+ if(!data?.session){location.reload();return;}
+ const user=data.session.user,meta=user.user_metadata||{},name=meta.username||user.email?.split('@')[0]||'Spieler';
+ const root=document.getElementById('gameRoot');if(!root)return;
+ root.innerHTML=`<div class="mafivera-game"><header class="topbar"><div class="brand">MAFIVERA <small>Die Welt gehört dir</small></div><div class="topstats"><span>💰 <b>0</b> $</span><span>⭐ Level <b>1</b></span><button id="profileBtn">👤 ${esc(name)}</button></div></header><nav class="nav"><button class="active" data-view="home">🏠 Übersicht</button><button data-view="city">🏙️ Stadt</button><button data-view="business">💼 Geschäfte</button><button data-view="social">👥 Sozial</button><button data-view="missions">🎯 Aufträge</button></nav><main class="content"><section id="home" class="view active"><div class="hero"><div><div class="eyebrow">MAFIVERA V1</div><h1>Willkommen, ${esc(name)}.</h1><p>Deine Geschichte beginnt jetzt.</p></div><div class="online">● ONLINE</div></div><div class="cards"><article class="card"><span class="icon">🏙️</span><h2>Deine Stadt</h2><p>Erkunde Orte, übernimm Gebiete und baue deinen Einfluss auf.</p><button data-view="city">Stadt öffnen →</button></article><article class="card"><span class="icon">💼</span><h2>Dein Geschäft</h2><p>Verdiene Geld, baue dein Unternehmen aus und werde mächtig.</p><button data-view="business">Geschäfte →</button></article><article class="card"><span class="icon">👥</span><h2>Sozial</h2><p>Finde Spieler, knüpfe Kontakte und baue dein Netzwerk auf.</p><button data-view="social">Sozial öffnen →</button></article><article class="card"><span class="icon">🎯</span><h2>Aufträge</h2><p>Erledige Aufgaben und entwickle deinen Spieler weiter.</p><button data-view="missions">Aufträge →</button></article></div></section><section id="city" class="view"><div class="section-head"><div><div class="eyebrow">WELTKARTE</div><h2>Die Stadt</h2><p>Deine Reise durch MAFIVERA beginnt hier.</p></div></div><div class="placeholder"><div>🏙️</div><h2>Die Welt wird aufgebaut</h2><p>Das Kartensystem kommt als nächster Baustein.</p></div></section><section id="business" class="view"><div class="section-head"><div><div class="eyebrow">WIRTSCHAFT</div><h2>Geschäfte</h2><p>Baue dir dein eigenes Imperium auf.</p></div></div><div class="empty-grid"><div>🏪 <b>Unternehmen</b><span>Noch nicht freigeschaltet</span></div><div>📦 <b>Handel</b><span>Noch nicht freigeschaltet</span></div><div>💳 <b>Finanzen</b><span>Noch nicht freigeschaltet</span></div></div></section><section id="social" class="view"><div class="section-head"><div><div class="eyebrow">NETZWERK</div><h2>Sozial</h2><p>Dein Netzwerk in der Stadt.</p></div></div><div class="placeholder"><div>👥</div><h2>Dein Netzwerk wartet</h2><p>Freunde, Kontakte und soziale Systeme kommen hier hinein.</p></div></section><section id="missions" class="view"><div class="section-head"><div><div class="eyebrow">FORTSCHRITT</div><h2>Aufträge</h2><p>Aufträge bringen dich voran.</p></div></div><div class="empty-grid"><div>📋 <b>Aufträge</b><span>Demnächst</span></div><div>🏆 <b>Erfolge</b><span>Demnächst</span></div><div>📈 <b>Level-Fortschritt</b><span>Level 1 · 0 XP</span></div></div></section></main><div id="profilePanel" class="profile hidden"><div class="profile-card"><button id="closeProfile" class="close">×</button><div class="avatar">👤</div><h2>${esc(name)}</h2><p>${esc(user.email||'')}</p><hr><div class="profile-row"><span>Level</span><b>1</b></div><div class="profile-row"><span>Vermögen</span><b>0 $</b></div><button id="logout" class="logout">Abmelden</button></div></div></div>`;
+ const show=id=>{root.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));root.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));window.scrollTo({top:0,behavior:'smooth'});if(typeof window.mtrwGameEvent==='function')window.mtrwGameEvent('Bereich geöffnet',{bereich:id})};
+ root.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+ document.getElementById('profileBtn').onclick=()=>document.getElementById('profilePanel').classList.remove('hidden');document.getElementById('closeProfile').onclick=()=>document.getElementById('profilePanel').classList.add('hidden');document.getElementById('profilePanel').onclick=e=>{if(e.target.id==='profilePanel')e.currentTarget.classList.add('hidden')};document.getElementById('logout').onclick=async()=>{await window.db.auth.signOut();location.reload()};
+};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));start();
 })();
