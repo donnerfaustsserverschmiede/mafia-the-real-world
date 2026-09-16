@@ -1,0 +1,49 @@
+/* MAFIVERA V1 — territory limits + marching gangs */
+(()=>{'use strict';
+const wait=fn=>{let n=0;const t=()=>{if(window.db&&typeof window.mtrwClaim==='function')return fn();if(++n<100)setTimeout(t,100)};t()};
+wait(()=>{
+ const {data}=window.db.auth.getSession?{data:null}:{};
+ const boot=async()=>{
+  const ses=(await window.db.auth.getSession()).data?.session;if(!ses?.user)return;
+  const key='mafivera:v1:save:'+ses.user.id;
+  const read=()=>{try{return JSON.parse(localStorage.getItem(key)||'{}')}catch(e){return {}}};
+  const write=s=>{try{localStorage.setItem(key,JSON.stringify(s))}catch(e){}};
+  const toast=t=>{const e=document.getElementById('toast');if(!e)return;e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2800)};
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const MAX_TERRITORIES=l=>Math.max(2,2*Number(l||0)+2);
+  const cell=id=>{const m=/^g_(-?\d+)_(-?\d+)$/.exec(id);return m?{id,row:+m[1],col:+m[2]}:null};
+  const id=(r,c)=>`g_${r}_${c}`;
+  const dist=(a,b)=>Math.max(Math.abs(a.row-b.row),Math.abs(a.col-b.col));
+  const stateCell=s=>{if(!s.gps||!s.worldOrigin)return null;const lat=s.gps.lat,lng=s.gps.lng,gl=.0018,gw=.0025;return{row:Math.floor((lat-s.worldOrigin.lat)/gl),col:Math.floor((lng-s.worldOrigin.lng)/gw)}};
+  const adjacentToOwn=(s,target)=>Object.keys(s.fields||{}).some(x=>{const c=cell(x);return c&&dist(c,target)<=1});
+  const nearbyToPlayer=(s,target)=>{const p=stateCell(s);return p&&dist(p,target)<=1};
+  const canTake=(s,target,gang=false)=>{if((s.territories||0)>=MAX_TERRITORIES(s.level))return`Gebietsgrenze erreicht: Level ${s.level} erlaubt maximal ${MAX_TERRITORIES(s.level)} Felder.`;if(s.fields?.[target.id])return'Dieses Feld gehört bereits dir.';if(gang?!adjacentToOwn(s,target):!nearbyToPlayer(s,target))return gang?'Das Zielfeld muss direkt an dein bestehendes Gebiet angrenzen.':'Du kannst nur dein aktuelles Feld oder ein direkt angrenzendes Feld einnehmen.';return null};
+  const refresh=()=>{const s=read();document.querySelectorAll('[data-territory-limit]').forEach(e=>e.textContent=`${s.territories||0}/${MAX_TERRITORIES(s.level)}`)};
+  const original=window.mtrwClaim;
+  if(!original.__territoryRules){
+   const wrapped=targetId=>{const s=read(),t=cell(targetId);if(!t)return;const err=canTake(s,t,false);if(err)return toast(err);return original(targetId)};
+   wrapped.__territoryRules=true;window.mtrwClaim=wrapped;
+  }
+  const targetName=t=>`Sektor ${t.row>=0?'N':'S'}${Math.abs(t.row)}-${t.col>=0?'O':'W'}${Math.abs(t.col)}`;
+  const frontier=s=>{const out=new Map();Object.keys(s.fields||{}).forEach(x=>{const c=cell(x);if(!c)return;for(let r=-1;r<=1;r++)for(let q=-1;q<=1;q++){if(!r&&!q)continue;const t={row:c.row+r,col:c.col+q,id:id(c.row+r,c.col+q)};if(!s.fields[t.id])out.set(t.id,t)}});return [...out.values()].slice(0,60)};
+  const deploy=async(target,n)=>{
+   const s=read(),t=cell(target);if(!t)return;
+   const err=canTake(s,t,true);if(err)return toast(err);
+   n=Math.max(1,Math.min(Number(n)||1,Number(s.hitmen||0)));if(n<1)return toast('Keine freien Schläger verfügbar.');
+   const from=stateCell(s)||Object.keys(s.fields||{}).map(cell).find(Boolean);if(!from)return toast('Kein Ausgangspunkt für den Marsch vorhanden.');
+   const d=Math.max(1,dist(from,t)),duration=d*30000,now=Date.now();
+   s.hitmen=(s.hitmen||0)-n;s.marches=Array.isArray(s.marches)?s.marches:[];s.marches.push({id:'m_'+now+'_'+Math.random().toString(36).slice(2,7),from,to:target,troops:n,distance:d,departAt:now,arriveAt:now+duration});write(s);
+   toast(`🔫 ${n} Schläger marschieren ${d} Feld${d===1?'':'er'} · Ankunft in ${Math.ceil(duration/60000)} Min.`);renderGangPanel();
+  };
+  const resolveMarches=()=>{const s=read();if(!Array.isArray(s.marches)||!s.marches.length)return;let changed=false;const now=Date.now();s.marches=s.marches.filter(m=>{if(now<m.arriveAt)return true;const t=cell(m.to);if(!t)return false;if(s.territories>=MAX_TERRITORIES(s.level)){s.hitmen=(s.hitmen||0)+m.troops;toast('⚠️ Marsch beendet, aber deine Gebietsgrenze ist erreicht. Schläger kehren zurück.');return false}if(s.fields?.[m.to]){s.hitmen=(s.hitmen||0)+m.troops;return false}s.fields[m.to]={claimedAt:now,row:t.row,col:t.col,props:['material','money'],lastTick:now,claimedBy:'gang'};s.territories=(s.territories||0)+1;s.influence=(s.influence||0)+4;toast(`🏴 ${targetName(t)} wurde von deinen Schlägern eingenommen.`);changed=true;return false});if(changed){write(s);window.dispatchEvent(new Event('mafivera:territoryChanged'));}else write(s)};
+  const renderGangPanel=()=>{const body=document.getElementById('drawerBody'),title=document.getElementById('drawerTitle');if(!body||!title||title.textContent!=='Schläger')return;const s=read();const ms=s.marches||[];const available=s.hitmen||0;const list=frontier(s);body.innerHTML=`<div class="panel-hero">🔫 <div><b>Gebietserweiterung</b><p>${available} freie Schläger · ${s.territories||0}/${MAX_TERRITORIES(s.level)} Felder</p></div></div>${ms.length?`<div class="panel-hint">🚶 <b>Aktive Märsche</b><br>${ms.map(m=>{const left=Math.max(0,Math.ceil((m.arriveAt-Date.now())/60000));return`${m.troops} Schläger → ${esc(m.to)} · noch ${left} Min.`}).join('<br>')}</div>`:''}<h3>Grenzfelder</h3>${list.length?list.map(t=>`<button class="panel-action" data-march="${t.id}">🏴 ${targetName(t)}<br><small>Direkt an deinem Gebiet · ${Math.max(1,dist(stateCell(s)||t,t))} Felder Marsch</small></button>`).join(''):'<div class="panel-hint">Keine angrenzenden freien Felder verfügbar.</div>'}`;
+   body.querySelectorAll('[data-march]').forEach(b=>b.onclick=()=>{const n=prompt(`Wie viele Schläger sollen nach ${targetName(cell(b.dataset.march))} marschieren? (frei: ${s.hitmen||0})`,'1');if(n!==null)deploy(b.dataset.march,Math.floor(Number(n)||0))});
+  };
+  const observe=()=>{const root=document.getElementById('drawerBody');if(!root)return;new MutationObserver(()=>{const title=document.getElementById('drawerTitle');if(title?.textContent==='Schläger')renderGangPanel();refresh()}).observe(root,{childList:true,subtree:true});};
+  setTimeout(()=>{observe();resolveMarches();refresh()},300);
+  setInterval(()=>{resolveMarches();const title=document.getElementById('drawerTitle');if(title?.textContent==='Schläger')renderGangPanel();refresh()},5000);
+  window.MAFIVERA_MAX_TERRITORIES=MAX_TERRITORIES;window.MAFIVERA_CAN_TAKE=(target,gang=false)=>{const s=read(),t=typeof target==='string'?cell(target):target;return t?canTake(s,t,gang):'Ungültiges Feld.'};window.MAFIVERA_SEND_GANG=deploy;
+ };
+ boot();
+});
+})();
