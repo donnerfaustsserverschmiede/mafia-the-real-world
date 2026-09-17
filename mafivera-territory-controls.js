@@ -11,6 +11,6 @@
   const observer=new MutationObserver(()=>setTimeout(enhance,0));
   function boot(){const body=document.getElementById('drawerBody');if(!body){setTimeout(boot,500);return}observer.observe(body,{childList:true,subtree:true});enhance()}
   function loadScript(src,key){if(document.querySelector(`script[data-mtrw-live="${key}"]`))return;const x=document.createElement('script');x.src=src;x.dataset.mtrwLive=key;x.async=false;document.body.appendChild(x)}
-  function loadLiveModules(){const v='20260917-clean1';loadScript(`./mafivera-dealer-ui.js?v=${v}`,'dealer-ui');loadScript(`./mafivera-buildings.js?v=${v}`,'buildings');loadScript(`./mafivera-admin.js?v=${v}`,'admin')}
+  function loadLiveModules(){const v='20260917-clean2';loadScript(`./mafivera-dealer-ui.js?v=${v}`,'dealer-ui');loadScript(`./mafivera-buildings.js?v=${v}`,'buildings');loadScript(`./mafivera-admin.js?v=${v}`,'admin')}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{boot();loadLiveModules()});else{boot();loadLiveModules()}
 })();
