@@ -1,0 +1,5 @@
+(()=>{'use strict';const s=document.createElement('style');s.id='mtrw-ui-fixes';s.textContent=`
+.mf-drawer .close-btn{display:flex!important;align-items:center!important;justify-content:center!important;width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;padding:0!important;margin:0!important;line-height:1!important;font-size:30px!important;font-family:Arial,sans-serif!important;text-align:center!important;box-sizing:border-box!important;transform:none!important;position:relative!important;top:0!important;right:0!important;}
+.mf-drawer .drawer-head{display:flex!important;align-items:center!important;justify-content:space-between!important;}
+@media(max-width:600px){.mf-drawer .close-btn{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;font-size:29px!important;}}
+`;document.head.appendChild(s)})();
