@@ -1,39 +1,12 @@
-/* MAFIVERA — GTA-style drug inventory */
+/* MAFIVERA — GTA-style real inventory */
 (()=>{'use strict';
 const DRUGS=[['cocaine','Kokain','❄️'],['weed','Cannabis','🌿'],['meth','Methamphetamin','💎'],['heroin','Heroin','💉']];
-let db=null,open=false,timer=null;
-const $=id=>document.getElementById(id);
-const fmt=n=>Number(n||0).toLocaleString('de-DE');
-async function loadInventory(){
-  db=window.db||db;if(!db)return null;
-  const r=await db.from('mtrw_drug_inventory').select('drug_type,quantity');
-  if(r.error)throw r.error;
-  const inv=Object.fromEntries(DRUGS.map(([k])=>[k,0]));
-  (r.data||[]).forEach(x=>{if(x.drug_type in inv)inv[x.drug_type]=Number(x.quantity||0)});
-  const total=Object.values(inv).reduce((a,b)=>a+b,0);
-  const hud=$('hudDrugs');if(hud)hud.textContent=fmt(total);
-  return {inv,total};
-}
-function showInventory(data){
-  const d=$('drawer'),t=$('drawerTitle'),b=$('drawerBody');if(!d||!t||!b)return;
-  t.textContent='Inventar';
-  b.innerHTML=`<div class="hero"><span class="hero-icon">🎒</span><div><b>Drogen-Inventar</b><p>Alle Drogen werden getrennt gelagert. Die Zahl oben bei „Drogen“ zeigt die Gesamtmenge.</p></div></div><div class="inventory-total"><b>${fmt(data.total)}</b><small>Drogen gesamt</small></div><div class="inventory-grid">${DRUGS.map(([k,name,icon])=>`<div class="inventory-slot"><span class="inventory-icon">${icon}</span><div><b>${name}</b><small>${fmt(data.inv[k])} Stück</small></div><strong>${fmt(data.inv[k])}</strong></div>`).join('')}</div>`;
-  d.classList.remove('hidden');open=true;
-}
-async function openInventory(){try{const data=await loadInventory();if(data)showInventory(data)}catch(e){const x=$('toast');if(x){x.textContent=e.message||'Inventar konnte nicht geladen werden';x.className='toast show error';setTimeout(()=>x.className='toast',2800)}}}
-function bind(){
-  const hud=$('hudDrugs');if(!hud||hud.dataset.inventoryBound)return false;
-  hud.dataset.inventoryBound='1';hud.style.cursor='pointer';hud.title='Drogen-Inventar öffnen';
-  const target=hud.closest('button,[role="button"],.hud-item,.hud-stat,.stat')||hud;
-  target.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openInventory()});
-  return true;
-}
-function boot(){
-  let tries=0;const t=setInterval(async()=>{if(window.db){bind();try{await loadInventory()}catch(e){}}if(bind()||++tries>120){}},2000);
-  timer=t;
-  window.addEventListener('mtrw:inventory-refresh',()=>loadInventory().catch(()=>{}));
-  const close=$('drawerClose');close?.addEventListener('click',()=>{open=false});
-  setTimeout(()=>{bind();loadInventory().catch(()=>{})},1000);
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-})();
+let db=null,panel=null;
+const $=id=>document.getElementById(id),fmt=n=>Number(n||0).toLocaleString('de-DE');
+const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+async function loadInventory(){db=window.db||db;if(!db)return null;const r=await db.rpc('mafivera_inventory');if(r.error)throw r.error;const d=r.data||{items:[],total:0};const inv=Object.fromEntries(DRUGS.map(([k])=>[k,0]));(d.items||[]).forEach(x=>{if(x.drug_type in inv)inv[x.drug_type]=Number(x.quantity||0)});d.items=DRUGS.filter(([k])=>inv[k]>0).map(([k,name,icon])=>({drug_type:k,name,icon,quantity:inv[k]}));d.total=Object.values(inv).reduce((a,b)=>a+b,0);const hud=$('hudDrugs');if(hud)hud.textContent=fmt(d.total);const count=$('mtrwInventoryCount');if(count)count.textContent=fmt(d.total);return d}
+function showInventory(data){if(!panel)return;panel.innerHTML=`<div class="mtrw-inv-head"><div><b>🎒 Inventar</b><small>Nur Gegenstände, die du tatsächlich besitzt.</small></div><button id="mtrwInvClose">×</button></div><div class="mtrw-inv-total"><span>💊 Drogen gesamt</span><b>${fmt(data.total)}</b></div><div class="mtrw-inv-grid">${data.items.map(i=>`<div class="mtrw-inv-item"><span class="mtrw-inv-icon">${i.icon}</span><div><b>${esc(i.name)}</b><small>Im Inventar</small></div><strong>${fmt(i.quantity)}</strong></div>`).join('')||'<div class="mtrw-inv-empty">Dein Inventar ist leer.</div>'}</div>`;panel.classList.add('show');$('mtrwInvClose').onclick=()=>panel.classList.remove('show')}
+async function openInventory(){try{const d=await loadInventory();if(d)showInventory(d)}catch(e){const x=$('toast');if(x){x.textContent=e.message||'Inventar konnte nicht geladen werden';x.className='toast show error';setTimeout(()=>x.className='toast',2800)}}}
+function ensure(){if(document.getElementById('mtrwInventoryButton'))return;const b=document.createElement('button');b.id='mtrwInventoryButton';b.innerHTML='<span>🎒</span><b>Inventar</b><em id="mtrwInventoryCount">0</em>';b.onclick=openInventory;document.body.appendChild(b);panel=document.createElement('section');panel.id='mtrwInventoryPanel';document.body.appendChild(panel);const s=document.createElement('style');s.textContent=`#mtrwInventoryButton{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:8500;min-width:72px;padding:13px 9px;border:1px solid #d6ad2d;border-right:0;border-radius:16px 0 0 16px;background:#111821f2;color:#fff;box-shadow:0 8px 28px #0009;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:900;cursor:pointer}#mtrwInventoryButton span{font-size:25px;line-height:27px}#mtrwInventoryButton b{font-size:10px}#mtrwInventoryButton em{font-style:normal;min-width:25px;padding:2px 6px;border-radius:10px;background:#d6ad2d;color:#111;font-size:10px}#mtrwInventoryPanel{position:fixed;inset:0;z-index:8400;background:#0b1119;display:none;padding:18px;overflow:auto}#mtrwInventoryPanel.show{display:block}.mtrw-inv-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.mtrw-inv-head b{font-size:21px}.mtrw-inv-head small{display:block;color:#7f8997;font-size:11px;margin-top:3px}.mtrw-inv-head button{width:40px;height:40px;border:1px solid #394653;border-radius:50%;background:#18212b;color:#fff;font-size:25px}.mtrw-inv-total{display:flex;justify-content:space-between;align-items:center;padding:15px;margin:12px 0;border:1px solid #2b3743;border-radius:14px;background:#101720}.mtrw-inv-total b{font-size:22px}.mtrw-inv-grid{display:grid;gap:10px}.mtrw-inv-item{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #28333f;border-radius:14px;background:#0c1219}.mtrw-inv-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:#18212b;font-size:25px}.mtrw-inv-item>div{flex:1}.mtrw-inv-item small{display:block;color:#7f8997;margin-top:3px}.mtrw-inv-item strong{font-size:19px}.mtrw-inv-empty{text-align:center;color:#8994a1;padding:35px 10px}`;document.head.appendChild(s)}
+async function boot(){ensure();let tries=0;const t=setInterval(async()=>{if(window.db){try{await loadInventory()}catch(e){}if(++tries>20)clearInterval(t)}},500);setTimeout(()=>loadInventory().catch(()=>{}),1200);setInterval(()=>loadInventory().catch(()=>{}),5000)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();window.addEventListener('mtrw:inventory-refresh',()=>loadInventory().catch(()=>{}));})();
