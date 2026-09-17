@@ -9,4 +9,5 @@ function open(){if(!report?.has_report)return;ui();overlay.classList.remove('mtr
 function close(){overlay?.classList.add('mtrw-absence-hidden');if(report?.has_report)button?.classList.remove('mtrw-absence-hidden')}
 async function load(){ui();try{const r=await window.db.rpc('mtrw_absence_report');if(r.error)throw r.error;report=r.data||{has_report:false,items:[]};render();if(report.has_report)open();return report}catch(e){console.warn('[MAFIVERA] Abwesenheitsbericht',e);return null}}
 window.mtrwOpenAbsenceReport=load;
+if(window.db)load();
 })();
