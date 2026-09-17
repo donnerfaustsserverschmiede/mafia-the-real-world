@@ -1,0 +1,2 @@
+/* MAFIVERA V1 — background task worker */
+(()=>{'use strict';let tries=0,timer=null;async function process(){try{if(window.db)await window.db.rpc('mafivera_process_business_tasks')}catch(e){}}function boot(){timer=setInterval(()=>{process();if(++tries>180){clearInterval(timer)}},10000);process()}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();})();
