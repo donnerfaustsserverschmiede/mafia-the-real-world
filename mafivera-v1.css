@@ -8,3 +8,27 @@
 .mf-drawer{position:absolute;inset:7px;left:7px;right:7px;top:7px;bottom:7px;width:auto;max-height:none;z-index:60;overflow:auto;padding:20px;background:#10151efc;border-radius:24px;box-shadow:0 25px 90px #000e;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.mf-drawer .drawer-head{position:sticky;top:-20px;z-index:5;padding:14px 0 16px;margin:-20px 0 16px;background:linear-gradient(#10151eff 72%,#10151ecc 88%,transparent);align-items:center}.mf-drawer .drawer-head h2{font-size:28px;line-height:1.15}.mf-drawer .drawer-head small{font-size:10px}.mf-drawer .close-btn{width:50px;height:50px;min-width:50px;font-size:31px;line-height:1;cursor:pointer}.mf-drawer .hero{padding:18px;gap:16px}.mf-drawer .hero-icon{font-size:38px}.mf-drawer .hero b{font-size:21px}.mf-drawer .hero p{font-size:14px}.mf-drawer .statgrid{gap:10px;margin:14px 0}.mf-drawer .statgrid>div{padding:15px 8px}.mf-drawer .statgrid b{font-size:21px}.mf-drawer .statgrid small{font-size:11px}.mf-drawer .action{padding:17px 18px;margin:6px 0;font-size:16px;border-radius:15px;min-height:54px}.mf-drawer .hint{padding:14px;font-size:13px;line-height:1.5}.mf-drawer .list{gap:9px}.mf-drawer .row,.mf-drawer .rankrow,.mf-drawer .build-option{padding:15px;font-size:15px;border-radius:14px}.mf-drawer .row small,.mf-drawer .rankrow small,.mf-drawer .build-option small{font-size:11px}.mf-drawer .mini{padding:10px 13px;font-size:13px}.mf-drawer .build-option>span{font-size:32px;width:44px}.mf-drawer .build-option b{font-size:16px}.mf-drawer .territory-head h3{font-size:26px}.mf-drawer .badge{font-size:9px;padding:6px 9px}.mf-drawer .building-card{padding:15px}.mf-drawer .building-card>span{font-size:36px}.mf-drawer .building-card small{font-size:11px}.mf-drawer .production-card{padding:17px;border-radius:17px}.mf-drawer .production-card h3{font-size:20px}.mf-drawer .production-card #productionStatus{padding:13px}.mf-drawer .production-card #productionStatus b{font-size:15px}.mf-drawer .production-card #productionStatus small,.mf-drawer .production-card>small{font-size:11px}.mf-drawer .production-row{grid-template-columns:minmax(110px,160px) 1fr;gap:9px}.mf-drawer .production-row input{height:50px;font-size:18px}.mf-drawer .social-block{margin-top:18px}.mf-drawer .social-block h3{font-size:17px}.mf-drawer .tabs>*{padding:12px 15px;font-size:14px}
 @media(max-width:600px){.mf-drawer{inset:6px;padding:18px;border-radius:22px}.mf-drawer .drawer-head{top:-18px;padding:12px 0 14px;margin:-18px 0 14px}.mf-drawer .drawer-head h2{font-size:25px}.mf-drawer .close-btn{width:48px;height:48px;min-width:48px;font-size:30px}.mf-drawer .action{font-size:15px;padding:16px}.mf-drawer .statgrid{grid-template-columns:repeat(3,1fr)}.mf-drawer .statgrid b{font-size:18px}.mf-drawer .statgrid small{font-size:10px}.mf-drawer .row,.mf-drawer .rankrow,.mf-drawer .build-option{padding:14px}.mf-bottom{z-index:40}}
 @media(min-width:700px){.mf-drawer{inset:18px}.mf-drawer .drawer-head h2{font-size:30px}.mf-drawer .action{font-size:17px}}
+/* MAFIVERA V1.1 – mobile readability: clear, modern, not oversized */
+@media(max-width:600px){
+  .mf-app .mf-hud{min-height:82px!important;padding-top:9px!important;padding-bottom:14px!important}
+  .mf-app .mf-stat small{font-size:10px!important;line-height:12px!important;letter-spacing:.7px!important}
+  .mf-app .mf-stat b{font-size:22px!important;line-height:25px!important}
+  .mf-app .mf-stat em{font-size:8px!important;line-height:10px!important;letter-spacing:.2px!important}
+  .mf-app .mf-menu{width:38px!important;height:38px!important;font-size:20px!important}
+  .mf-app .mf-event{font-size:13px!important;padding:8px 15px!important;letter-spacing:.4px!important}
+  .mf-app .mf-legend{font-size:11px!important;line-height:1.35!important;padding:9px 11px!important}
+  .mf-app .mf-legend div{margin:4px 0!important}
+  .mf-app .mf-bottom{height:72px!important;padding:6px!important;border-radius:24px!important}
+  .mf-app .bottom-btn{height:60px!important;gap:3px!important}
+  .mf-app .bottom-btn span{font-size:21px!important;line-height:23px!important}
+  .mf-app .bottom-btn small{font-size:10px!important;line-height:12px!important;letter-spacing:.35px!important}
+  .mf-app .res-marker span{font-size:13px!important;width:24px!important;height:24px!important}
+  .mf-app .building-marker b{font-size:9px!important;padding:3px 5px!important}
+  .mf-app .toast{font-size:13px!important}
+}
+@media(max-width:380px){
+  .mf-app .mf-stat small{font-size:9px!important}
+  .mf-app .mf-stat b{font-size:20px!important}
+  .mf-app .mf-stat em{font-size:7px!important}
+  .mf-app .bottom-btn small{font-size:9px!important}
+}
