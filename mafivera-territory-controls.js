@@ -1,0 +1,49 @@
+/* MAFIVERA – territory controls: demolish buildings / release territories */
+(()=>{'use strict';
+  let busy=false;
+  const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  const toast=(text,error=false)=>{const x=document.getElementById('toast');if(!x)return;x.textContent=text;x.className='toast show '+(error?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',2800)};
+  const db=()=>window.db;
+  function zoneFromDrawer(){
+    const body=document.getElementById('drawerBody');
+    if(!body)return null;
+    const el=body.querySelector('[data-action="upgrade"],[data-action="build-menu"],[data-action="station"]');
+    if(!el)return null;
+    return (el.dataset.zone||'').split('|')[0]||null;
+  }
+  async function rpc(name,args){const d=db();if(!d)throw Error('Datenbank noch nicht bereit.');const r=await d.rpc(name,args);if(r.error)throw r.error;return r.data}
+  async function demolish(zone){
+    if(busy)return;busy=true;
+    try{
+      if(!confirm('Gebäude wirklich abreißen? Du erhältst 50 % der bisher investierten Baukosten zurück.'))return;
+      const r=await rpc('mafivera_demolish',{p_zone_key:zone});
+      toast(`Gebäude abgerissen. Erstattung: ${Number(r?.refund||0).toLocaleString('de-DE')} $`);
+      setTimeout(()=>location.reload(),350);
+    }catch(e){toast(e.message||'Gebäude konnte nicht abgerissen werden.',true)}finally{busy=false}
+  }
+  async function leave(zone){
+    if(busy)return;busy=true;
+    try{
+      if(!confirm('Gebiet wirklich verlassen? Das Gebiet wird sofort frei. Alle Gebäude gehen verloren. Stationierte Schläger werden in deinen Bestand zurückgeführt.'))return;
+      const r=await rpc('mafivera_leave_territory',{p_zone_key:zone});
+      const n=Number(r?.returned_hitmen||0);
+      toast(`Gebiet freigegeben.${n?` ${n} Schläger zurückerhalten.`:''}`);
+      setTimeout(()=>location.reload(),350);
+    }catch(e){toast(e.message||'Gebiet konnte nicht freigegeben werden.',true)}finally{busy=false}
+  }
+  function enhance(){
+    const body=document.getElementById('drawerBody');
+    if(!body||document.getElementById('mtrwTerritoryControls'))return;
+    const zone=zoneFromDrawer();if(!zone)return;
+    const ownBuilding=body.querySelector('.building-card');
+    const wrap=document.createElement('div');wrap.id='mtrwTerritoryControls';wrap.className='mtrw-territory-controls';
+    if(ownBuilding){
+      const b=document.createElement('button');b.className='action danger';b.type='button';b.textContent='🧱 Gebäude abreißen · 50 % Erstattung';b.onclick=()=>demolish(zone);wrap.appendChild(b);
+    }
+    const leave=document.createElement('button');leave.className='action danger';leave.type='button';leave.textContent='🚪 Gebiet verlassen · Gebiet freigeben';leave.onclick=()=>leave(zone);wrap.appendChild(leave);
+    body.appendChild(wrap);
+  }
+  const observer=new MutationObserver(()=>setTimeout(enhance,0));
+  function boot(){const body=document.getElementById('drawerBody');if(!body){setTimeout(boot,500);return}observer.observe(body,{childList:true,subtree:true});enhance()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
