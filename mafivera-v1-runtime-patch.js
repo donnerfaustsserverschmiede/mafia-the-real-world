@@ -26,5 +26,26 @@ function patchMarkers(){
  `;document.head.appendChild(s);
 }
 function patchDealerState(){setInterval(async()=>{try{if(!window.db)return;const r=await window.db.rpc('mtrw_dealer_state');if(!r.error)window.__mtrwDealerState=r.data||null}catch(e){}},2000)}
-patchProduction();dealerLocation();patchMarkers();patchDealerState();
+function repairMapMarkers(){
+ let lastRepair=0;
+ const check=()=>{
+  const map=window.__mtrwMap;
+  if(!map)return;
+  let resources=0,buildings=0;
+  map.eachLayer(layer=>{
+   const cls=layer?.options?.icon?.options?.className||'';
+   if(cls.includes('res-marker'))resources++;
+   if(cls.includes('building-marker'))buildings++;
+  });
+  if(resources===0 || buildings===0){
+   const now=Date.now();
+   if(now-lastRepair<1500)return;
+   lastRepair=now;
+   map.fire('moveend');
+  }
+ };
+ setInterval(check,2000);
+ setTimeout(check,1200);
+}
+patchProduction();dealerLocation();patchMarkers();patchDealerState();repairMapMarkers();
 })();
