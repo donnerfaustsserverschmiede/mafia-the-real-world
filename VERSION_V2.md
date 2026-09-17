@@ -6,7 +6,9 @@
 
 ## V2-Stabilisierung
 - Ein zentraler Game-Runtime-Pfad statt konkurrierender Karten-/Marker-Engines.
-- Legacy-Marker-Engine stillgelegt, damit keine doppelten Layer mehr flackern.
+- Ressourcen- und Gebäudemarker werden jetzt von einem stabilen V2-Marker-Manager verwaltet und nicht bei jeder Kartenbewegung neu erzeugt.
+- Sichtbare Marker bleiben beim normalen Verschieben der Karte bestehen; nur beim Wechsel des Kartenbereichs werden Marker hinzugefügt bzw. entfernt.
+- Legacy-Marker-Ausgabe des Haupt-Runtimes ist ausgeblendet, damit keine doppelten Marker mehr entstehen.
 - Dealer als eigener V2-Controller: ein Marker, bestehender Marker wird bei Positionsupdates verschoben statt neu erzeugt.
 - Dealer-Alarm bleibt klickbar und öffnet direkt das Angebot.
 - Kartenbewegungen werden nicht mehr durch konkurrierende Marker-Engines überschrieben.
