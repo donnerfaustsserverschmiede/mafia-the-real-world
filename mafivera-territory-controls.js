@@ -46,16 +46,27 @@
   const observer=new MutationObserver(()=>setTimeout(enhance,0));
   function boot(){const body=document.getElementById('drawerBody');if(!body){setTimeout(boot,500);return}observer.observe(body,{childList:true,subtree:true});enhance()}
 
+  function applyViewportFix(){
+    if(document.getElementById('mtrwViewportFix'))return;
+    const s=document.createElement('style');s.id='mtrwViewportFix';s.textContent=`
+      html,body{width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden!important}
+      #gameRoot{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+      #gameRoot .mf-app{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important}
+      #gameRoot .mf-map{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important}
+    `;document.head.appendChild(s);
+  }
+
   function loadScript(src,key){
     if(document.querySelector(`script[data-mtrw-live="${key}"]`))return;
     const x=document.createElement('script');x.src=src;x.dataset.mtrwLive=key;x.async=false;document.body.appendChild(x);
   }
   function loadLiveModules(){
-    const v='20260917-live3';
+    const v='20260917-live4';
     loadScript(`./mafivera-v1-runtime-patch.js?v=${v}`,'runtime');
     loadScript(`./mafivera-dealer-ui.js?v=${v}`,'dealer-ui');
     loadScript(`./mafivera-buildings.js?v=${v}`,'buildings');
     loadScript(`./mafivera-admin.js?v=${v}`,'admin');
   }
+  applyViewportFix();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{boot();loadLiveModules()});else{boot();loadLiveModules()}
 })();
