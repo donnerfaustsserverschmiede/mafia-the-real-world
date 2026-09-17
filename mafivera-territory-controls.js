@@ -1,4 +1,4 @@
-/* MAFIVERA – territory controls: demolish buildings / release territories */
+/* MAFIVERA – territory controls: demolish buildings / release territories + live modules */
 (()=>{'use strict';
   let busy=false;
   const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
@@ -40,10 +40,22 @@
     if(ownBuilding){
       const b=document.createElement('button');b.className='action danger';b.type='button';b.textContent='🧱 Gebäude abreißen · 50 % Erstattung';b.onclick=()=>demolish(zone);wrap.appendChild(b);
     }
-    const leave=document.createElement('button');leave.className='action danger';leave.type='button';leave.textContent='🚪 Gebiet verlassen · Gebiet freigeben';leave.onclick=()=>leave(zone);wrap.appendChild(leave);
+    const leave= document.createElement('button');leave.className='action danger';leave.type='button';leave.textContent='🚪 Gebiet verlassen · Gebiet freigeben';leave.onclick=()=>leave(zone);wrap.appendChild(leave);
     body.appendChild(wrap);
   }
   const observer=new MutationObserver(()=>setTimeout(enhance,0));
   function boot(){const body=document.getElementById('drawerBody');if(!body){setTimeout(boot,500);return}observer.observe(body,{childList:true,subtree:true});enhance()}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+
+  function loadScript(src,key){
+    if(document.querySelector(`script[data-mtrw-live="${key}"]`))return;
+    const x=document.createElement('script');x.src=src;x.dataset.mtrwLive=key;x.async=false;document.body.appendChild(x);
+  }
+  function loadLiveModules(){
+    const v='20260917-live3';
+    loadScript(`./mafivera-v1-runtime-patch.js?v=${v}`,'runtime');
+    loadScript(`./mafivera-dealer-ui.js?v=${v}`,'dealer-ui');
+    loadScript(`./mafivera-buildings.js?v=${v}`,'buildings');
+    loadScript(`./mafivera-admin.js?v=${v}`,'admin');
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{boot();loadLiveModules()});else{boot();loadLiveModules()}
 })();
