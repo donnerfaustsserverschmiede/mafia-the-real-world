@@ -13,20 +13,20 @@ async function openProduction(){
  if(q.error)throw q.error;
  const jobs=q.data||[],used=jobs.length;
  const rows=Object.entries(recipes).map(([k,r])=>`<option value="${k}">${r.name} · ${fmt(r.material)} Material/Stück · ${fmt(r.value)} $ Marktwert</option>`).join('');
- panel('Produktion',`<div class="hero"><span class="hero-icon">⚗️</span><div><b>Drogenproduktion</b><p>Produktionsslots: <b>${used}/${slots}</b>. Mit Level 5/10/15/20 werden weitere Slots freigeschaltet – maximal 5.</p></div></div><div class="statgrid"><div><b>${fmt(p.material)}</b><small>Material</small></div><div><b>${fmt(p.product)}</b><small>Drogen</small></div><div><b>${slots}</b><small>Produktionsslots</small></div></div>
+ panel('Produktion',`<div class="hero"><span class="hero-icon">⚗️</span><div><b>Drogenproduktion</b><p>Produktionsslots: <b>${used}/${slots}</b>. Weitere Slots ab Level 5, 10, 15 und 20 · maximal 5.</p></div></div><div class="statgrid"><div><b>${fmt(p.material)}</b><small>Material</small></div><div><b>${fmt(p.product)}</b><small>Drogen</small></div><div><b>${slots}</b><small>Produktionsslots</small></div></div>
  <div class="production-card"><h3>Neue Produktion</h3><label>Droge</label><select id="mtrwProdDrug">${rows}</select><label>Menge</label><input id="mtrwProdQty" type="number" min="1" value="1"><div id="mtrwRecipeInfo" class="hint"></div><button id="mtrwProdStart" class="action primary" type="button" ${used>=slots?'disabled':''}>▶️ Produktion starten</button></div>
- <h3>Aktive Produktionen · ${used}/${slots}</h3><div class="list">${jobs.map(j=>{const r=recipes[j.drug_type]||{name:j.drug_type,material:j.material_cost/Math.max(1,j.quantity),value:0,seconds:300};return `<div class="task-card"><div><b>⚗️ ${esc(r.name)} · ${fmt(j.quantity)} Stück</b><small>Material: ${fmt(j.material_cost)} · Fertig: ${new Date(j.finish_at).toLocaleString('de-DE')}</small></div><button class="mini danger" data-cancel-prod="${j.id}">✖ Abbrechen · ${fmt(j.material_cost)} zurück</button></div>`}).join('')||'<div class="hint">Keine laufenden Produktionen.</div>'}</div>`);
+ <h3>Aktive Produktionen · ${used}/${slots}</h3><div class="list">${jobs.map(j=>{const r=recipes[j.drug_type]||{name:j.drug_type,material:j.material_cost/Math.max(1,j.quantity),value:0,seconds:300};const finish=new Date(j.finish_at);const finishText=Number.isNaN(finish.getTime())?'Zeit unbekannt':finish.toLocaleString('de-DE');return `<div class="task-card"><div><b>⚗️ ${esc(r.name)} · ${fmt(j.quantity)} Stück</b><small>Material: ${fmt(j.material_cost)} · Fertig: ${finishText}</small></div><button class="mini danger" data-cancel-prod="${j.id}">✖ Abbrechen · ${fmt(j.material_cost)} zurück</button></div>`}).join('')||'<div class="hint">Keine laufenden Produktionen.</div>'}</div>`);
  const drug=$('mtrwProdDrug'),qty=$('mtrwProdQty'),info=$('mtrwRecipeInfo'),start=$('mtrwProdStart');
  function calc(){const r=recipes[drug.value],n=Math.max(1,Math.floor(Number(qty.value)||1));qty.value=n;info.innerHTML=`${fmt(r.material*n)} Material benötigt · Marktwert ${fmt(r.value*n)} $ · Produktionszeit ${Math.round(r.seconds*n/60)} Min.`;}
  drug.onchange=calc;qty.oninput=calc;calc();
- start.onclick=async()=>{try{const n=Math.max(1,Math.floor(Number(qty.value)||1));await rpc('mtrw_start_production',{p_quantity:n,p_drug_type:drug.value});await openProduction();window.mtrwToast?.('Produktion gestartet.')}catch(e){window.mtrwToast?.(e.message||'Produktion konnte nicht gestartet werden',true)}};
+ start.onclick=async()=>{try{const n=Math.max(1,Math.floor(Number(qty.value)||1));await rpc('mafivera_start_production',{p_quantity:n,p_drug_type:drug.value});await openProduction();window.mtrwToast?.('Produktion gestartet.')}catch(e){window.mtrwToast?.(e.message||'Produktion konnte nicht gestartet werden',true)}};
  document.querySelectorAll('[data-cancel-prod]').forEach(x=>x.onclick=async()=>{try{const r=await rpc('mtrw_cancel_production',{p_job_id:x.dataset.cancelProd});await openProduction();window.mtrwToast?.(`Produktion abgebrochen · ${fmt(r.refund)} Material zurück`)}catch(e){window.mtrwToast?.(e.message||'Abbruch fehlgeschlagen',true)}});
- }catch(e){window.mtrwToast?.(e.message||'Produktion konnte nicht geladen werden',true)}
+ }
+catch(e){window.mtrwToast?.(e.message||'Produktion konnte nicht geladen werden',true)}
 }
 function install(){
  const handler=e=>{const t=e.target.closest?.('[data-market="production"]');if(t){e.preventDefault();e.stopImmediatePropagation();openProduction()}};
  document.addEventListener('click',handler,true);
- let tries=0;const timer=setInterval(()=>{const b=document.querySelector('.bottom-btn[data-panel="business"]');if(b){clearInterval(timer);b.addEventListener('click',()=>setTimeout(()=>{const x=document.querySelector('[data-market="production"]');x?.focus()},0),true)}if(++tries>120)clearInterval(timer)},250);
  window.mtrwOpenProduction=openProduction;
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
