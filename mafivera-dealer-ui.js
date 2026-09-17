@@ -1,1 +1,5 @@
-(()=>{'use strict';const s=document.createElement('style');s.textContent=`#dealerAlert{position:fixed!important;left:10px!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translateY(-50%)!important;z-index:8500!important;cursor:pointer!important}@media(max-width:600px){#dealerAlert{left:8px!important;top:calc(50% - 40px)!important}}`;document.head.appendChild(s);if(!window.__mtrwDealerV2Loader){window.__mtrwDealerV2Loader=true;const l=()=>{if(document.querySelector('script[data-mtrw-dealer-v2]'))return;const x=document.createElement('script');x.src='./mafivera-dealer-v2.js?v=20260917-clean1';x.dataset.mtrwDealerV2='1';x.async=false;document.body.appendChild(x)};if(window.db&&window.__mtrwMap)l();else{const t=setInterval(()=>{if(window.db&&window.__mtrwMap){clearInterval(t);l()}},300);setTimeout(()=>clearInterval(t),30000)}}})();
+/* MAFIVERA — dealer UI compatibility shell. The single live dealer is owned by mafivera-marker-manager.js. */
+(()=>{'use strict';
+if(window.__mtrwDealerUICompat)return;window.__mtrwDealerUICompat=true;
+const s=document.createElement('style');s.textContent='#mtrwDealerLegacyMarker,#dealerLegacyMarker,.dealer-legacy-marker{display:none!important}';document.head.appendChild(s);
+})();
