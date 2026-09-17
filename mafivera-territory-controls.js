@@ -1,9 +1,22 @@
-/* MAFIVERA – territory controls: demolish buildings / release territories + live modules */
+/* MAFIVERA – territory controls: demolish buildings / release territories + live modules + viewport repair */
 (()=>{'use strict';
   let busy=false;
   const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const toast=(text,error=false)=>{const x=document.getElementById('toast');if(!x)return;x.textContent=text;x.className='toast show '+(error?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',2800)};
   const db=()=>window.db;
+  function repairViewport(){
+    const root=document.getElementById('gameRoot'),app=root?.querySelector('.mf-app'),map=app?.querySelector('.mf-map');
+    const w=window.innerWidth,h=window.innerHeight;
+    if(!root||!app)return;
+    const set=(el,styles)=>Object.entries(styles).forEach(([k,v])=>el.style.setProperty(k,v,'important'));
+    set(document.documentElement,{width:w+'px',minWidth:w+'px',maxWidth:w+'px',height:h+'px',margin:'0',padding:'0'});
+    set(document.body,{width:w+'px',minWidth:w+'px',maxWidth:w+'px',height:h+'px',margin:'0',padding:'0',overflow:'hidden'});
+    set(root,{position:'fixed',left:'0px',top:'0px',right:'auto',bottom:'auto',width:w+'px',minWidth:w+'px',maxWidth:w+'px',height:h+'px',margin:'0',padding:'0',transform:'none'});
+    set(app,{position:'fixed',left:'0px',top:'0px',right:'auto',bottom:'auto',width:w+'px',minWidth:w+'px',maxWidth:w+'px',height:h+'px',margin:'0',padding:'0',transform:'none'});
+    if(map)set(map,{position:'absolute',left:'0px',top:'0px',right:'0px',bottom:'0px',width:w+'px',maxWidth:w+'px',height:h+'px',maxHeight:h+'px'});
+    window.dispatchEvent(new Event('resize'));
+    setTimeout(()=>window.__mtrwMap?.invalidateSize?.({pan:false,animate:false}),50);
+  }
   function zoneFromDrawer(){
     const body=document.getElementById('drawerBody');
     if(!body)return null;
@@ -40,33 +53,25 @@
     if(ownBuilding){
       const b=document.createElement('button');b.className='action danger';b.type='button';b.textContent='🧱 Gebäude abreißen · 50 % Erstattung';b.onclick=()=>demolish(zone);wrap.appendChild(b);
     }
-    const leave= document.createElement('button');leave.className='action danger';leave.type='button';leave.textContent='🚪 Gebiet verlassen · Gebiet freigeben';leave.onclick=()=>leave(zone);wrap.appendChild(leave);
+    const leaveBtn=document.createElement('button');leaveBtn.className='action danger';leaveBtn.type='button';leaveBtn.textContent='🚪 Gebiet verlassen · Gebiet freigeben';leaveBtn.onclick=()=>leave(zone);wrap.appendChild(leaveBtn);
     body.appendChild(wrap);
   }
   const observer=new MutationObserver(()=>setTimeout(enhance,0));
   function boot(){const body=document.getElementById('drawerBody');if(!body){setTimeout(boot,500);return}observer.observe(body,{childList:true,subtree:true});enhance()}
-
-  function applyViewportFix(){
-    if(document.getElementById('mtrwViewportFix'))return;
-    const s=document.createElement('style');s.id='mtrwViewportFix';s.textContent=`
-      html,body{width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden!important}
-      #gameRoot{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
-      #gameRoot .mf-app{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important}
-      #gameRoot .mf-map{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important}
-    `;document.head.appendChild(s);
-  }
-
   function loadScript(src,key){
     if(document.querySelector(`script[data-mtrw-live="${key}"]`))return;
     const x=document.createElement('script');x.src=src;x.dataset.mtrwLive=key;x.async=false;document.body.appendChild(x);
   }
   function loadLiveModules(){
-    const v='20260917-live4';
+    const v='20260917-live5';
     loadScript(`./mafivera-v1-runtime-patch.js?v=${v}`,'runtime');
     loadScript(`./mafivera-dealer-ui.js?v=${v}`,'dealer-ui');
     loadScript(`./mafivera-buildings.js?v=${v}`,'buildings');
     loadScript(`./mafivera-admin.js?v=${v}`,'admin');
   }
-  applyViewportFix();
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{boot();loadLiveModules()});else{boot();loadLiveModules()}
+  repairViewport();
+  window.addEventListener('resize',repairViewport,{passive:true});
+  const viewportObserver=new MutationObserver(()=>repairViewport());
+  viewportObserver.observe(document.documentElement,{childList:true,subtree:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{repairViewport();boot();loadLiveModules()});else{boot();loadLiveModules()}
 })();
