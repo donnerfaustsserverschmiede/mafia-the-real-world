@@ -8,6 +8,7 @@ on:
       - 'supabase/world_production.sql'
       - 'supabase/places_production.sql'
       - 'supabase/logs_production.sql'
+      - 'supabase/v1_production_social.sql'
 permissions:
   contents: read
 jobs:
@@ -35,6 +36,14 @@ jobs:
           print(json.dumps({'query': open('supabase/world_production.sql', encoding='utf-8').read()}))
           PY
           curl --fail-with-body --silent --show-error -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Content-Type: application/json" --data-binary @/tmp/world-query.json
+      - name: Apply V1 production and social schema
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/v1-query.json
+          import json
+          print(json.dumps({'query': open('supabase/v1_production_social.sql', encoding='utf-8').read()}))
+          PY
+          curl --fail-with-body --silent --show-error -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Content-Type: application/json" --data-binary @/tmp/v1-query.json
       - name: Apply places database schema
         run: |
           set -euo pipefail
