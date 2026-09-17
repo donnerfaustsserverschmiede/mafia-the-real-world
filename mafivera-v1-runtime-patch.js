@@ -1,4 +1,4 @@
-/* MAFIVERA V1 runtime patch – production, dealer, map markers */
+/* MAFIVERA V1 runtime patch – production, dealer, map markers, chat layout */
 (()=>{'use strict';
 function patchProduction(){
  const mark=()=>document.querySelectorAll('[data-market="production"]').forEach(b=>b.dataset.market='production-v2');
@@ -32,20 +32,15 @@ function repairMapMarkers(){
   const map=window.__mtrwMap;
   if(!map)return;
   let resources=0,buildings=0;
-  map.eachLayer(layer=>{
-   const cls=layer?.options?.icon?.options?.className||'';
-   if(cls.includes('res-marker'))resources++;
-   if(cls.includes('building-marker'))buildings++;
-  });
-  if(resources===0 || buildings===0){
-   const now=Date.now();
-   if(now-lastRepair<1500)return;
-   lastRepair=now;
-   map.fire('moveend');
-  }
+  map.eachLayer(layer=>{const cls=layer?.options?.icon?.options?.className||'';if(cls.includes('res-marker'))resources++;if(cls.includes('building-marker'))buildings++});
+  if(resources===0 || buildings===0){const now=Date.now();if(now-lastRepair<1500)return;lastRepair=now;map.fire('moveend')}
  };
- setInterval(check,2000);
- setTimeout(check,1200);
+ setInterval(check,2000);setTimeout(check,1200);
 }
-patchProduction();dealerLocation();patchMarkers();patchDealerState();repairMapMarkers();
+function loadChatLayout(){
+ if(window.__mtrwChatLayoutLoader)return;window.__mtrwChatLayoutLoader=true;
+ const l=()=>{if(document.querySelector('script[data-mtrw-chat-layout]'))return;const x=document.createElement('script');x.src='./mafivera-chat-layout.js?v=20260917a';x.dataset.mtrwChatLayout='1';x.async=false;document.body.appendChild(x)};
+ l();
+}
+patchProduction();dealerLocation();patchMarkers();patchDealerState();repairMapMarkers();loadChatLayout();
 })();
