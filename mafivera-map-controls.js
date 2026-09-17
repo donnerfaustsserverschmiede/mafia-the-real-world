@@ -8,4 +8,6 @@ function recenter(){const p=positionFromMarker();if(!map||!p){const t=document.g
 const original=L.map;L.map=function(...args){const m=original.apply(this,args);setTimeout(()=>setup(m),0);return m};window.mtrwRecenter=recenter;
 function load(src,attr){if(document.querySelector(`script[data-mtrw-loader="${attr}"]`))return;const s=document.createElement('script');s.src=src;s.dataset.mtrwLoader=attr;document.body.appendChild(s)}
 load('./mafivera-map-visual-fix.js?v=20260917c','visual-fix');load('./mafivera-dealer-button-fix.js?v=20260917a','dealer-button');load('./mafivera-global-chat.js?v=20260917a','global-chat');
+/* Production click is intercepted here before the legacy market handler can open its old single-job UI. */
+document.addEventListener('click',e=>{const t=e.target.closest?.('[data-market="production"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();if(window.mtrwOpenProduction)window.mtrwOpenProduction()},true);
 })();
