@@ -1,0 +1,5 @@
+/* MAFIVERA – dealer alert only locates; dealer opens on marker tap */
+(()=>{'use strict';
+function locateDealer(){const map=window.__mtrwMap;if(!map)return;let target=null;map.eachLayer(l=>{if(!target&&l.getLatLng&&l._icon?.classList?.contains('dealer-marker'))target=l});if(!target){const el=document.querySelector('.dealer-marker');if(el){const r=el.getBoundingClientRect(),c=map.getContainer().getBoundingClientRect();try{target={getLatLng:()=>map.containerPointToLatLng([(r.left+r.width/2)-c.left,(r.top+r.height/2)-c.top])}}catch(e){}}}if(target)map.setView(target.getLatLng(),map.getZoom(),{animate:true});else window.mtrwToast?.('Dealer ist gerade nicht verfügbar.',true)}
+document.addEventListener('click',e=>{const b=e.target.closest?.('#dealerAlert');if(!b)return;e.preventDefault();e.stopImmediatePropagation();locateDealer()},true);
+})();
