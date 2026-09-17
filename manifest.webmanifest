@@ -8,5 +8,5 @@
   "display": "standalone",
   "background_color": "#05080d",
   "theme_color": "#05080d",
-  "icons": [{"src":"./assets/mafivera-logo.webp","sizes":"256x256","type":"image/webp","purpose":"any maskable"}]
+  "icons": [{"src":"./assets/mafivera-logo.webp?v=20260917","sizes":"256x256","type":"image/webp","purpose":"any maskable"}]
 }
