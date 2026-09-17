@@ -19,18 +19,24 @@ function setup(m){
   if(!box){
     box=document.createElement('div');box.className='mtrw-map-tools';
     box.style.cssText='position:absolute;top:202px;right:8px;z-index:1000;pointer-events:auto';
-    box.innerHTML='<button type="button" class="mtrw-recenter" aria-label="Zu meiner Position zentrieren" title="Meine Position">⌖</button>';
+    box.innerHTML='<button type="button" class="mtrw-recenter" aria-label="Zu meiner Position zentrieren" title="Meine Position"><span class="mtrw-location-icon" aria-hidden="true"></span></button>';
     host.appendChild(box);
   }
   const b=box.querySelector('button');
-  b.style.cssText='width:56px;height:56px;border:1px solid #394653;border-radius:14px;background:#10151de8;color:#fff;font-size:30px;line-height:1;display:grid;place-items:center;box-shadow:0 6px 18px #0008;cursor:pointer';
+  b.style.cssText='width:56px;height:56px;border:1px solid #394653;border-radius:14px;background:#10151de8;color:#fff;display:grid;place-items:center;box-shadow:0 6px 18px #0008;cursor:pointer;padding:0';
+  const icon=box.querySelector('.mtrw-location-icon');
+  if(icon)icon.style.cssText='position:relative;display:block;width:25px;height:25px;border:3px solid #fff;border-radius:50%;box-sizing:border-box';
+  if(icon&&!icon.querySelector('i')){icon.innerHTML='<i></i>';const i=icon.querySelector('i');i.style.cssText='position:absolute;left:50%;top:50%;width:31px;height:3px;background:#fff;transform:translate(-50%,-50%);border-radius:3px;box-shadow:0 0 0 0 #fff';i.innerHTML='';}
   b.onclick=()=>recenter();
   ensureImperiumBadge();
 }
 function ensureImperiumBadge(){
-  if(document.querySelector('.mf-event,#mtrwImperiumBadge'))return;
+  const existing=document.querySelector('.mf-event,#mtrwImperiumBadge');
+  if(existing){existing.style.zIndex='30';existing.style.top='84px';return}
   const app=document.querySelector('.mf-app');if(!app)return;
-  const b=document.createElement('div');b.id='mtrwImperiumBadge';b.className='mf-event';b.textContent='⚡ MAFIVERA · DEIN IMPERIUM';app.appendChild(b);
+  const b=document.createElement('div');b.id='mtrwImperiumBadge';b.className='mf-event';b.textContent='⚡ MAFIVERA · DEIN IMPERIUM';
+  b.style.cssText='position:absolute;top:84px;left:50%;transform:translateX(-50%);z-index:30';
+  app.appendChild(b);
 }
 function recenter(){
   const p=positionFromMarker();
