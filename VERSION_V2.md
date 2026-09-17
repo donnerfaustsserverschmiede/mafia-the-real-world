@@ -4,16 +4,13 @@
 **Status:** Öffentliche Testphase
 **Stable ref:** `v2-stable`
 
-## V2-Stabilisierung
-- Ein zentraler Game-Runtime-Pfad statt konkurrierender Karten-/Marker-Engines.
-- Ressourcen- und Gebäudemarker werden jetzt von einem stabilen V2-Marker-Manager verwaltet und nicht bei jeder Kartenbewegung neu erzeugt.
-- Sichtbare Marker bleiben beim normalen Verschieben der Karte bestehen; nur beim Wechsel des Kartenbereichs werden Marker hinzugefügt bzw. entfernt.
-- Legacy-Marker-Ausgabe des Haupt-Runtimes ist ausgeblendet, damit keine doppelten Marker mehr entstehen.
-- Dealer als eigener V2-Controller: ein Marker, bestehender Marker wird bei Positionsupdates verschoben statt neu erzeugt.
-- Dealer-Alarm bleibt klickbar und öffnet direkt das Angebot.
-- Kartenbewegungen werden nicht mehr durch konkurrierende Marker-Engines überschrieben.
-- Vorhandene Spielstände und Supabase-Daten bleiben unverändert.
-- Die öffentliche `main`-Version ist auf die V2-Testphase ausgerichtet.
+## Kartenanzeige
+- Ressourcenmarker ($ / ▣ / ★) werden dauerhaft durch den separaten Ressourcen-Marker-Engine angezeigt.
+- Gebäude-Icons werden wieder auf den Kacheln angezeigt, sobald ein Spieler dort ein Gebäude errichtet hat.
+- Die Gebäude-Icons werden vom Haupt-Runtime verwaltet und nicht vom Dealer-System gelöscht.
+- Redundante Marker-Systeme bleiben deaktiviert.
 
-## Testversion
-Die Spieler testen weiterhin die veröffentlichte GitHub-Pages-Version des Spiels. Der Stand dieses Dokuments ist zusätzlich im Branch `v2-stable` eingefroren.
+## Dealer
+- Dealer bleibt ein vollständig separates System.
+- Dealer-Zeitfenster und Dealer-Angebote werden serverseitig gesteuert.
+- Änderungen am Dealer dürfen die Ressourcen- oder Gebäude-Icons nicht entfernen.
