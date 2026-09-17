@@ -9,16 +9,18 @@ function positionFromMarker(){
   const x=(mr.left+mr.width/2)-cr.left,y=(mr.top+mr.height/2)-cr.top;
   try{return map.containerPointToLatLng([x,y])}catch(e){return null}
 }
+function loadVisualFix(){if(document.querySelector('script[data-mtrw-map-visual-fix]'))return;const s=document.createElement('script');s.src='./mafivera-map-visual-fix.js?v=20260917u';s.dataset.mtrwMapVisualFix='1';document.body.appendChild(s)}
 function setup(m){
   if(!m||ready)return;
   map=m;ready=true;window.__mtrwMap=m;
+  loadVisualFix();
   const host=m.getContainer();
   const z=host.querySelector('.leaflet-control-zoom');
-  if(z){z.classList.add('mtrw-large-zoom');z.style.top='88px';z.style.right='8px';z.style.marginTop='0'}
+  if(z){z.classList.add('mtrw-large-zoom');z.style.top='8px';z.style.right='8px';z.style.marginTop='0'}
   let box=host.querySelector('.mtrw-map-tools');
   if(!box){
     box=document.createElement('div');box.className='mtrw-map-tools';
-    box.style.cssText='position:absolute;top:202px;right:8px;z-index:1000;pointer-events:auto';
+    box.style.cssText='position:absolute;top:76px;right:8px;z-index:1000;pointer-events:auto';
     box.innerHTML='<button type="button" class="mtrw-recenter" aria-label="Zu meiner Position zentrieren" title="Meine Position"><span class="mtrw-location-icon" aria-hidden="true"></span></button>';
     host.appendChild(box);
   }
@@ -46,7 +48,6 @@ function recenter(){
 const original=L.map;
 L.map=function(...args){const m=original.apply(this,args);setTimeout(()=>setup(m),0);return m};
 window.mtrwRecenter=recenter;
-// Production V2 is loaded here so it is active on every client before the market UI is opened.
 const loadProductionV2=()=>{if(window.mtrwOpenProduction||document.querySelector('script[data-mtrw-production-v2]'))return;const s=document.createElement('script');s.src='./mafivera-production-v2.js?v=20260917t';s.dataset.mtrwProductionV2='1';document.body.appendChild(s)};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadProductionV2);else loadProductionV2();
 })();
