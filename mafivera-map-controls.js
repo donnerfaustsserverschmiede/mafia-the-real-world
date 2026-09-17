@@ -26,7 +26,7 @@ function setup(m){
   b.style.cssText='width:56px;height:56px;border:1px solid #394653;border-radius:14px;background:#10151de8;color:#fff;display:grid;place-items:center;box-shadow:0 6px 18px #0008;cursor:pointer;padding:0';
   const icon=box.querySelector('.mtrw-location-icon');
   if(icon)icon.style.cssText='position:relative;display:block;width:25px;height:25px;border:3px solid #fff;border-radius:50%;box-sizing:border-box';
-  if(icon&&!icon.querySelector('i')){icon.innerHTML='<i></i>';const i=icon.querySelector('i');i.style.cssText='position:absolute;left:50%;top:50%;width:31px;height:3px;background:#fff;transform:translate(-50%,-50%);border-radius:3px;box-shadow:0 0 0 0 #fff';i.innerHTML='';}
+  if(icon&&!icon.querySelector('i')){icon.innerHTML='<i></i>';const i=icon.querySelector('i');i.style.cssText='position:absolute;left:50%;top:50%;width:31px;height:3px;background:#fff;transform:translate(-50%,-50%);border-radius:3px'}
   b.onclick=()=>recenter();
   ensureImperiumBadge();
 }
@@ -46,4 +46,7 @@ function recenter(){
 const original=L.map;
 L.map=function(...args){const m=original.apply(this,args);setTimeout(()=>setup(m),0);return m};
 window.mtrwRecenter=recenter;
+// Production V2 is loaded here so it is active on every client before the market UI is opened.
+const loadProductionV2=()=>{if(window.mtrwOpenProduction||document.querySelector('script[data-mtrw-production-v2]'))return;const s=document.createElement('script');s.src='./mafivera-production-v2.js?v=20260917t';s.dataset.mtrwProductionV2='1';document.body.appendChild(s)};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadProductionV2);else loadProductionV2();
 })();
