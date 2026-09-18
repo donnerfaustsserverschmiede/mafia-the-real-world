@@ -58,7 +58,7 @@ async function loadMarches(){
 async function startAttack(zone){
  if(busy)return;busy=true;
  try{
-   const p=await db.from('profiles').select('hitmen,level').single();
+   const u=await db.auth.getUser();if(u.error)throw u.error;if(!u.data?.user?.id)throw Error('Keine Sitzung gefunden.');const p=await db.from('profiles').select('hitmen,level').eq('id',u.data.user.id).single();
    if(p.error)throw p.error;
    const available=Number(p.data?.hitmen||0);
    if(available<1)throw Error('Keine freien Schläger verfügbar.');
