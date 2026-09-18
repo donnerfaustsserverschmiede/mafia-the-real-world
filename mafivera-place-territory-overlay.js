@@ -1,7 +1,7 @@
 /* MAFIVERA – server-backed persistent heist fields */
 (()=>{'use strict';
 if(window.__mtrwPlaceOverlay)return;window.__mtrwPlaceOverlay=true;
-const GLAT=.0018,GLNG=.0025;
+const GLAT=.0018,GLNG=.0025,DISPLAY_RADIUS=7;
 let heistLayer=null,heistRects=new Map,heistMarkers=new Map;
 let loading=false,pending=false,lastSig='';
 window.__mtrwHeistCells=window.__mtrwHeistCells||new Set();
@@ -15,9 +15,11 @@ function syncHeistMarkers(){
   }
   heistLayer=L.layerGroup().addTo(m);
  }
- const b=m.getBounds(),wanted=new Set();
- for(let r=Math.floor(b.getSouth()/GLAT)-1;r<=Math.floor(b.getNorth()/GLAT)+1;r++)
-  for(let c=Math.floor(b.getWest()/GLNG)-1;c<=Math.floor(b.getEast()/GLNG)+1;c++){
+ const loc=window.__mtrwPlayerLocation;
+ if(!loc)return;
+ const pc={r:Math.floor(loc.lat/GLAT),c:Math.floor(loc.lng/GLNG)},wanted=new Set();
+ for(let r=pc.r-DISPLAY_RADIUS;r<=pc.r+DISPLAY_RADIUS;r++)
+  for(let c=pc.c-DISPLAY_RADIUS;c<=pc.c+DISPLAY_RADIUS;c++){
    const key='z_'+r+'_'+c;
    if(window.__mtrwHeistCells.has(key))wanted.add(key);
   }
@@ -43,13 +45,14 @@ function syncHeistMarkers(){
 async function loadHeistCells(){
  const m=window.__mtrwMap;if(!m||!window.db?.functions)return;
  if(loading){pending=true;return}
- const b=m.getBounds();
- const sig=[b.getSouth().toFixed(4),b.getWest().toFixed(4),b.getNorth().toFixed(4),b.getEast().toFixed(4)].join(',');
+ const loc=window.__mtrwPlayerLocation;if(!loc)return;
+ const south=loc.lat-DISPLAY_RADIUS*GLAT,north=loc.lat+DISPLAY_RADIUS*GLAT,west=loc.lng-DISPLAY_RADIUS*GLNG,east=loc.lng+DISPLAY_RADIUS*GLNG;
+ const sig=[south.toFixed(4),west.toFixed(4),north.toFixed(4),east.toFixed(4)].join(',');
  if(sig===lastSig){syncHeistMarkers();return}
  lastSig=sig;loading=true;
  try{
   const {data,error}=await window.db.functions.invoke('heist-fields',{
-   body:{south:b.getSouth(),west:b.getWest(),north:b.getNorth(),east:b.getEast()}
+   body:{south,west,north,east}
   });
   if(error)throw error;
   for(const key of (data?.cells||[]))window.__mtrwHeistCells.add(key);
