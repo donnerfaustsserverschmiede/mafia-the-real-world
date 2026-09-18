@@ -144,11 +144,12 @@
   .mf-app .bottom-btn{height:50px!important}
 }
 
-/* User-adjustable global game UI scale: 0% = smallest usable size, 100% = normal compact size */
+/* User-adjustable global game UI scale — transform-based to prevent layout/viewport reflow flicker */
 :root{--mtrw-ui-scale:1}
-@media(max-width:700px){
-  .mf-app .mf-hud,.mf-app .mf-event,.mf-app .mf-legend,.mf-app .mf-bottom,.mf-app .mtrw-map-tools,.mf-app .mf-drawer{zoom:var(--mtrw-ui-scale)}
-}
-@media(min-width:701px){
-  .mf-app .mf-hud,.mf-app .mf-event,.mf-app .mf-legend,.mf-app .mf-bottom,.mf-app .mtrw-map-tools,.mf-app .mf-drawer{zoom:var(--mtrw-ui-scale)}
-}
+.mf-app .mf-hud{transform-origin:top center;transform:scale(var(--mtrw-ui-scale))}
+.mf-app .mf-event{transform-origin:top center;transform:translateX(-50%) scale(var(--mtrw-ui-scale))}
+.mf-app .mf-legend{transform-origin:top left;transform:scale(var(--mtrw-ui-scale))}
+.mf-app .mf-bottom{transform-origin:bottom center;transform:scale(var(--mtrw-ui-scale))}
+.mf-app .mtrw-map-tools{transform-origin:top right;transform:scale(var(--mtrw-ui-scale))}
+.mf-app .mf-drawer{transform-origin:center center;transform:scale(var(--mtrw-ui-scale))}
+
