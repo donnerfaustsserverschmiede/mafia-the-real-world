@@ -12,8 +12,8 @@ const BUILDING_BONUS={
  warehouse:25,money:35,club:40,lab:45,market:50,watch:60,
  hideout:65,recruitment:75,headquarters:100
 };
-const buildingBonus=t=>BUILDING_BONUS[t]||0;
-const maxDefense=t=>25+buildingBonus(t?.building_type)+(Math.max(0,Number(t?.garrison||0))*2);
+const buildingBonus=(type,level=1)=>Math.round((BUILDING_BONUS[type]||0)*(1+0.05*Math.max(0,Math.min(20,Number(level)||1))));
+const maxDefense=t=>25+buildingBonus(t?.building_type,t?.building_level)+(Math.max(0,Number(t?.garrison||0))*2);
 const currentDefense=t=>Math.max(0,Math.min(maxDefense(t),Number(t?.defense_current??t?.defense_points??25)));
 const percent=t=>Math.max(0,Math.min(100,currentDefense(t)/Math.max(1,maxDefense(t))*100));
 const defenseClass=p=>p<35?'low':p<70?'mid':'';
@@ -102,7 +102,7 @@ function renderDrawerLife(){
   if(stats)stats.insertAdjacentElement('afterend',box);
   else body.prepend(box);
 
-  const building=buildingBonus(t.building_type);
+  const building=buildingBonus(t.building_type,t.building_level);
   const combat=document.createElement('section');
   combat.id='mtrwCombatBox';
   combat.className='mtrw-combat-box';
@@ -126,7 +126,7 @@ function renderDrawerLife(){
   status.id='mtrwTerritoryStatus';
   status.className='mtrw-combat-box';
   const owner=t.owner_id ? 'Besetztes Gebiet' : 'Freies Feld';
-  const building=t.building_type ? (t.building_type+' · Stufe '+(t.building_level||1)) : 'Kein Gebäude';
+  const building=t.building_type ? (t.building_type+' · Stufe '+Math.max(1,Number(t.building_level||1))+'/20') : 'Kein Gebäude';
   status.innerHTML=
    '<h3>📋 Gebietsstatus</h3>'+
    '<div class="mtrw-combat-row"><span>Status</span><b>'+owner+'</b></div>'+
