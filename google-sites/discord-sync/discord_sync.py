@@ -1,26 +1,28 @@
 """
 MAFIVERA Discord -> Google Sites bridge.
 
-This listener watches one Discord channel by NAME and forwards new messages
-to the Google Apps Script web-app endpoint.
+The bot watches one dedicated Discord channel and forwards the newest
+message to the Google Apps Script web app.
 
 Environment variables:
   DISCORD_BOT_TOKEN
   MAFIVERA_SITES_WEBAPP_URL
   MAFIVERA_SITES_SYNC_SECRET
 
+Optional:
+  MAFIVERA_DISCORD_CHANNEL_ID
+  MAFIVERA_DISCORD_CHANNEL_NAME (default: was-noch-kommt)
+
 Required Discord bot intent:
   Message Content Intent
-
-Install:
-  pip install discord.py requests
 """
 
 import os
 import requests
 import discord
 
-CHANNEL_NAME = "was-noch-kommt"
+CHANNEL_NAME = os.getenv("MAFIVERA_DISCORD_CHANNEL_NAME", "was-noch-kommt")
+CHANNEL_ID = int(os.environ["MAFIVERA_DISCORD_CHANNEL_ID"]) if os.getenv("MAFIVERA_DISCORD_CHANNEL_ID") else None
 
 TOKEN = os.environ["DISCORD_BOT_TOKEN"]
 WEBAPP_URL = os.environ["MAFIVERA_SITES_WEBAPP_URL"]
@@ -31,15 +33,26 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
+def is_target_channel(message: discord.Message) -> bool:
+    if CHANNEL_ID is not None:
+        return message.channel.id == CHANNEL_ID
+    return message.channel.name == CHANNEL_NAME
+
 @client.event
 async def on_ready():
     print(f"MAFIVERA sync online als {client.user}")
+    if CHANNEL_ID:
+        print(f"Synchronisiere Discord-Kanal-ID: {CHANNEL_ID}")
+    else:
+        print(f"Synchronisiere Discord-Kanal: #{CHANNEL_NAME}")
 
 @client.event
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
-    if message.channel.name != CHANNEL_NAME:
+    if message.guild is None:
+        return
+    if not is_target_channel(message):
         return
 
     text = message.content.strip()
