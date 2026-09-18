@@ -1,14 +1,74 @@
-/* MAFIVERA – Stable heist-field detection */
+/* MAFIVERA – server-backed persistent heist fields */
 (()=>{'use strict';
 if(window.__mtrwPlaceOverlay)return;window.__mtrwPlaceOverlay=true;
-const DARK_RED='#5b1018',DARK_RED_BORDER='#8f2632';
-let places=[],loading=false,pending=false,lastBounds='';
+const GLAT=.0018,GLNG=.0025;
 let heistLayer=null,heistRects=new Map,heistMarkers=new Map;
+let loading=false,pending=false,lastSig='';
 window.__mtrwHeistCells=window.__mtrwHeistCells||new Set();
-function sameCell(a,b){return Math.floor(Number(a.lat)/.0018)===Math.floor(Number(b.lat)/.0018)&&Math.floor(Number(a.lng)/.0025)===Math.floor(Number(b.lng)/.0025)}
-function syncHeistMarkers(){const m=window.__mtrwMap;if(!m)return;if(!heistLayer){if(!m.getPane('mtrwHeistPane')){const pane=m.createPane('mtrwHeistPane');pane.style.zIndex='470';pane.style.pointerEvents='none'}heistLayer=L.layerGroup().addTo(m);}const b=m.getBounds(),wanted=new Set();for(let r=Math.floor(b.getSouth()/.0018)-1;r<=Math.floor(b.getNorth()/.0018)+1;r++)for(let c=Math.floor(b.getWest()/.0025)-1;c<=Math.floor(b.getEast()/.0025)+1;c++){const key='z_'+r+'_'+c;if(window.__mtrwHeistCells.has(key))wanted.add(key)}heistRects.forEach((x,key)=>{if(!wanted.has(key)){x.remove();heistRects.delete(key);const mk=heistMarkers.get(key);mk?.remove();heistMarkers.delete(key)}});wanted.forEach(key=>{if(heistRects.has(key))return;const p=key.match(/^z_(-?\\d+)_(-?\\d+)$/);if(!p)return;const r=+p[1],c=+p[2],rect=L.rectangle([[r*.0018,c*.0025],[(r+1)*.0018,(c+1)*.0025]],{color:'#8f2632',weight:2,fillColor:'#5b1018',fillOpacity:.52,interactive:true,pane:'mtrwHeistPane'}).addTo(heistLayer);rect.on('click',()=>window.mtrwOpenTerritory?.(key));heistRects.set(key,rect);const marker=L.marker([(r+.5)*.0018,(c+.5)*.0025],{interactive:false,zIndexOffset:900,icon:L.divIcon({className:'mtrw-heist-marker',html:'<span style="font-size:28px;line-height:34px;text-shadow:0 2px 6px #000">💼</span>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(heistLayer);heistMarkers.set(key,marker)})}
-function paint(){const m=window.__mtrwMap;if(!m)return;const next=new Set(window.__mtrwHeistCells);const b=m.getBounds();for(let r=Math.floor(b.getSouth()/.0018)-1;r<=Math.floor(b.getNorth()/.0018)+1;r++)for(let c=Math.floor(b.getWest()/.0025)-1;c<=Math.floor(b.getEast()/.0025)+1;c++){const key='z_'+r+'_'+c;const lat=(r+.5)*.0018,lng=(c+.5)*.0025;if(places.some(p=>sameCell({lat,lng},p)))next.add(key)}window.__mtrwHeistCells=next;syncHeistMarkers();window.dispatchEvent(new CustomEvent('mtrw:heist-cells-updated'));}
-async function loadPlaces(){const m=window.__mtrwMap;if(!m)return;if(loading){pending=true;return}loading=true;try{const b=m.getBounds(),south=b.getSouth(),west=b.getWest(),north=b.getNorth(),east=b.getEast(),sig=[south.toFixed(3),west.toFixed(3),north.toFixed(3),east.toFixed(3)].join(',');if(sig===lastBounds){paint();return}lastBounds=sig;const q='[out:json][timeout:12];(nwr[shop~"^(jewelry|supermarket|convenience|department_store|clothes|electronics|mobile_phone|computer|furniture|hardware|alcohol|tobacco|car|car_parts|bicycle|motorcycle|beauty|cosmetics|sports|outdoor|shoes|gift|books|mall|general|variety_store|wholesale|doityourself|trade|kiosk|lottery|money_lender|pawnbroker|second_hand|vending_machine)$"]('+south+','+west+','+north+','+east+');nwr[amenity~"^(bank|atm|casino|post_office)$"]('+south+','+west+','+north+','+east+'););out center;';let d=null;for(const endpoint of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){try{const r=await fetch(endpoint+'?data='+encodeURIComponent(q));if(r.ok){d=await r.json();break}}catch(e){}}if(!d)throw Error('Keine OSM-Datenquelle erreichbar');places=(d.elements||[]).map(x=>({lat:x.lat??x.center?.lat,lng:x.lon??x.center?.lng??x.center?.lon})).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng));paint();}catch(e){console.debug('MAFIVERA heist fields:',e.message||e)}finally{loading=false;if(pending){pending=false;loadPlaces()}}
-window.mtrwRefreshHeistFields=()=>loadPlaces();window.mtrwSyncHeistMarkers=syncHeistMarkers;
-function hook(){const m=window.__mtrwMap;if(!m)return setTimeout(hook,500);loadPlaces();m.on('moveend',()=>{syncHeistMarkers();loadPlaces()});m.on('zoomend',syncHeistMarkers);setInterval(loadPlaces,60000)}hook();
+
+function syncHeistMarkers(){
+ const m=window.__mtrwMap;if(!m)return;
+ if(!heistLayer){
+  if(!m.getPane('mtrwHeistPane')){
+   const pane=m.createPane('mtrwHeistPane');
+   pane.style.zIndex='470';pane.style.pointerEvents='none';
+  }
+  heistLayer=L.layerGroup().addTo(m);
+ }
+ const b=m.getBounds(),wanted=new Set();
+ for(let r=Math.floor(b.getSouth()/GLAT)-1;r<=Math.floor(b.getNorth()/GLAT)+1;r++)
+  for(let c=Math.floor(b.getWest()/GLNG)-1;c<=Math.floor(b.getEast()/GLNG)+1;c++){
+   const key='z_'+r+'_'+c;
+   if(window.__mtrwHeistCells.has(key))wanted.add(key);
+  }
+ heistRects.forEach((rect,key)=>{
+  if(!wanted.has(key)){rect.remove();heistRects.delete(key);const mk=heistMarkers.get(key);mk?.remove();heistMarkers.delete(key)}
+ });
+ wanted.forEach(key=>{
+  if(heistRects.has(key))return;
+  const p=/^z_(-?\d+)_(-?\d+)$/.exec(key);if(!p)return;
+  const r=+p[1],c=+p[2];
+  const rect=L.rectangle([[r*GLAT,c*GLNG],[(r+1)*GLAT,(c+1)*GLNG]],{
+   color:'#8f2632',weight:2,fillColor:'#5b1018',fillOpacity:.58,interactive:false,pane:'mtrwHeistPane'
+  }).addTo(heistLayer);
+  heistRects.set(key,rect);
+  const marker=L.marker([(r+.5)*GLAT,(c+.5)*GLNG],{
+   interactive:false,zIndexOffset:900,
+   icon:L.divIcon({className:'mtrw-heist-marker',html:'<span style="font-size:28px;line-height:34px;text-shadow:0 2px 6px #000">💼</span>',iconSize:[34,34],iconAnchor:[17,17]})
+  }).addTo(heistLayer);
+  heistMarkers.set(key,marker);
+ });
+}
+
+async function loadHeistCells(){
+ const m=window.__mtrwMap;if(!m||!window.db?.functions)return;
+ if(loading){pending=true;return}
+ const b=m.getBounds();
+ const sig=[b.getSouth().toFixed(4),b.getWest().toFixed(4),b.getNorth().toFixed(4),b.getEast().toFixed(4)].join(',');
+ if(sig===lastSig){syncHeistMarkers();return}
+ lastSig=sig;loading=true;
+ try{
+  const {data,error}=await window.db.functions.invoke('heist-fields',{
+   body:{south:b.getSouth(),west:b.getWest(),north:b.getNorth(),east:b.getEast()}
+  });
+  if(error)throw error;
+  for(const key of (data?.cells||[]))window.__mtrwHeistCells.add(key);
+  syncHeistMarkers();
+  window.dispatchEvent(new CustomEvent('mtrw:heist-cells-updated'));
+ }catch(e){console.debug('MAFIVERA heist fields:',e?.message||e)}
+ finally{loading=false;if(pending){pending=false;setTimeout(loadHeistCells,50)}}
+}
+
+window.mtrwRefreshHeistFields=()=>{lastSig='';return loadHeistCells()};
+window.mtrwSyncHeistMarkers=syncHeistMarkers;
+
+function hook(){
+ const m=window.__mtrwMap;
+ if(!m)return setTimeout(hook,300);
+ loadHeistCells();
+ m.on('moveend',()=>{syncHeistMarkers();loadHeistCells()});
+ m.on('zoomend',syncHeistMarkers);
+ setInterval(loadHeistCells,60000);
+}
+hook();
 })();
