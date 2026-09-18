@@ -110,23 +110,19 @@ Weitere Teammitglieder können jederzeit ergänzt werden.
 
 MAFIVERA befindet sich in aktiver Entwicklung.
 
-Die neuesten geplanten Funktionen werden direkt aus unserem dafür vorgesehenen Discord-Kanal übernommen.
+Die Inhalte dieser Seite werden automatisch aus dem dafür vorgesehenen Discord-Kanal übernommen.
+
+**Discord-Kanal:** https://discord.com/channels/1549525247760400384/1549686033476751390
 
 ### So funktioniert es
 
-Ein berechtigtes Teammitglied schreibt eine Nachricht in den festgelegten Discord-Kanal.
+Ein berechtigtes Teammitglied veröffentlicht dort eine Nachricht.
 
 **Discord → Synchronisierung → Website**
 
-Die aktuell veröffentlichte Nachricht wird automatisch auf dieser Seite angezeigt.
+Die neueste veröffentlichte Nachricht wird automatisch auf dieser Seite angezeigt.
 
-**Wichtig:** Nur der für diesen Zweck bestimmte Kanal wird synchronisiert. Der Bot veröffentlicht keine Nachrichten aus anderen Kanälen.
-
-### Aktueller Status
-
-🚧 **IN ENTWICKLUNG**
-
-Die Inhalte dieser Seite können sich jederzeit ändern, wenn neue Funktionen geplant, verschoben oder veröffentlicht werden.
+Nur Nachrichten aus diesem festgelegten Kanal werden synchronisiert.
 
 ---
 
