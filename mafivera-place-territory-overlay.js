@@ -55,6 +55,7 @@ async function loadHeistCells(){
    body:{south,west,north,east}
   });
   if(error)throw error;
+  if(data?.error)throw Error(data.error);
   for(const key of (data?.cells||[]))window.__mtrwHeistCells.add(key);
   syncHeistMarkers();
   window.dispatchEvent(new CustomEvent('mtrw:heist-cells-updated'));
