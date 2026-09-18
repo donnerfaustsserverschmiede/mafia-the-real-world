@@ -79,7 +79,7 @@ async function renderFamily(){
   if(q.error)throw q.error;
 
   if(!q.data){
-    const hasHQ=!!document.querySelector('.building-marker');
+    const hq=await db.from('world_territories').select('zone_key').eq('owner_id',uid).eq('building_type','headquarters').limit(1);const hasHQ=!hq.error&&(hq.data||[]).length>0;
     drawer('Familie',`
       <div class="hero"><span class="hero-icon">♜</span><div><b>Noch keine Familie</b>
       <p>${hasHQ?'Gründe deine eigene Familie oder tritt einer bestehenden bei.':'Für die Gründung einer Familie wird weiterhin ein Hauptquartier benötigt.'}</p></div></div>
