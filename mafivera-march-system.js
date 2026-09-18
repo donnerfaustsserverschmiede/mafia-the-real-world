@@ -4,14 +4,14 @@
 (()=>{'use strict';
 if(window.__mtrwMarchSystem)return;window.__mtrwMarchSystem=true;
 
-const BUILD='20260918-march1';
-let db=null, timer=null, markerTimer=null, busy=false, markers=[];
+const BUILD='20260918-battle1';
+let db=null, timer=null, markerTimer=null, busy=false, markers=new Map();
 const $=id=>document.getElementById(id);
 const fmt=n=>Number(n||0).toLocaleString('de-DE');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const toast=(t,e=false)=>{const x=$('toast');if(!x)return;x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',3000)};
 const zoneLabel=z=>{const m=/^z_(-?\\d+)_(-?\\d+)$/.exec(z||'');if(!m)return z;const r=+m[1],c=+m[2];return `Sektor ${r>=0?'N':'S'}${Math.abs(r)}-${c>=0?'O':'W'}${Math.abs(c)}`};
-const clearMarkers=()=>{markers.forEach(m=>m.remove());markers=[]};
+const clearMarkers=()=>{markers.forEach(m=>m.remove());markers.clear()};
 const waitForRuntime=()=>new Promise(resolve=>{let n=0;const tick=()=>{db=window.db;const map=window.__mtrwMap;if(db&&map&&window.L&&$('drawer'))return resolve();if(++n>240)return;setTimeout(tick,250)};tick()});
 
 function style(){
@@ -23,7 +23,7 @@ function style(){
  .mtrw-march-panel{margin:10px 0;padding:12px;border:1px solid #34404d;border-radius:15px;background:#121923}
  .mtrw-march-panel h3{margin:0 0 8px;font-size:14px}
  .mtrw-march-card{padding:9px 10px;margin-top:6px;border:1px solid #293542;border-radius:11px;background:#171f2a}
- .mtrw-march-card b{display:block;font-size:12px}.mtrw-march-card small{display:block;color:#8e9aaa;margin-top:3px;font-size:9px}
+ .mtrw-march-card b{display:block;font-size:12px}.mtrw-march-card small{display:block;color:#8e9aaa;margin-top:3px;font-size:9px}.mtrw-march-card.battle{border-color:#9d3f36;box-shadow:0 0 0 1px #9d3f3622 inset}.mtrw-march-card.battle small{color:#f0b53c;font-weight:800}
  .mtrw-attack-overlay{position:fixed;inset:0;z-index:120000;background:#000b;display:flex;align-items:flex-end;justify-content:center;padding:12px}
  .mtrw-attack-card{width:min(520px,100%);background:#101720;border:1px solid #394653;border-radius:22px;padding:18px;box-shadow:0 25px 80px #000c;color:#fff}
  .mtrw-attack-card h2{margin:0 0 5px;font-size:22px}.mtrw-attack-card p{margin:0 0 13px;color:#9ba6b4;font-size:12px;line-height:1.45}
@@ -39,18 +39,36 @@ async function loadMarches(){
  try{
    await db.rpc('mtrw_process_marches');
    const q=await db.from('mtrw_marches')
-     .select('id,target_zone_key,troop_count,purpose,started_at,arrival_at,start_lat,start_lng,target_lat,target_lng,status')
-     .eq('status','marching');
+     .select('id,target_zone_key,troop_count,purpose,started_at,arrival_at,battle_started_at,battle_finish_at,start_lat,start_lng,target_lat,target_lng,status')
+     .in('status',['marching','battle']);
    if(q.error)throw q.error;
-   clearMarkers();
+
+   const active=new Set((q.data||[]).map(m=>m.id));
+   markers.forEach((marker,id)=>{if(!active.has(id)){marker.remove();markers.delete(id)}});
+
    const now=Date.now();
    (q.data||[]).forEach(m=>{
-     const st=new Date(m.started_at).getTime(),at=new Date(m.arrival_at).getTime();
-     const p=Math.max(0,Math.min(1,(now-st)/(at-st||1)));
-     const lat=Number(m.start_lat)+(Number(m.target_lat)-Number(m.start_lat))*p;
-     const lng=Number(m.start_lng)+(Number(m.target_lng)-Number(m.start_lng))*p;
-     const icon=L.divIcon({className:'mtrw-march-marker',html:`<span class="mtrw-march-icon">${m.purpose==='attack'?'⚔️':'👥'}</span><b>${fmt(m.troop_count)}</b>`,iconSize:[52,38],iconAnchor:[26,19]});
-     markers.push(L.marker([lat,lng],{icon,zIndexOffset:800}).addTo(window.__mtrwMap));
+     let lat=Number(m.target_lat),lng=Number(m.target_lng);
+     if(m.status==='marching'){
+       const st=new Date(m.started_at).getTime(),at=new Date(m.arrival_at).getTime();
+       const p=Math.max(0,Math.min(1,(now-st)/(at-st||1)));
+       lat=Number(m.start_lat)+(Number(m.target_lat)-Number(m.start_lat))*p;
+       lng=Number(m.start_lng)+(Number(m.target_lng)-Number(m.start_lng))*p;
+     }
+     const battle=m.status==='battle';
+     const icon=L.divIcon({
+       className:'mtrw-march-marker',
+       html:`<span class="mtrw-march-icon">${battle?'⚔️':(m.purpose==='attack'?'⚔️':'👥')}</span><b>${fmt(m.troop_count)}</b>`,
+       iconSize:[52,38],iconAnchor:[26,19]
+     });
+     let marker=markers.get(m.id);
+     if(!marker){
+       marker=L.marker([lat,lng],{icon,zIndexOffset:800}).addTo(window.__mtrwMap);
+       markers.set(m.id,marker);
+     }else{
+       marker.setLatLng([lat,lng]);
+       marker.setIcon(icon);
+     }
    });
  }catch(e){console.warn('[MAFIVERA march]',e)}
 }
@@ -106,18 +124,36 @@ function interceptAttacks(){
 async function renderMarchPanel(){
  const title=$('drawerTitle'),body=$('drawerBody');if(!title||!body||title.textContent!=='Schläger')return;
  if(body.querySelector('#mtrwMarchPanel'))return;
- const q=await db.from('mtrw_marches').select('id,target_zone_key,troop_count,purpose,started_at,arrival_at').eq('status','marching').order('arrival_at');
+ const q=await db.from('mtrw_marches')
+   .select('id,target_zone_key,troop_count,purpose,started_at,arrival_at,battle_started_at,battle_finish_at,status')
+   .in('status',['marching','battle']).order('arrival_at');
  if(q.error)return;
  const box=document.createElement('section');box.id='mtrwMarchPanel';box.className='mtrw-march-panel';
- box.innerHTML='<h3>⚔️ Aktive Märsche</h3>';
+ box.innerHTML='<h3>⚔️ Aktive Märsche & Kämpfe</h3>';
  const rows=q.data||[];
  if(!rows.length)box.innerHTML+='<small style="color:#8e9aaa">Keine aktiven Märsche.</small>';
- rows.forEach(m=>{const card=document.createElement('div');card.className='mtrw-march-card';card.dataset.arrival=m.arrival_at;card.innerHTML=`<b>${m.purpose==='attack'?'⚔️ Angriff':'👥 Trupp'} → ${esc(zoneLabel(m.target_zone_key))}</b><small data-countdown>Berechnung… · ${fmt(m.troop_count)} Schläger</small>`;box.appendChild(card)});
+ rows.forEach(m=>{
+   const battle=m.status==='battle';
+   const card=document.createElement('div');card.className='mtrw-march-card'+(battle?' battle':'');
+   card.dataset.arrival=m.arrival_at;card.dataset.status=m.status;card.dataset.battleFinish=m.battle_finish_at||'';
+   card.innerHTML=`<b>${battle?'⚔️ KAMPF':'↠ '+(m.purpose==='attack'?'⚔️ Angriff':'👥 Trupp')} → ${esc(zoneLabel(m.target_zone_key))}</b><small data-countdown>Berechnung… · ${fmt(m.troop_count)} Schläger</small>`;
+   box.appendChild(card);
+ });
  body.prepend(box);
 }
 
 function updatePanelCountdown(){
- document.querySelectorAll('.mtrw-march-card').forEach(c=>{const t=new Date(c.dataset.arrival).getTime();const left=Math.max(0,t-Date.now());const mins=Math.floor(left/60000),secs=Math.ceil((left%60000)/1000);const x=c.querySelector('[data-countdown]');if(x)x.textContent=`${mins}m ${String(secs).padStart(2,'0')}s · ${c.querySelector('b')?.textContent?.split('→')[0]||''}`});
+ document.querySelectorAll('.mtrw-march-card').forEach(c=>{
+   const battle=c.dataset.status==='battle';
+   const raw=battle?c.dataset.battleFinish:c.dataset.arrival;
+   const t=new Date(raw).getTime(),left=Math.max(0,t-Date.now());
+   const mins=Math.floor(left/60000),secs=Math.ceil((left%60000)/1000);
+   const x=c.querySelector('[data-countdown]');
+   if(!x)return;
+   x.textContent=battle
+     ? `🔥 Kampf läuft noch ${mins}m ${String(secs).padStart(2,'0')}s · ${c.querySelector('b')?.textContent?.split('→')[0]||''}`
+     : `Marsch noch ${mins}m ${String(secs).padStart(2,'0')}s · ${c.querySelector('b')?.textContent?.split('→')[0]||''}`;
+ });
 }
 
 async function boot(){
