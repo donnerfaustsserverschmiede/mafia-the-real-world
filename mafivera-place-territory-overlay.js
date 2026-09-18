@@ -8,7 +8,7 @@ async function loadPlaces(){
  const m=window.__mtrwMap;if(!m||loading)return; loading=true;
  try{
   const b=m.getBounds(),south=b.getSouth(),west=b.getWest(),north=b.getNorth(),east=b.getEast();
-  const q='[out:json][timeout:12];(nwr[shop~"^(jewelry|supermarket|convenience|department_store|clothes|electronics|mobile_phone|computer|furniture|hardware|alcohol|tobacco|car|car_parts|bicycle|motorcycle|beauty|cosmetics|sports|outdoor|shoes|gift|books|mall)$"]('+south+','+west+','+north+','+east+');nwr[amenity~"^(bank|atm|casino|post_office)$"]('+south+','+west+','+north+','+east+'););out center;';
+  const q='[out:json][timeout:12];(nwr[shop~"^(jewelry|supermarket|convenience|department_store|clothes|electronics|mobile_phone|computer|furniture|hardware|alcohol|tobacco|car|car_parts|bicycle|motorcycle|beauty|cosmetics|sports|outdoor|shoes|gift|books|mall|general|variety_store|wholesale|doityourself|trade|kiosk|lottery|money_lender|pawnbroker|second_hand|vending_machine)$"]('+south+','+west+','+north+','+east+');nwr[amenity~"^(bank|atm|casino|post_office)$"]('+south+','+west+','+north+','+east+'););out center;';
   const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
   if(!r.ok)throw Error('Overpass '+r.status);
   const d=await r.json();
