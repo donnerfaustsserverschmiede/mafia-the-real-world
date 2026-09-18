@@ -24,6 +24,7 @@
     timer=setInterval(()=>{tick();if(++tries>120)clearInterval(timer)},2000);
     tick();
     if(window.db){
+      load('./mafivera-buildings.js?v=20260918-buildings','buildings');
       load('./mafivera-absence-report.js?v=20260917-clean1','absence');
       load('./mafivera-social-v2.js?v=20260917-clean1','social');
       load('./mafivera-alliance-v2.js?v=20260917-clean1','alliance');
