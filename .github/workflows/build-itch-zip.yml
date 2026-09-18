@@ -1,0 +1,21 @@
+name: Build Itch ZIP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package web game
+        run: |
+          zip -r MAFIVERA-ITCHIO.zip . -x '.git/*' '.github/*' 'supabase/*' 'google-sites/*' '*.zip'
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAFIVERA-ITCHIO
+          path: MAFIVERA-ITCHIO.zip
+          retention-days: 7
