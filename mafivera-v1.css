@@ -118,3 +118,28 @@
 
 /* Live player markers */
 .mtrw-live-player{background:transparent!important;border:0!important;text-align:center;pointer-events:auto}.mtrw-live-player span{display:block;width:28px;height:28px;margin:auto;border-radius:50%;background:#10151eec;border:2px solid #62b5ff;box-shadow:0 0 14px #3a95ff88;font-size:18px;line-height:24px}.mtrw-live-player b{display:block;margin-top:2px;padding:2px 5px;background:#080d13e8;border:1px solid #36404b;border-radius:6px;color:#fff;font-size:7px;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis}@media(max-width:600px){.mtrw-live-player span{width:25px;height:25px;font-size:16px;line-height:21px}.mtrw-live-player b{font-size:7px}}
+/* MAFIVERA compact UI — reduce overall mobile footprint */
+.mtrw-settings-button{display:none!important}
+#mtrwSettingsButton{display:none!important}
+@media(max-width:700px){
+  .mf-app .mf-hud{min-height:64px!important;padding:6px 6px 10px 46px!important;gap:2px!important}
+  .mf-app .mf-menu{width:34px!important;height:34px!important;top:9px!important;left:7px!important;font-size:18px!important}
+  .mf-app .mf-stat small{font-size:8px!important;line-height:10px!important}
+  .mf-app .mf-stat b{font-size:17px!important;line-height:20px!important}
+  .mf-app .mf-stat em{font-size:6px!important;line-height:8px!important}
+  .mf-app .mf-event{top:62px!important;font-size:10px!important;padding:5px 11px!important}
+  .mf-app .mf-legend{top:99px!important;left:7px!important;font-size:8px!important;padding:6px 8px!important}
+  .mf-app .mf-bottom{height:60px!important;bottom:max(6px,env(safe-area-inset-bottom))!important;padding:4px!important;border-radius:20px!important}
+  .mf-app .bottom-btn{height:50px!important;border-radius:14px!important}
+  .mf-app .bottom-btn span{font-size:17px!important;line-height:18px!important}
+  .mf-app .bottom-btn small{font-size:7px!important;line-height:9px!important}
+  .mf-app .mtrw-live-player span{width:22px!important;height:22px!important;font-size:14px!important;line-height:18px!important}
+  .mf-app .mtrw-live-player b{font-size:6px!important}
+}
+@media(min-width:701px){
+  .mf-app .mf-hud{min-height:68px!important;padding:7px 8px 10px 52px!important}
+  .mf-app .mf-stat b{font-size:19px!important}
+  .mf-app .mf-menu{width:34px!important;height:34px!important;top:10px!important;left:8px!important}
+  .mf-app .mf-bottom{height:62px!important}
+  .mf-app .bottom-btn{height:50px!important}
+}
