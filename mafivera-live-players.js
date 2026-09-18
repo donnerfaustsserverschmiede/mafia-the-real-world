@@ -1,0 +1,36 @@
+(()=>{'use strict';
+const boot=async()=>{
+  if(!window.db||!window.__mtrwMap||!window.L||!navigator.geolocation)return;
+  const db=window.db,map=window.__mtrwMap;
+  const {data:{user}}=await db.auth.getUser(); if(!user)return;
+  const markers=new Map(); let watchId=null;
+  const upsert=async(pos)=>{
+    const lat=pos.coords.latitude,lng=pos.coords.longitude;
+    let username='Spieler',level=0;
+    try{const r=await db.from('profiles').select('username,level').eq('id',user.id).maybeSingle();if(r.data){username=r.data.username||username;level=r.data.level||0}}catch(e){}
+    await db.from('mtrw_live_players').upsert({user_id:user.id,username,lat,lng,level,updated_at:new Date().toISOString()});
+  };
+  const icon=(p,self=false)=>L.divIcon({className:'mtrw-live-player',html:'<span>👤</span><b>'+String(p.username||'Spieler').replace(/[<>&"]/g,'')+(self?' · DU':'')+'</b>',iconSize:[90,42],iconAnchor:[45,21]});
+  const render=p=>{
+    if(p.user_id===user.id)return;
+    const old=markers.get(p.user_id);
+    if(old)old.setLatLng([p.lat,p.lng]).setIcon(icon(p));
+    else {const m=L.marker([p.lat,p.lng],{icon:icon(p),interactive:true}).addTo(map);m.bindPopup('<b>'+String(p.username||'Spieler').replace(/[<>&"]/g,'')+'</b><br>Level '+(p.level||0));markers.set(p.user_id,m)}
+  };
+  const removeStale=rows=>{
+    const active=new Set(rows.map(p=>p.user_id));
+    markers.forEach((m,id)=>{if(!active.has(id)){map.removeLayer(m);markers.delete(id)}})
+  };
+  const load=async()=>{
+    const cutoff=new Date(Date.now()-30000).toISOString();
+    const r=await db.from('mtrw_live_players').select('*').gte('updated_at',cutoff);
+    if(r.error)return; removeStale(r.data||[]); (r.data||[]).forEach(render);
+  };
+  watchId=navigator.geolocation.watchPosition(upsert,()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+  const channel=db.channel('mtrw-live-players').on('postgres_changes',{event:'*',schema:'public',table:'mtrw_live_players'},()=>load()).subscribe();
+  await load();
+  setInterval(load,10000);
+  window.addEventListener('beforeunload',()=>{if(watchId!==null)navigator.geolocation.clearWatch(watchId);db.from('mtrw_live_players').delete().eq('user_id',user.id).then(()=>{})});
+};
+const s=setInterval(()=>{if(window.db&&window.__mtrwMap){clearInterval(s);boot()}},500);
+})();
