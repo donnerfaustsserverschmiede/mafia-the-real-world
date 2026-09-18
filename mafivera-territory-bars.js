@@ -14,7 +14,7 @@ const pct=t=>Math.max(0,Math.min(100,currentDefense(t)/Math.max(1,maxDefense(t))
 function style(){
  if($('mtrwLifeCSS'))return;
  const s=document.createElement('style');s.id='mtrwLifeCSS';s.textContent=
- '.mtrw-life-marker{background:transparent!important;border:0!important;width:76px!important;height:30px!important;pointer-events:none}'.mtrw-life-wrap{width:76px;margin-top:2px;filter:drop-shadow(0 2px 3px #000)}'+
+ '.mtrw-life-marker{background:transparent!important;border:0!important;width:76px!important;height:30px!important;pointer-events:none}'+\n'.mtrw-life-wrap{width:76px;margin-top:2px;filter:drop-shadow(0 2px 3px #000)}'+
 '.mtrw-life-label{font:800 9px/1 system-ui;color:#fff;text-align:center;margin-bottom:3px;text-shadow:0 1px 2px #000}'+
 '.mtrw-life-track{height:6px;border:1px solid #101820;border-radius:8px;background:#252b31;overflow:hidden}'+
 '.mtrw-life-fill{height:100%;border-radius:8px;background:#45d483;transition:width .4s ease}'+
