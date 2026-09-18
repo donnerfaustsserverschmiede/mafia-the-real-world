@@ -50,6 +50,7 @@ function injectStyle(){
   '.mtrw-combat-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #27313c;color:#b9c4d1;font-size:11px}',
   '.mtrw-combat-row:last-child{border-bottom:0}',
   '.mtrw-combat-row b{color:#fff}',
+  '.mtrw-combat-box+.mtrw-combat-box{margin-top:10px}',
  ].join('');
  document.head.appendChild(s);
 }
@@ -58,7 +59,7 @@ async function readSelectedTerritory(){
  const title=$('drawerTitle'),body=$('drawerBody');
  if(!title||!body||title.textContent.trim()!=='Gebiet')return null;
  const heading=body.querySelector('h3');
- const zone=zoneFromLabel(heading?.textContent);
+ const zone=body.dataset.zone||zoneFromLabel(heading?.textContent);
  if(!zone)return null;
 
  let t=null;
@@ -118,15 +119,39 @@ function renderDrawerLife(){
    '<div class="mtrw-combat-row"><span>🏆 XP bei erfolgreicher Eroberung</span><b>+25 XP</b></div>';
 
   box.insertAdjacentElement('afterend',combat);
+
+  const oldStatus=body.querySelector('#mtrwTerritoryStatus');
+  if(oldStatus)oldStatus.remove();
+  const status=document.createElement('section');
+  status.id='mtrwTerritoryStatus';
+  status.className='mtrw-combat-box';
+  const owner=t.owner_id ? 'Besetztes Gebiet' : 'Freies Feld';
+  const building=t.building_type ? (t.building_type+' · Stufe '+(t.building_level||1)) : 'Kein Gebäude';
+  status.innerHTML=
+   '<h3>📋 Gebietsstatus</h3>'+
+   '<div class="mtrw-combat-row"><span>Status</span><b>'+owner+'</b></div>'+
+   '<div class="mtrw-combat-row"><span>👥 Stationierte Schläger</span><b>'+fmt(t.garrison||0)+'</b></div>'+
+   '<div class="mtrw-combat-row"><span>🏗️ Gebäude</span><b>'+building+'</b></div>'+
+   '<div class="mtrw-combat-row"><span>❤️ Aktuelle Lebenspunkte</span><b>'+fmt(cur)+' / '+fmt(max)+' HP</b></div>'+
+   '<div class="mtrw-life-desc">⚔️ Angriffe verursachen Schaden an der Lebensleiste. Fällt die Verteidigung auf 0 bzw. reicht der Angriff zur Eroberung aus, wechselt das Gebiet den Besitzer.</div>';
+  combat.insertAdjacentElement('afterend',status);
  });
 }
 
 function observeDrawer(){
- const body=$('drawerBody');
- if(!body||drawerObserver)return;
- drawerObserver=new MutationObserver(()=>setTimeout(renderDrawerLife,40));
- drawerObserver.observe(body,{childList:true,subtree:true});
- setTimeout(renderDrawerLife,100);
+ if(drawerObserver)return;
+ const root=document.body;
+ if(!root)return;
+ const schedule=()=>setTimeout(renderDrawerLife,60);
+ drawerObserver=new MutationObserver(mutations=>{
+  let relevant=false;
+  for(const m of mutations){
+   if(m.type==='childList'||m.type==='attributes'){relevant=true;break}
+  }
+  if(relevant)schedule();
+ });
+ drawerObserver.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class','data-zone']});
+ schedule();
 }
 
 async function boot(){
