@@ -143,3 +143,13 @@
   .mf-app .mf-bottom{height:62px!important}
   .mf-app .bottom-btn{height:50px!important}
 }
+
+/* User-adjustable UI scale: 0% = smallest, 100% = current compact size */
+:root{--mtrw-ui-scale:1}
+@media(max-width:700px){
+  .mf-app .mf-hud,.mf-app .mf-event,.mf-app .mf-legend,.mf-app .mf-bottom,.mf-app .mtrw-map-tools{zoom:var(--mtrw-ui-scale)}
+  .mf-app .mf-drawer{zoom:var(--mtrw-ui-scale)}
+}
+@media(min-width:701px){
+  .mf-app .mf-hud,.mf-app .mf-event,.mf-app .mf-legend,.mf-app .mf-bottom,.mf-app .mtrw-map-tools,.mf-app .mf-drawer{zoom:var(--mtrw-ui-scale)}
+}
