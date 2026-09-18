@@ -131,7 +131,21 @@ async function renderFamily(){
       ${leadership&&level<20?`<button class="mini" data-family-action="upgrade" data-value="${d[0]}" ${Number(f.data.treasury||0)<cost?'disabled':''}>Ausbauen</button>`:'<small>'+((level>=20)?'MAX':'Nur Leitung')+'</small>'}</div>`;
     }).join('')}</div>`;
   }else if(view==='alliances'){
-    body=`<div class="hint">Bündnisse werden weiterhin über das bestehende Diplomatie-System geführt. Dieser Bereich ist für die Familienübersicht vorgesehen.</div>`;
+    let allianceHtml='<div class="hint">Diplomatie</div>';
+    try{
+      const ar=await db.rpc('mtrw_alliance_snapshot');
+      if(!ar.error&&ar.data?.alliance){
+        const a=ar.data.alliance;
+        const allies=ar.data.diplomacy||[];
+        allianceHtml=`<div class="hero"><span class="hero-icon">🤝</span><div><b>${esc(a.name)} [${esc(a.tag)}]</b><p>Bestehende Allianz-Diplomatie</p></div></div>`
+          +`<div class="list">${allies.length?allies.map(x=>`<div class="row"><span>🤝 ${esc(x.ally_alliance_name||x.name||'Bündnis')}<small>Status: ${esc(x.status||'ally')}</small></span><b>Aktiv</b></div>`).join(''):'<div class="hint">Noch keine Bündnisse vorhanden.</div>'}</div>`;
+      }else{
+        allianceHtml='<div class="hero"><span class="hero-icon">🤝</span><div><b>Noch keine Diplomatie</b><p>Es besteht derzeit kein aktives Bündnis.</p></div></div><div class="hint">Das bestehende Allianz-System bleibt separat erhalten und wird hier angezeigt, sobald dein Spieler einer Allianz angehört.</div>';
+      }
+    }catch(e){
+      allianceHtml='<div class="hero"><span class="hero-icon">🤝</span><div><b>Diplomatie</b><p>Keine aktiven Bündnisse gefunden.</p></div></div>';
+    }
+    body=allianceHtml;
   }else if(view==='manage'){
     body=`<div class="list">
       <div class="row"><span>👑 Deine Rolle</span><b>${esc(q.data.role)}</b></div>
