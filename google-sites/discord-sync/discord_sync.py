@@ -22,7 +22,7 @@ import requests
 import discord
 
 CHANNEL_NAME = os.getenv("MAFIVERA_DISCORD_CHANNEL_NAME", "was-noch-kommt")
-CHANNEL_ID = int(os.environ["MAFIVERA_DISCORD_CHANNEL_ID"]) if os.getenv("MAFIVERA_DISCORD_CHANNEL_ID") else None
+CHANNEL_ID = 1549686033476751390
 
 TOKEN = os.environ["DISCORD_BOT_TOKEN"]
 WEBAPP_URL = os.environ["MAFIVERA_SITES_WEBAPP_URL"]
