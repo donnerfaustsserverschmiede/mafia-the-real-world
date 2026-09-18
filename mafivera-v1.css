@@ -153,3 +153,7 @@
 .mf-app .mtrw-map-tools{transform-origin:top right;transform:scale(var(--mtrw-ui-scale))}
 .mf-app .mf-drawer{transform-origin:center center;transform:scale(var(--mtrw-ui-scale))}
 
+
+@media(min-width:701px){.mf-app .mf-bottom{transform:translateX(-50%) scale(var(--mtrw-ui-scale))}}
+@media(max-width:700px){.mf-app .mf-bottom{left:8px!important;right:8px!important;transform:scale(var(--mtrw-ui-scale))}}
+@media (display-mode: standalone),(display-mode:fullscreen){.mf-app .mf-bottom{left:50%!important;right:auto!important;transform:translateX(-50%) scale(var(--mtrw-ui-scale))}}
