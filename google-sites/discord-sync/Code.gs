@@ -1,24 +1,26 @@
 /**
- * MAFIVERA – Google Sites / Discord „Was noch kommt“
+ * MAFIVERA – Discord → Google Sites synchronisation
  *
- * 1. In Google Drive ein neues Apps-Script-Projekt erstellen.
- * 2. Diesen Code als Code.gs einfügen.
- * 3. Deploy > New deployment > Web app.
- * 4. Execute as: Me
- * 5. Who has access: Anyone
- * 6. Den /exec-Link in Google Sites über „Einfügen > URL einbetten“ einfügen.
+ * Google Apps Script:
+ * 1. Neues Apps-Script-Projekt erstellen.
+ * 2. Code einfügen.
+ * 3. setupSyncSecret() einmal manuell ausführen.
+ * 4. Deploy → New deployment → Web app.
+ * 5. Execute as: Me
+ * 6. Who has access: Anyone
+ * 7. Den /exec-Link für den Discord-Bot verwenden.
  *
- * Der Discord-Bot sendet POST:
+ * POST body:
  * {
  *   "secret": "...",
  *   "text": "Neue Gebäude kommen nächste Woche.",
  *   "author": "MAFIVERA-Team"
  * }
- *
- * Das Secret wird NICHT im Frontend veröffentlicht.
  */
 
 const STORE_KEY = 'MAFIVERA_WHAT_NEXT';
+const SECRET_KEY = 'DISCORD_SYNC_SECRET';
+
 const DEFAULT = {
   text: 'Noch keine neuen Ankündigungen. Schau bald wieder vorbei!',
   author: 'MAFIVERA-Team',
@@ -35,7 +37,9 @@ function doGet() {
   const data = getStore_();
   const safeText = escapeHtml_(data.text || DEFAULT.text);
   const safeAuthor = escapeHtml_(data.author || DEFAULT.author);
-  const date = data.updatedAt ? new Date(data.updatedAt).toLocaleString('de-DE', {timeZone:'Europe/Berlin'}) : '';
+  const date = data.updatedAt
+    ? new Date(data.updatedAt).toLocaleString('de-DE', {timeZone:'Europe/Berlin'})
+    : '';
 
   const html = '<!doctype html><html lang="de"><head>' +
     '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -50,29 +54,33 @@ function doGet() {
     '<div class="eyebrow">MAFIVERA · ROADMAP</div>' +
     '<h1>Was noch kommt</h1>' +
     '<div class="text">' + safeText + '</div>' +
-    '<div class="meta">Von ' + safeAuthor + (date ? ' · Aktualisiert: ' + escapeHtml_(date) : '') + '</div>' +
-    '</section></body></html>';
+    '<div class="meta">Von ' + safeAuthor +
+    (date ? ' · Aktualisiert: ' + escapeHtml_(date) : '') +
+    '</div></section></body></html>';
 
   return HtmlService.createHtmlOutput(html)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function doPost(e) {
-  const secret = PropertiesService.getScriptProperties().getProperty('DISCORD_SYNC_SECRET');
-  if (!secret) return json_({ok:false,error:'secret_not_configured'}, 500);
+  const secret = PropertiesService.getScriptProperties().getProperty(SECRET_KEY);
+  if (!secret) return json_({ok:false,error:'secret_not_configured'});
 
   let body;
-  try { body = JSON.parse(e.postData.contents || '{}'); }
-  catch (err) { return json_({ok:false,error:'invalid_json'}, 400); }
+  try {
+    body = JSON.parse(e.postData.contents || '{}');
+  } catch (err) {
+    return json_({ok:false,error:'invalid_json'});
+  }
 
-  if (body.secret !== secret) return json_({ok:false,error:'unauthorized'}, 401);
+  if (body.secret !== secret) return json_({ok:false,error:'unauthorized'});
 
   const text = String(body.text || '').trim().slice(0, 4000);
-  if (!text) return json_({ok:false,error:'empty_text'}, 400);
+  if (!text) return json_({ok:false,error:'empty_text'});
 
   const data = {
     text,
-    author: String(body.author || 'MAFIVERA-Team').slice(0, 120),
+    author: String(body.author || 'MAFIVERA-Team').trim().slice(0, 120),
     updatedAt: new Date().toISOString()
   };
 
@@ -80,16 +88,24 @@ function doPost(e) {
   return json_({ok:true,updatedAt:data.updatedAt});
 }
 
-function setSyncSecret() {
-  // Einmal manuell ausführen, nachdem du das Secret angepasst hast.
-  PropertiesService.getScriptProperties().setProperty(
-    'DISCORD_SYNC_SECRET',
-    'HIER_EIN_LANGES_ZUFAELLIGES_SECRET_EINTRAGEN'
-  );
+/**
+ * Einmal manuell im Apps-Script-Editor ausführen.
+ * Der erzeugte Schlüssel erscheint nur im Ausführungsprotokoll.
+ */
+function setupSyncSecret() {
+  const props = PropertiesService.getScriptProperties();
+  let secret = props.getProperty(SECRET_KEY);
+
+  if (!secret) {
+    secret = Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
+    props.setProperty(SECRET_KEY, secret);
+  }
+
+  console.log('MAFIVERA_SYNC_SECRET=' + secret);
+  return secret;
 }
 
-function json_(obj, status) {
-  // Apps Script ContentService liefert keinen frei gesetzten HTTP-Status.
+function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
