@@ -19,7 +19,7 @@ async function loadPlaces(){
 function paint(){
  const m=window.__mtrwMap,rects=window.__mtrwGridRects;
  if(!m||!Array.isArray(rects))return;
- rects.forEach(rect=>{const c=rect.getBounds().getCenter();if(places.filter(p=>sameCell(c,p)).length>=2)rect.setStyle({color:DARK_RED_BORDER,fillColor:DARK_RED,weight:2,fillOpacity:.42});});
+ rects.forEach(rect=>{const c=rect.getBounds().getCenter();if(places.some(p=>sameCell(c,p)))rect.setStyle({color:DARK_RED_BORDER,fillColor:DARK_RED,weight:2,fillOpacity:.42});});
 }
 function hook(){const m=window.__mtrwMap;if(!m)return setTimeout(hook,500);loadPlaces();m.on('moveend',loadPlaces);setInterval(loadPlaces,60000)}
 hook();
