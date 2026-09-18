@@ -1,26 +1,11 @@
-/* MAFIVERA – Real-world place field overlay */
+/* MAFIVERA – Stable heist-field detection */
 (()=>{'use strict';
 if(window.__mtrwPlaceOverlay)return;window.__mtrwPlaceOverlay=true;
 const DARK_RED='#5b1018',DARK_RED_BORDER='#8f2632';
-let places=[],loading=false;
+let places=[],loading=false,lastBounds='';
+window.__mtrwHeistCells=window.__mtrwHeistCells||new Set();
 function sameCell(a,b){return Math.floor(Number(a.lat)/.0018)===Math.floor(Number(b.lat)/.0018)&&Math.floor(Number(a.lng)/.0025)===Math.floor(Number(b.lng)/.0025)}
-async function loadPlaces(){
- const m=window.__mtrwMap;if(!m||loading)return; loading=true;
- try{
-  const b=m.getBounds(),south=b.getSouth(),west=b.getWest(),north=b.getNorth(),east=b.getEast();
-  const q='[out:json][timeout:12];(nwr[shop~"^(jewelry|supermarket|convenience|department_store|clothes|electronics|mobile_phone|computer|furniture|hardware|alcohol|tobacco|car|car_parts|bicycle|motorcycle|beauty|cosmetics|sports|outdoor|shoes|gift|books|mall|general|variety_store|wholesale|doityourself|trade|kiosk|lottery|money_lender|pawnbroker|second_hand|vending_machine)$"]('+south+','+west+','+north+','+east+');nwr[amenity~"^(bank|atm|casino|post_office)$"]('+south+','+west+','+north+','+east+'););out center;';
-  const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
-  if(!r.ok)throw Error('Overpass '+r.status);
-  const d=await r.json();
-  places=(d.elements||[]).map(x=>({lat:x.lat??x.center?.lat,lng:x.lon??x.center?.lon})).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng));
-  paint();
- }catch(e){console.debug('MAFIVERA place overlay:',e.message||e)}finally{loading=false}
-}
-function paint(){
- const m=window.__mtrwMap,rects=window.__mtrwGridRects;
- if(!m||!Array.isArray(rects))return;
- rects.forEach(rect=>{const c=rect.getBounds().getCenter();if(places.some(p=>sameCell(c,p)))rect.setStyle({color:DARK_RED_BORDER,fillColor:DARK_RED,weight:2,fillOpacity:.42});});
-}
-function hook(){const m=window.__mtrwMap;if(!m)return setTimeout(hook,500);loadPlaces();m.on('moveend',loadPlaces);setInterval(loadPlaces,60000)}
-hook();
+function paint(){const m=window.__mtrwMap;if(!m)return;const next=new Set(window.__mtrwHeistCells);const b=m.getBounds();for(let r=Math.floor(b.getSouth()/.0018)-1;r<=Math.floor(b.getNorth()/.0018)+1;r++)for(let c=Math.floor(b.getWest()/.0025)-1;c<=Math.floor(b.getEast()/.0025)+1;c++){const key='z_'+r+'_'+c;const lat=(r+.5)*.0018,lng=(c+.5)*.0025;if(places.some(p=>sameCell({lat,lng},p)))next.add(key)}window.__mtrwHeistCells=next;window.dispatchEvent(new CustomEvent('mtrw:heist-cells-updated'));}
+async function loadPlaces(){const m=window.__mtrwMap;if(!m||loading)return;loading=true;try{const b=m.getBounds(),south=b.getSouth(),west=b.getWest(),north=b.getNorth(),east=b.getEast(),sig=[south.toFixed(3),west.toFixed(3),north.toFixed(3),east.toFixed(3)].join(',');if(sig===lastBounds){paint();return}lastBounds=sig;const q='[out:json][timeout:12];(nwr[shop~"^(jewelry|supermarket|convenience|department_store|clothes|electronics|mobile_phone|computer|furniture|hardware|alcohol|tobacco|car|car_parts|bicycle|motorcycle|beauty|cosmetics|sports|outdoor|shoes|gift|books|mall|general|variety_store|wholesale|doityourself|trade|kiosk|lottery|money_lender|pawnbroker|second_hand|vending_machine)$"]('+south+','+west+','+north+','+east+');nwr[amenity~"^(bank|atm|casino|post_office)$"]('+south+','+west+','+north+','+east+'););out center;';const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));if(!r.ok)throw Error('Overpass '+r.status);const d=await r.json();places=(d.elements||[]).map(x=>({lat:x.lat??x.center?.lat,lng:x.lon??x.center?.lng??x.center?.lon})).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng));paint();}catch(e){console.debug('MAFIVERA heist fields:',e.message||e)}finally{loading=false}}
+function hook(){const m=window.__mtrwMap;if(!m)return setTimeout(hook,500);loadPlaces();m.on('moveend',loadPlaces);setInterval(loadPlaces,60000)}hook();
 })();
