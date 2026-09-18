@@ -118,11 +118,11 @@ async function renderFamily(){
       <b>${money(m.donated_total||0)}</b></div>`).join('')}</div>`;
   }else if(view==='expansion'){
     const defs=[
-      ['march_speed','Marschtempo','⚡','Schnellere Märsche'],
-      ['troop_strength','Truppenstärke','⚔️','Mehr Angriffskraft'],
-      ['training','Truppenproduktion','👤','Schnellere Schlägerproduktion'],
-      ['workshop','Bauhütte','🏗️','Familien-Ausbau'],
-      ['trade','Handel','💰','Familienhandel']
+      ['march_speed','Marschtempo','⚡','+5% Marschgeschwindigkeit je Stufe'],
+      ['troop_strength','Truppenstärke','⚔️','+5% Angriffskraft je Stufe'],
+      ['training','Truppenproduktion','👤','+5% schnellere Schlägerproduktion je Stufe'],
+      ['workshop','Bauhütte','🏗️','+5% schnellerer Gebäudeausbau je Stufe'],
+      ['trade','Handelswege','💰','+5% Dealerpreis je Stufe']
     ];
     body=`<div class="hint">Die Familienkasse wird durch die täglichen Mitgliedsbeiträge aufgebaut. Nur die Familienleitung kann diese gemeinsame Kasse für den Ausbau verwenden.</div>
     <div class="list">${defs.map(d=>{
