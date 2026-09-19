@@ -2,7 +2,7 @@
 (()=>{'use strict';
 const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const $=id=>document.getElementById(id),fmt=n=>Number(n||0).toLocaleString('de-DE');
-const recipes={weed:{name:'Cannabis',material:10,value:50,seconds:180},cocaine:{name:'Kokain',material:25,value:100,seconds:300},meth:{name:'Methamphetamin',material:40,value:190,seconds:420},heroin:{name:'Heroin',material:60,value:300,seconds:600}};
+const recipes={weed:{name:'Cannabis',material:10,value:50,seconds:10},cocaine:{name:'Kokain',material:25,value:100,seconds:15},meth:{name:'Methamphetamin',material:40,value:190,seconds:20},heroin:{name:'Heroin',material:60,value:300,seconds:30}};
 async function rpc(n,a={}){const r=await window.db.rpc(n,a);if(r.error)throw r.error;return r.data}
 function panel(title,html){const d=$('drawer'),t=$('drawerTitle'),b=$('drawerBody');if(!d||!t||!b)return;t.textContent=title;b.innerHTML=html;d.classList.remove('hidden')}
 async function openProduction(){
