@@ -64,7 +64,7 @@ async function loadMarches(){
  try{
    await db.rpc('mtrw_process_marches');
    const q=await db.from('mtrw_marches')
-     .select('id,target_zone_key,troop_count,purpose,started_at,arrival_at,battle_started_at,battle_finish_at,start_lat,start_lng,target_lat,target_lng,status')
+     .select('id,target_zone_key,troop_count,purpose,started_at,arrival_at,battle_started_at,battle_finish_at,start_lat,start_lng,target_lat,target_lng,status,result')
      .eq('user_id',(await db.auth.getUser()).data.user?.id||'')
      .in('status',['marching','battle'])
      .order('arrival_at',{ascending:true});
