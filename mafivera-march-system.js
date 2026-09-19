@@ -24,6 +24,7 @@ function style(){
  .mtrw-march-menu-btn .count{display:inline-grid;place-items:center;min-width:21px;height:21px;border-radius:50%;background:#7c2925;border:1px solid #c05b52;font-size:10px}
  .mtrw-march-menu-btn.empty .count{background:#202a35;border-color:#465361}
  .mtrw-march-menu{margin:0 0 12px;padding:12px;border:1px solid #34404d;border-radius:15px;background:#121923}
+ .mtrw-march-overview{position:absolute;left:10px;top:0;z-index:1200;width:min(285px,calc(100% - 20px));max-height:34vh;overflow:auto;padding:10px;border:1px solid #3a4652;border-radius:14px;background:#0b1119e8;backdrop-filter:blur(8px);box-shadow:0 8px 24px #0008;color:#fff;pointer-events:auto;font-family:system-ui,sans-serif;box-sizing:border-box}.mtrw-march-overview h3{margin:0 0 7px;font-size:12px}.mtrw-march-overview .march-row{padding:8px 0;border-top:1px solid #27313c}.mtrw-march-overview .march-row:first-of-type{border-top:0}.mtrw-march-overview b{font-size:11px}.mtrw-march-overview small{display:block;color:#9aa6b5;font-size:9px;margin-top:2px}.mtrw-march-overview .recall{margin-top:5px;width:100%;height:28px;border:1px solid #8b3c35;border-radius:8px;background:#5e2421;color:#fff;font-size:9px;font-weight:900}.mtrw-march-overview .recall:disabled{opacity:.5}
  .mtrw-march-menu h3{margin:0 0 8px;font-size:14px}
  .mtrw-march-row{padding:10px;margin-top:7px;border:1px solid #293542;border-radius:12px;background:#171f2a}
  .mtrw-march-row b{display:block;font-size:12px}
