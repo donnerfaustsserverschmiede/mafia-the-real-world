@@ -3,6 +3,7 @@
 const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const $=id=>document.getElementById(id),fmt=n=>Number(n||0).toLocaleString('de-DE');
 let state=null,selected=null,timer=null,players=[],playerListTimer=null,realtimeChannel=null;
+const adminCompactStyle=(()=>{const s=document.createElement('style');s.textContent='@media(max-width:900px){#mtrwAdminButton{width:72px!important;height:72px!important;min-width:0!important;right:0!important;bottom:calc(72px + env(safe-area-inset-bottom))!important;top:auto!important;border-radius:14px 0 0 14px!important;font-size:11px!important;padding:5px!important}}';document.head.appendChild(s);return s})();
 async function rpc(name,args={}){const r=await window.db.rpc(name,args);if(r.error)throw r.error;return r.data}
 function toast(t,error=false){const x=$('toast');if(!x)return;x.textContent=t;x.className='toast show'+(error?' error':'');setTimeout(()=>x.className='toast',3000)}
 function panel(html){const d=$('drawer'),t=$('drawerTitle'),b=$('drawerBody');if(!d||!t||!b)return;t.textContent='Admin-Zentrale';b.innerHTML=html;d.classList.remove('hidden')}
