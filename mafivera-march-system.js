@@ -47,7 +47,7 @@ function style(){
  `;document.head.appendChild(s)
 }
 
-function positionOverview(){const root=document.getElementById('mfMap'),legend=document.querySelector('.mf-legend'),box=document.getElementById('mtrwMarchOverview');if(root&&legend&&box)box.style.top=(legend.offsetTop+legend.offsetHeight+18)+'px'}
+function positionOverview(){const root=document.getElementById('mfMap'),legend=document.querySelector('.mf-legend'),box=document.getElementById('mtrwMarchOverview');if(root&&legend&&box)box.style.top=(legend.offsetTop+legend.offsetHeight+30)+'px'}
 function updateOverview(rows){
  const root=document.getElementById('mfMap');if(!root)return;
  let box=document.getElementById('mtrwMarchOverview');
