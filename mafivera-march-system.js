@@ -69,7 +69,10 @@ async function loadMarches(){
      .in('status',['marching','battle'])
      .order('arrival_at',{ascending:true});
    if(q.error)throw q.error;
+   const previous=marchCache;
    marchCache=q.data||[];
+   const activeIds=new Set(marchCache.map(x=>x.id));
+   previous.filter(x=>!activeIds.has(x.id)).forEach(x=>window.dispatchEvent(new CustomEvent('mtrw:march-finished',{detail:x})));
    updateMarchButton();
    const active=new Set(marchCache.map(m=>m.id));
    markers.forEach((marker,id)=>{if(!active.has(id)){marker.remove();markers.delete(id)}});
