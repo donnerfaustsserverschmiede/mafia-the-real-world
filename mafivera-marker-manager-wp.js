@@ -7,7 +7,8 @@ if(window.__mtrwResourceMarkerEngine)return;
 window.__mtrwResourceMarkerEngine=true;
 const GLAT=.0018,GLNG=.0025,R=5,resources=['money','material','reputation'];
 let map=null,layer=null,lastKey='';
-const icon=x=>x==='money'?'
+const icon=x=>x==='money'?'$':x==='material'?'▣':x==='reputation'?'★':'⚙';
+const baseResourceForTile=(r,c)=>{const h=Math.abs((r*73856093)^(c*19349663))%100;return h<42?'money':h<79?'material':'reputation'};
 function style(){if(document.getElementById('mtrwResourceMarkerCSS'))return;const s=document.createElement('style');s.id='mtrwResourceMarkerCSS';s.textContent=`
 .res-marker{display:none!important;visibility:hidden!important}
 .building-marker,.mtrw-stable-building-marker{display:none!important;visibility:hidden!important}
