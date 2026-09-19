@@ -1,6 +1,7 @@
 /* MAFIVERA – Production V3: Drogen + Waffen */
 (()=>{'use strict';
 const $=id=>document.getElementById(id),fmt=n=>Number(n||0).toLocaleString('de-DE'),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const drugs={cocaine:'Kokain',weed:'Cannabis',meth:'Methamphetamin',heroin:'Heroin'};
 const recipes={
  weed:{name:'Cannabis',material:10,value:50,seconds:10,kind:'drug'},
  cocaine:{name:'Kokain',material:25,value:100,seconds:15,kind:'drug'},
