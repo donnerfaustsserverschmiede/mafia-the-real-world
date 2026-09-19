@@ -5,7 +5,7 @@
 if(window.__mtrwMarchSystem)return;window.__mtrwMarchSystem=true;
 
 const BUILD='20260918-battle1';
-let db=null, timer=null, markerTimer=null, busy=false, markers=new Map();
+let db=null, timer=null, markerTimer=null, busy=false, markers=new Map(),marchCache=[];
 const $=id=>document.getElementById(id);
 const fmt=n=>Number(n||0).toLocaleString('de-DE');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -15,9 +15,22 @@ const clearMarkers=()=>{markers.forEach(m=>m.remove());markers.clear()};
 const waitForRuntime=()=>new Promise(resolve=>{let n=0;const tick=()=>{db=window.db;const map=window.__mtrwMap;if(db&&map&&window.L&&$('drawer'))return resolve();if(++n>240)return;setTimeout(tick,250)};tick()});
 
 function style(){
+
  if($('mtrwMarchCSS'))return;
  const s=document.createElement('style');s.id='mtrwMarchCSS';s.textContent=`
  .mtrw-march-marker{background:transparent!important;border:0!important;width:52px!important;height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative}
+ .mtrw-march-marker .mtrw-march-icon{display:block;width:30px;height:32px;line-height:32px;text-align:center;font-size:27px;transform:none!important}
+ .mtrw-march-menu-btn{position:absolute;left:10px;top:74px;z-index:1000;height:42px;min-width:132px;padding:0 13px;border:1px solid #465361;border-radius:12px;background:#101820ed;color:#fff;box-shadow:0 5px 18px #0008;font:900 11px/1 system-ui;display:flex;align-items:center;gap:7px}
+ .mtrw-march-menu-btn .count{display:inline-grid;place-items:center;min-width:21px;height:21px;border-radius:50%;background:#7c2925;border:1px solid #c05b52;font-size:10px}
+ .mtrw-march-menu-btn.empty .count{background:#202a35;border-color:#465361}
+ .mtrw-march-menu{margin:0 0 12px;padding:12px;border:1px solid #34404d;border-radius:15px;background:#121923}
+ .mtrw-march-menu h3{margin:0 0 8px;font-size:14px}
+ .mtrw-march-row{padding:10px;margin-top:7px;border:1px solid #293542;border-radius:12px;background:#171f2a}
+ .mtrw-march-row b{display:block;font-size:12px}
+ .mtrw-march-row small{display:block;color:#8e9aaa;margin-top:4px;font-size:9px}
+ .mtrw-march-row .withdraw{margin-top:8px;width:100%;height:36px;border-radius:9px;border:1px solid #a94b45;background:#55211f;color:#fff;font-weight:900;font-size:11px}
+ @media(max-width:700px){.mtrw-march-menu-btn{top:72px;left:9px;height:40px}}
+
  .mtrw-march-marker .mtrw-march-icon{font-size:27px;filter:drop-shadow(0 2px 4px #000)}
  .mtrw-march-marker b{position:absolute;right:-2px;top:-2px;min-width:22px;padding:3px 5px;border-radius:9px;background:#101820eF;border:1px solid #f0b53c;color:#fff;font:900 10px/1 system-ui;text-align:center}
  .mtrw-march-panel{margin:10px 0;padding:12px;border:1px solid #34404d;border-radius:15px;background:#121923}
@@ -40,14 +53,16 @@ async function loadMarches(){
    await db.rpc('mtrw_process_marches');
    const q=await db.from('mtrw_marches')
      .select('id,target_zone_key,troop_count,purpose,started_at,arrival_at,battle_started_at,battle_finish_at,start_lat,start_lng,target_lat,target_lng,status')
-     .in('status',['marching','battle']);
+     .eq('user_id',(await db.auth.getUser()).data.user?.id||'')
+     .in('status',['marching','battle'])
+     .order('arrival_at',{ascending:true});
    if(q.error)throw q.error;
-
-   const active=new Set((q.data||[]).map(m=>m.id));
+   marchCache=q.data||[];
+   updateMarchButton();
+   const active=new Set(marchCache.map(m=>m.id));
    markers.forEach((marker,id)=>{if(!active.has(id)){marker.remove();markers.delete(id)}});
-
    const now=Date.now();
-   (q.data||[]).forEach(m=>{
+   marchCache.forEach(m=>{
      let lat=Number(m.target_lat),lng=Number(m.target_lng);
      if(m.status==='marching'){
        const st=new Date(m.started_at).getTime(),at=new Date(m.arrival_at).getTime();
@@ -63,16 +78,44 @@ async function loadMarches(){
      });
      let marker=markers.get(m.id);
      if(!marker){
-       marker=L.marker([lat,lng],{icon,zIndexOffset:800}).addTo(window.__mtrwMap);
+       marker=L.marker([lat,lng],{icon,zIndexOffset:800,interactive:false}).addTo(window.__mtrwMap);
+       marker.__mtrwPhase=m.status;marker.__mtrwTroops=m.troop_count;marker.__mtrwPurpose=m.purpose;
        markers.set(m.id,marker);
      }else{
        marker.setLatLng([lat,lng]);
-       marker.setIcon(icon);
+       if(marker.__mtrwPhase!==m.status||marker.__mtrwTroops!==m.troop_count||marker.__mtrwPurpose!==m.purpose){
+         marker.setIcon(icon);
+         marker.__mtrwPhase=m.status;marker.__mtrwTroops=m.troop_count;marker.__mtrwPurpose=m.purpose;
+       }
      }
    });
  }catch(e){console.warn('[MAFIVERA march]',e)}
 }
 
+function updateMarchButton(){
+ const b=$('mtrwMarchMenuBtn');if(!b)return;
+ const n=marchCache.length;b.querySelector('.count').textContent=String(n);b.classList.toggle('empty',n===0);
+}
+function renderMarchMenu(){
+ const title=$('drawerTitle'),body=$('drawerBody');if(!title||!body)return;
+ title.textContent='Märsche';
+ const rows=marchCache;
+ body.innerHTML='<section class="mtrw-march-menu"><h3>⚔️ Aktive Märsche</h3>'+
+   (rows.length?rows.map(m=>'<div class="mtrw-march-row" data-march="'+m.id+'"><b>'+esc(m.status==='battle'?'⚔️ KAMPF':'↠ '+(m.purpose==='attack'?'⚔️ Angriff':'👥 Trupp'))+' → '+esc(zoneLabel(m.target_zone_key))+'</b><small data-countdown></small><button class="withdraw" data-withdraw="'+m.id+'">↩️ Truppen zurückziehen · '+fmt(m.troop_count)+'</button></div>').join(''):'<div class="hint">Keine aktiven Märsche. 0 Märsche.</div>')+
+   '</section>';
+ body.querySelectorAll('[data-withdraw]').forEach(btn=>btn.onclick=async()=>{
+   btn.disabled=true;
+   try{const r=await db.rpc('mtrw_withdraw_march',{p_march_id:btn.dataset.withdraw});if(r.error)throw r.error;toast('↩️ '+fmt(r.data?.troops_returned||0)+' Schläger zurückgezogen.');await loadMarches();renderMarchMenu();updatePanelCountdown()}
+   catch(e){btn.disabled=false;toast(String(e.message||e).replace(/^Error:\s*/i,''),true)}
+ });
+ updatePanelCountdown();
+}
+function ensureMarchButton(){
+ if($('mtrwMarchMenuBtn'))return;
+ const root=document.querySelector('.mf-app');if(!root)return;
+ const b=document.createElement('button');b.id='mtrwMarchMenuBtn';b.className='mtrw-march-menu-btn empty';b.innerHTML='⚔️ Märsche <span class="count">0</span>';
+ b.onclick=renderMarchMenu;root.appendChild(b);updateMarchButton();
+}
 async function startAttack(zone){
  if(busy)return;busy=true;
  try{
@@ -160,8 +203,9 @@ async function boot(){
  style();interceptAttacks();
  await waitForRuntime();
  await loadMarches();
+ ensureMarchButton();
  timer=setInterval(loadMarches,5000);
- markerTimer=setInterval(()=>{loadMarches();updatePanelCountdown()},1000);
+ markerTimer=setInterval(()=>{loadMarches();updatePanelCountdown();if($('drawerTitle')?.textContent==='Märsche')renderMarchMenu()},1000);
  const observer=new MutationObserver(()=>{renderMarchPanel()});
  const body=$('drawerBody');if(body)observer.observe(body,{childList:true,subtree:true});
 }
