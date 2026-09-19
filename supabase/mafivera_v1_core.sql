@@ -34,7 +34,7 @@ select (array[120,100,80,60,45,30,20,15,10,5])[greatest(1,least(10,p_level))]
 $$;
 
 create or replace function public.mafivera_bootstrap() returns json language plpgsql security definer set search_path=public as $$
-declare uid uuid:=auth.uid(); p public.profiles; elapsed numeric; rec_elapsed numeric; gain_money bigint:=0; gain_material bigint:=0; gain_rep bigint:=0; gain_product bigint:=0; gain_weapon_parts bigint:=0; produced bigint:=0; labs integer:=0; recruits bigint:=0; wh integer:=0; garrison_total bigint:=0; r public.world_territories; bt text; mult numeric; batches bigint; need_xp bigint;
+declare uid uuid:=auth.uid(); p public.profiles; elapsed numeric; rec_elapsed numeric; gain_money bigint:=0; gain_material bigint:=0; gain_rep bigint:=0; gain_product bigint:=0; gain_weapon_parts bigint:=0; produced bigint:=0; recruits bigint:=0; wh integer:=0; garrison_total bigint:=0; r public.world_territories; bt text; mult numeric; need_xp bigint;
 begin
 if uid is null then raise exception 'not_authenticated'; end if;
 select * into p from public.profiles where id=uid for update;if not found then raise exception 'profile_not_found';end if;
@@ -45,13 +45,11 @@ if elapsed>0 then
   if r.building_finish_at is not null and r.building_finish_at>now() then continue; end if;
   foreach bt in array coalesce(r.resources,array['material','money']::text[]) loop
    if bt='money' then mult:=case when r.building_type='money' then power(1.5,greatest(1,r.building_level)) else 1 end;gain_money:=gain_money+floor(2*mult*elapsed);
-   elsif bt='material' then gain_material:=gain_material+floor(1*case when r.building_type='warehouse' then 1.25 else 1 end*elapsed);
+   elsif bt='material' then mult:=case when r.building_type='lab' then 1+0.05*greatest(1,r.building_level) else 1 end;gain_material:=gain_material+floor(1*mult*elapsed);
    elsif bt='reputation' then mult:=case when r.building_type='club' then power(1.5,greatest(1,r.building_level)) else 1 end;gain_rep:=gain_rep+floor(1*mult*elapsed);elsif bt='weapon_parts' then mult:=case when r.building_type='weapon_factory' then 1+0.05*greatest(1,r.building_level) else 1 end;gain_weapon_parts:=gain_weapon_parts+floor(1*mult*elapsed);end if;
   end loop;
-  if r.building_type='lab' then labs:=labs+greatest(1,r.building_level);end if;
-  if r.building_type='warehouse' then wh:=wh+greatest(1,r.building_level);end if;
+  if r.building_type='warehouse' then wh:=greatest(wh,greatest(1,r.building_level));end if;
  end loop;
- if labs>0 then batches:=least(labs::bigint*floor(elapsed),floor((p.material+gain_material)/5));gain_product:=greatest(0,batches);gain_material:=gain_material-gain_product*5;end if;
 end if;
 for r in select * from public.world_territories where owner_id=uid and building_type='recruitment' and (building_finish_at is null or building_finish_at<=now()) loop
  produced:=produced+floor(rec_elapsed*60/recruit_intervals_seconds(greatest(1,least(10,r.building_level))));
