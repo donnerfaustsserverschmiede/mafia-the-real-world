@@ -7,7 +7,7 @@ let db,uid,profile={},map,grid=[],markers,playerMarker,lastCell=null,world={},ow
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('de-DE'),money=n=>fmt(n)+' $',zkey=(r,c)=>`z_${r}_${c}`,parse=z=>{const m=/^z_(-?\d+)_(-?\d+)$/.exec(z||'');return m?{r:+m[1],c:+m[2]}:null},center=(r,c)=>[(r+.5)*GLAT,(c+.5)*GLNG];
 const res=(r,c)=>{const h=Math.abs((r*73856093)^(c*19349663))%4;return h===0?['money']:h===1?['material']:h===2?['reputation']:['weapon_parts']};
-const ri=x=>x==='money'?'
+const ri=x=>x==='money'?'$':x==='material'?'▣':x==='reputation'?'★':x==='weapon_parts'?'⚙️':'•',rn=x=>x==='money'?'Geld':x==='material'?'Material':x==='reputation'?'Reputation':x==='weapon_parts'?'Waffenteile':'Ressource';
 const toast=(t,e=false)=>{const x=$('toast');if(!x)return;x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',2800)};
 async function rpc(n,a={}){const r=await db.rpc(n,a);if(r.error)throw r.error;return r.data}
 function sync(p){profile={...profile,...p};[['hudMoney','money'],['hudMaterial','material'],['hudWeaponParts','weapon_parts'],['hudDrugs','product'],['hudHitmen','hitmen'],['hudLevel','level']].forEach(([a,b])=>{if($(a))$(a).textContent=fmt(profile[b])});const cap=Number(profile.warehouse_capacity||5000);if($('hudStorage'))$('hudStorage').textContent=`${fmt(profile.material||0)}/${fmt(cap)}`;if($('profileName'))$('profileName').textContent=profile.username||'Spieler'}
