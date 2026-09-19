@@ -157,3 +157,29 @@
 @media(min-width:701px){.mf-app .mf-bottom{transform:translateX(-50%) scale(var(--mtrw-ui-scale))}}
 @media(max-width:700px){.mf-app .mf-bottom{left:8px!important;right:8px!important;transform:scale(var(--mtrw-ui-scale))}}
 @media (display-mode: standalone),(display-mode:fullscreen){.mf-app .mf-bottom{left:50%!important;right:auto!important;transform:translateX(-50%) scale(var(--mtrw-ui-scale))}}
+
+/* MAFIVERA responsive phone/tablet layout
+   Android Chrome can report a ~709px CSS viewport when "Desktop site" is toggled.
+   Keep that viewport in the compact phone layout instead of switching to desktop UI. */
+@media (max-width:900px){
+  .mf-app .mf-hud{min-height:64px!important;padding:6px 6px 10px 46px!important;gap:2px!important}
+  .mf-app .mf-menu{width:34px!important;height:34px!important;top:9px!important;left:7px!important;font-size:18px!important}
+  .mf-app .mf-stat small{font-size:8px!important;line-height:10px!important;letter-spacing:.7px!important}
+  .mf-app .mf-stat b{font-size:17px!important;line-height:20px!important}
+  .mf-app .mf-stat em{font-size:6px!important;line-height:8px!important}
+  .mf-app .mf-event{top:62px!important;font-size:10px!important;padding:5px 11px!important}
+  .mf-app .mf-legend{top:99px!important;left:7px!important;font-size:8px!important;padding:6px 8px!important}
+  .mf-app .mf-bottom{left:8px!important;right:8px!important;width:auto!important;height:60px!important;bottom:max(6px,env(safe-area-inset-bottom))!important;padding:4px!important;border-radius:20px!important;transform:scale(var(--mtrw-ui-scale))!important}
+  .mf-app .bottom-btn{height:50px!important;border-radius:14px!important}
+  .mf-app .bottom-btn span{font-size:17px!important;line-height:18px!important}
+  .mf-app .bottom-btn small{font-size:7px!important;line-height:9px!important}
+  .mf-app .mf-drawer{inset:6px!important;padding:18px!important;border-radius:22px!important}
+  .mf-app .mf-drawer .drawer-head{top:-18px!important;padding:12px 0 14px!important;margin:-18px 0 14px!important}
+  .mf-app .mf-drawer .drawer-head h2{font-size:25px!important}
+  .mf-app .mf-drawer .action{font-size:15px!important;padding:16px!important}
+  .mf-app .mf-drawer .statgrid b{font-size:18px!important}
+  .mf-app .mtrw-map-tools{top:202px!important;right:8px!important}
+  .mf-app .mtrw-recenter{width:42px!important;height:42px!important;font-size:25px!important;border-radius:13px!important}
+  .mf-app .leaflet-control-zoom{top:88px!important;right:8px!important}
+  .mf-app .leaflet-control-zoom a{width:40px!important;height:40px!important;line-height:38px!important;font-size:24px!important}
+}
