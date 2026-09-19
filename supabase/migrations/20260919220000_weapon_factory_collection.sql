@@ -56,7 +56,6 @@ begin
 select * into p from profiles where id=uid for update;select * into w from world_territories where zone_key=p_zone_key for update;if not found or w.owner_id<>uid then raise exception 'territory_not_owned';end if;if w.building_type is not null then raise exception 'building_already_exists';end if;
 if p_building_type='weapon_factory' then
  if not ('weapon_parts'=any(coalesce(w.resources,array[]::text[]))) then raise exception 'weapon_factory_requires_weapon_parts';end if;
- select count(*) into existing from world_territories where owner_id=uid and building_type='weapon_factory';if existing>0 then raise exception 'weapon_factory_limit';end if;
 end if;
 cost:=case p_building_type when 'warehouse' then 800 when 'money' then 250 when 'club' then 750 when 'lab' then 500 when 'market' then 900 when 'watch' then 600 when 'hideout' then 1000 when 'recruitment' then 1000 when 'weapon_factory' then 2500 else 0 end;
 secs:=case p_building_type when 'warehouse' then 60 when 'money' then 45 when 'club' then 60 when 'lab' then 90 when 'market' then 90 when 'watch' then 75 when 'hideout' then 120 when 'recruitment' then 120 when 'weapon_factory' then 180 else 0 end;
@@ -118,7 +117,6 @@ begin
 select * into p from profiles where id=uid for update;select * into w from world_territories where zone_key=p_zone_key for update;if not found or w.owner_id<>uid then raise exception 'territory_not_owned';end if;if w.building_type is not null then raise exception 'building_already_exists';end if;
 if p_building_type='weapon_factory' then
  if not ('weapon_parts'=any(coalesce(w.resources,array[]::text[]))) then raise exception 'weapon_factory_requires_weapon_parts';end if;
- select count(*) into existing from world_territories where owner_id=uid and building_type='weapon_factory';if existing>0 then raise exception 'weapon_factory_limit';end if;
 end if;
 cost:=case p_building_type when 'warehouse' then 800 when 'money' then 250 when 'club' then 750 when 'lab' then 500 when 'market' then 900 when 'watch' then 600 when 'hideout' then 1000 when 'recruitment' then 1000 when 'weapon_factory' then 2500 else 0 end;
 secs:=case p_building_type when 'warehouse' then 60 when 'money' then 45 when 'club' then 60 when 'lab' then 90 when 'market' then 90 when 'watch' then 75 when 'hideout' then 120 when 'recruitment' then 120 when 'weapon_factory' then 180 else 0 end;
