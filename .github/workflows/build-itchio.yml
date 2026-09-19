@@ -1,0 +1,32 @@
+name: Build MAFIVERA itch.io package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current release
+        uses: actions/checkout@v4
+      - name: Build itch.io ZIP
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          zip -r dist/MAFIVERA-ITCHIO.zip . \
+            -x ".git/*" \
+               ".github/*" \
+               "dist/*" \
+               "supabase/*" \
+               "*.sql"
+      - name: Upload itch.io package
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAFIVERA-ITCHIO
+          path: dist/MAFIVERA-ITCHIO.zip
+          if-no-files-found: error
