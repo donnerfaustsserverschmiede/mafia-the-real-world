@@ -47,10 +47,12 @@ function style(){
  `;document.head.appendChild(s)
 }
 
+function positionOverview(){const root=document.getElementById('mfMap'),legend=document.querySelector('.mf-legend'),box=document.getElementById('mtrwMarchOverview');if(root&&legend&&box)box.style.top=(legend.offsetTop+legend.offsetHeight+18)+'px'}
 function updateOverview(rows){
  const root=document.getElementById('mfMap');if(!root)return;
  let box=document.getElementById('mtrwMarchOverview');
  if(!box){box=document.createElement('section');box.id='mtrwMarchOverview';box.className='mtrw-march-overview';root.appendChild(box)}
+ positionOverview();
  const now=Date.now();
  box.innerHTML='<h3>⚔️ Marschübersicht</h3>'+(rows.length?rows.map(m=>{const battle=m.status==='battle',raw=battle?m.battle_finish_at:m.arrival_at,left=Math.max(0,new Date(raw).getTime()-now),sec=Math.ceil(left/1000);return `<div class="march-row"><b>${battle?'⚔️ Kampf':'↠ '+(m.purpose==='attack'?'⚔️ Angriff':'👥 Truppen')} → ${esc(zoneLabel(m.target_zone_key))}</b><small>${fmt(m.troop_count)} Schläger · ${battle?'Kampf noch '+sec+' Sek.':'Ankunft in '+Math.floor(sec/60)+'m '+String(sec%60).padStart(2,'0')+'s'}</small><button class="recall" data-march-id="${m.id}">↩️ Marsch zurückrufen</button></div>`}).join(''):'<small>Keine aktiven Märsche.</small>');
  box.querySelectorAll('[data-march-id]').forEach(b=>b.onclick=async()=>{if(b.disabled)return;b.disabled=true;try{const r=await db.rpc('mtrw_withdraw_march',{p_march_id:b.dataset.marchId});if(r.error)throw r.error;toast(`↩️ Marsch zurückgerufen · ${fmt(r.data?.troops_returned||0)} Schläger zurück`);await loadMarches()}catch(e){toast(String(e.message||e).replace(/^Error:\s*/i,''),true);b.disabled=false}});
