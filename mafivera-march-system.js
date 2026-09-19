@@ -103,6 +103,7 @@ function renderMarchMenu(){
  body.innerHTML='<section class="mtrw-march-menu"><h3>⚔️ Aktive Märsche</h3>'+
    (rows.length?rows.map(m=>'<div class="mtrw-march-row" data-march="'+m.id+'"><b>'+esc(m.status==='battle'?'⚔️ KAMPF':'↠ '+(m.purpose==='attack'?'⚔️ Angriff':'👥 Trupp'))+' → '+esc(zoneLabel(m.target_zone_key))+'</b><small data-countdown></small><button class="withdraw" data-withdraw="'+m.id+'">↩️ Truppen zurückziehen · '+fmt(m.troop_count)+'</button></div>').join(''):'<div class="hint">Keine aktiven Märsche. 0 Märsche.</div>')+
    '</section>';
+ rows.forEach(m=>{const row=body.querySelector('[data-march="'+m.id+'"]');if(row){row.dataset.status=m.status;row.dataset.arrival=m.arrival_at;row.dataset.battleFinish=m.battle_finish_at||'';}});
  body.querySelectorAll('[data-withdraw]').forEach(btn=>btn.onclick=async()=>{
    btn.disabled=true;
    try{const r=await db.rpc('mtrw_withdraw_march',{p_march_id:btn.dataset.withdraw});if(r.error)throw r.error;toast('↩️ '+fmt(r.data?.troops_returned||0)+' Schläger zurückgezogen.');await loadMarches();renderMarchMenu();updatePanelCountdown()}
@@ -186,16 +187,17 @@ async function renderMarchPanel(){
 }
 
 function updatePanelCountdown(){
- document.querySelectorAll('.mtrw-march-card').forEach(c=>{
+ document.querySelectorAll('.mtrw-march-card,.mtrw-march-row').forEach(c=>{
    const battle=c.dataset.status==='battle';
    const raw=battle?c.dataset.battleFinish:c.dataset.arrival;
+   if(!raw)return;
    const t=new Date(raw).getTime(),left=Math.max(0,t-Date.now());
    const mins=Math.floor(left/60000),secs=Math.ceil((left%60000)/1000);
    const x=c.querySelector('[data-countdown]');
    if(!x)return;
    x.textContent=battle
-     ? `🔥 Kampf läuft noch ${mins}m ${String(secs).padStart(2,'0')}s · ${c.querySelector('b')?.textContent?.split('→')[0]||''}`
-     : `Marsch noch ${mins}m ${String(secs).padStart(2,'0')}s · ${c.querySelector('b')?.textContent?.split('→')[0]||''}`;
+     ? `🔥 Kampf läuft noch ${mins}m ${String(secs).padStart(2,'0')}s`
+     : `Marsch noch ${mins}m ${String(secs).padStart(2,'0')}s`;
  });
 }
 
