@@ -6,7 +6,7 @@ const BUILD={warehouse:{name:'Lager',icon:'📦',cost:800,build:60,desc:'+1.000 
 let db,uid,profile={},map,grid=[],markers,playerMarker,lastCell=null,world={},owners={},prodTimer,prodBusy=false;
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('de-DE'),money=n=>fmt(n)+' $',zkey=(r,c)=>`z_${r}_${c}`,parse=z=>{const m=/^z_(-?\d+)_(-?\d+)$/.exec(z||'');return m?{r:+m[1],c:+m[2]}:null},center=(r,c)=>[(r+.5)*GLAT,(c+.5)*GLNG];
-const res=(r,c)=>['money','material','reputation','weapon_parts'];
+const res=(r,c)=>{const h=Math.abs((r*73856093)^(c*19349663))%100;return h<40?['money']:h<75?['material']:h<95?['reputation']:['weapon_parts']};
 const ri=x=>x==='money'?'$':x==='material'?'▣':x==='reputation'?'★':'⚙️',rn=x=>x==='money'?'Geld':x==='material'?'Material':x==='reputation'?'Reputation':'Waffenteile';
 const toast=(t,e=false)=>{const x=$('toast');if(!x)return;x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',2800)};
 async function rpc(n,a={}){const r=await db.rpc(n,a);if(r.error)throw r.error;return r.data}
