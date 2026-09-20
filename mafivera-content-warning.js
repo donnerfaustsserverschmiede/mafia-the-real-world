@@ -40,6 +40,9 @@
             Minderjährige bestimmt und dürfen nicht nachgeahmt werden.
             Für die Missachtung dieses Hinweises übernehmen wir keine Haftung.
           </p>
+          <p class="mtrw-warning-discord">
+            Weitere Informationen und Hinweise findest du auf unserem Discord-Server.
+          </p>
           <div class="mtrw-warning-countdown" aria-live="polite">
             Spielstart in <strong><span id="mtrw-warning-seconds">10</span> Sekunden</strong>
           </div>
@@ -79,6 +82,9 @@
         #mtrw-content-warning strong{color:#fff}
         #mtrw-content-warning .mtrw-warning-safety{
           color:#f0cf78;font-weight:700;
+        }
+        #mtrw-content-warning .mtrw-warning-discord{
+          color:#aeb9c7;font-size:14px;margin-top:18px;
         }
         #mtrw-content-warning .mtrw-warning-countdown{
           margin-top:24px;padding:14px 16px;border-radius:14px;
