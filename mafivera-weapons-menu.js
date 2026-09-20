@@ -42,6 +42,7 @@ function installMenu(){
  const b=document.createElement('button');b.className='action';b.type='button';b.dataset.mtrwWeaponMenu='1';b.textContent='🏭 Waffenproduktion';b.onclick=e=>{e.preventDefault();openWeapons()};
  menu.insertBefore(b,drug.nextSibling);
 }
+window.mtrwOpenWeapons=openWeapons;
 const obs=new MutationObserver(()=>installMenu());
 function boot(){const b=$('drawerBody');if(!b)return;obs.observe(b,{childList:true,subtree:true});installMenu()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
