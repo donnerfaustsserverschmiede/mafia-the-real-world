@@ -1,4 +1,4 @@
-name: Build Itch ZIP
+name: Deploy MAFIVERA to itch.io
 
 on:
   push:
@@ -6,16 +6,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  package:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Package web game
+      - name: Checkout MAFIVERA
+        uses: actions/checkout@v4
+
+      - name: Prepare web build
         run: |
-          zip -r MAFIVERA-ITCHIO.zip . -x '.git/*' '.github/*' 'supabase/*' 'google-sites/*' '*.zip'
-      - name: Upload ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: MAFIVERA-ITCHIO
-          path: MAFIVERA-ITCHIO.zip
-          retention-days: 7
+          mkdir -p dist
+          rsync -a ./ ./dist/ \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='supabase/' \
+            --exclude='google-sites/' \
+            --exclude='dist/' \
+            --exclude='*.zip'
+
+      - name: Set up Butler
+        uses: remarkablegames/setup-butler@v3
+
+      - name: Deploy to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          butler push ./dist tdonnerfaust/mafivera:html --userversion "MAFIVERA-${{ github.ref_name }}-${{ github.sha }}"
