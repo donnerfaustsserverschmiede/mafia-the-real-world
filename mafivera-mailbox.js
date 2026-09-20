@@ -28,7 +28,7 @@ function ensureUi(){
     .mtrw-mailbox-actions{display:flex;gap:6px;flex-wrap:wrap;margin-left:32px}
     .mtrw-mailbox-actions button{border:1px solid #4b5665;background:#202936;color:#fff;border-radius:9px;padding:7px 10px;cursor:pointer}
     .mtrw-mailbox-actions .primary{background:#8e2631;border-color:#b23b47}
-    .mtrw-mailbox-empty{padding:30px 10px;text-align:center;color:#9ba4ae}
+    .mtrw-mailbox-empty{padding:30px 10px;text-align:center;color:#9ba4ae}.mtrw-offline-report{margin:8px 0 10px 32px;padding:10px;border:1px solid #465363;border-radius:10px;background:#10161e;color:#e2e6eb;font-size:12px;line-height:1.5}.mtrw-offline-report small{display:block;color:#8994a1;margin-top:4px}
     @media(max-width:600px){.mtrw-mailbox-btn{top:50%;left:6px;right:auto;width:56px;height:56px}.mtrw-mailbox-message{margin-left:0}.mtrw-mailbox-actions{margin-left:0}}
   `;document.head.appendChild(s);
 }
@@ -61,7 +61,7 @@ function renderItem(n){
   else if(n.action_type==='friend_request')buttons='<button class="primary" data-mail-action="friend-open" data-id="'+n.id+'">👥 Freundesmenü öffnen</button>';
   else if(n.action_type==='trade_offer')buttons='<button class="primary" data-mail-action="trade-accept" data-id="'+n.id+'">✅ Annehmen</button><button data-mail-action="trade-reject" data-id="'+n.id+'">❌ Ablehnen</button>';
   else if(n.action_type==='offline_report')buttons='<button class="primary" data-mail-action="offline-open" data-id="'+n.id+'">📊 Bericht ansehen</button>'; else buttons='<button data-mail-action="read" data-id="'+n.id+'">'+(n.read_at?'Gelesen':'✓ Als gelesen markieren')+'</button>'; 
-  return '<article class="mtrw-mailbox-item'+read+'"><div class="mtrw-mailbox-head"><span class="mtrw-mailbox-icon">'+icon(n.kind)+'</span><span class="mtrw-mailbox-title">'+esc(n.title)+'</span><span class="mtrw-mailbox-time">'+fmtDate(n.created_at)+'</span></div><div class="mtrw-mailbox-message">'+esc(n.message)+'</div><div class="mtrw-mailbox-actions">'+buttons+'</div></article>';
+  let extra='';if(n.action_type==='offline_report'){const g=n.action_data?.gains||{};extra='<div class="mtrw-offline-report"><b>📊 Abwesenheit</b><div>💵 +'+Number(g.money||0).toLocaleString('de-DE')+' $ · 🧱 +'+Number(g.material||0).toLocaleString('de-DE')+' Material · 🔩 +'+Number(g.weapon_parts||0).toLocaleString('de-DE')+' Waffenteile · ⭐ +'+Number(g.reputation||0).toLocaleString('de-DE')+' Reputation</div><small>'+fmtDate(n.action_data?.since)+' → '+fmtDate(n.action_data?.until)+'</small></div>'}return '<article class="mtrw-mailbox-item'+read+'"><div class="mtrw-mailbox-head"><span class="mtrw-mailbox-icon">'+icon(n.kind)+'</span><span class="mtrw-mailbox-title">'+esc(n.title)+'</span><span class="mtrw-mailbox-time">'+fmtDate(n.created_at)+'</span></div><div class="mtrw-mailbox-message">'+esc(n.message)+'</div>'+extra+'<div class="mtrw-mailbox-actions">'+buttons+'</div></article>';
 }
 function bind(){
   document.querySelectorAll('[data-mail-action]').forEach(b=>b.onclick=async()=>{
@@ -98,7 +98,7 @@ async function start(){
       items=[{id:'offline-report-'+rr.data.until,kind:'offline_report',title:'Offline-Bericht',message:'Während deiner Abwesenheit sind Ressourcen und Ereignisse angefallen.',action_type:'offline_report',action_data:rr.data,created_at:rr.data.until,read_at:null,resolved_at:null,expires_at:null},...items];
       window.__mtrwOfflineReport=rr.data;
       window.__mtrwOfflineReportHtml=gainText;
-      updateBadge();
+      await load();
       window.__mtrwMailboxToast?.('Offline-Bericht: Deine Abwesenheit wurde ausgewertet.');
     }
   }catch(e){console.warn('Offline-Bericht:',e)}
