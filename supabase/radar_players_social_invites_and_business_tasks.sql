@@ -132,3 +132,8 @@ language sql security definer set search_path=public as $$
     and public.mtrw_can_do('view_players');
 $$;
 grant execute on function public.mtrw_admin_player_location(uuid) to authenticated;
+
+
+-- Live player markers: cache alliance membership so allied players can be highlighted on the map.
+alter table public.mtrw_live_players add column if not exists alliance_id uuid;
+create index if not exists idx_mtrw_live_players_alliance_id on public.mtrw_live_players(alliance_id);
