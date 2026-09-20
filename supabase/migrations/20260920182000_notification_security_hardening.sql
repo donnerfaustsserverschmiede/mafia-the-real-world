@@ -1,0 +1,9 @@
+revoke execute on function public.mtrw_family_application_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_social_friend_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_trade_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_family_invite_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_sanction_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_announcement_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_march_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_weapon_dealer_notification() from public,anon,authenticated;
+revoke execute on function public.mtrw_dealer_notification() from public,anon,authenticated;
