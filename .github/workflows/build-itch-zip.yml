@@ -2,7 +2,7 @@ name: Build Itch ZIP
 
 on:
   push:
-    branches: [main]
+    branches: [main, V4]
   workflow_dispatch:
 
 jobs:
