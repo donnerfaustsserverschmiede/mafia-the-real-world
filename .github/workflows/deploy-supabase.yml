@@ -8,6 +8,7 @@ on:
       - 'supabase/world_production.sql'
       - 'supabase/places_production.sql'
       - 'supabase/logs_production.sql'
+      - 'supabase/radar_players_social_invites_and_business_tasks.sql'
       - 'supabase/v1_production_social.sql'
 permissions:
   contents: read
@@ -60,6 +61,14 @@ jobs:
           print(json.dumps({'query': open('supabase/logs_production.sql', encoding='utf-8').read()}))
           PY
           curl --fail-with-body --silent --show-error -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Content-Type: application/json" --data-binary @/tmp/logs-query.json
+      - name: Apply radar and social schema
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/radar-social-query.json
+          import json
+          print(json.dumps({'query': open('supabase/radar_players_social_invites_and_business_tasks.sql', encoding='utf-8').read()}))
+          PY
+          curl --fail-with-body --silent --show-error -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Content-Type: application/json" --data-binary @/tmp/radar-social-query.json
       - name: Link project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - name: Deploy world tile function
