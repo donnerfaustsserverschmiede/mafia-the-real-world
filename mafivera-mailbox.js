@@ -3,7 +3,7 @@
 let uid=null,channel=null,items=[];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate=v=>{try{return new Date(v).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}catch{return ''}};
-const icon=k=>(​{
+const icon=k=>({
   family_application:'📨',family_application_approved:'✅',family_application_rejected:'❌',
   family_invite:'♜',friend_request:'👥',trade_offer:'💰',production_ready:'🏭',
   business_task_ready:'💼',sanction:'⚖️',announcement:'📢',march_arrived:'🗺️',
