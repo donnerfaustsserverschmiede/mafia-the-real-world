@@ -1,4 +1,4 @@
-name: Build MAFIVERA itch.io package
+name: Build and publish MAFIVERA to itch.io
 
 on:
   push:
@@ -9,24 +9,44 @@ permissions:
   contents: read
 
 jobs:
-  package:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current release
         uses: actions/checkout@v4
-      - name: Build itch.io ZIP
+
+      - name: Prepare HTML5 build
         run: |
           set -euo pipefail
-          mkdir -p dist
-          zip -r dist/MAFIVERA-ITCHIO.zip . \
-            -x ".git/*" \
-               ".github/*" \
-               "dist/*" \
-               "supabase/*" \
-               "*.sql"
-      - name: Upload itch.io package
-        uses: actions/upload-artifact@v4
-        with:
-          name: MAFIVERA-ITCHIO
-          path: dist/MAFIVERA-ITCHIO.zip
-          if-no-files-found: error
+          rm -rf dist/itch
+          mkdir -p dist/itch
+          rsync -a ./ dist/itch/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'dist/' \
+            --exclude 'supabase/' \
+            --exclude '*.sql'
+          test -f dist/itch/index.html
+
+      - name: Install Butler
+        run: |
+          set -euo pipefail
+          curl -fsSL https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default -o /tmp/butler.zip
+          unzip -q /tmp/butler.zip -d /tmp/butler
+          chmod +x /tmp/butler/butler
+          echo "/tmp/butler" >> "$GITHUB_PATH"
+
+      - name: Validate HTML5 build
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          set -euo pipefail
+          butler validate dist/itch
+
+      - name: Publish to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$BUTLER_API_KEY"
+          butler push dist/itch tdonnerfaust/mafivera:html5
