@@ -47,16 +47,31 @@ end $$;
 grant execute on function public.mtrw_nearby_players(integer) to authenticated;
 
 create or replace function public.mtrw_send_friend_invite(p_user_id uuid)
-returns json language plpgsql security definer set search_path=public as $$
+returns json language plpgsql security definer set search_path=public as $
 declare uid uuid:=auth.uid(); begin
  if uid is null then raise exception 'not_authenticated'; end if;
  if p_user_id is null or p_user_id=uid then raise exception 'invalid_target'; end if;
  if not exists(select 1 from profiles where id=p_user_id) then raise exception 'player_not_found'; end if;
+ if exists(select 1 from mtrw_friendships where user_id=uid and friend_id=p_user_id)
+    or exists(select 1 from mtrw_friendships where user_id=p_user_id and friend_id=uid) then raise exception 'already_friend'; end if;
+ if exists(select 1 from mtrw_social_friend_invites where from_user_id=p_user_id and to_user_id=uid and status='pending') then raise exception 'incoming_friend_request_pending'; end if;
  insert into mtrw_social_friend_invites(from_user_id,to_user_id,status) values(uid,p_user_id,'pending')
  on conflict(from_user_id,to_user_id) do update set status='pending',responded_at=null,created_at=now();
  return json_build_object('success',true);
-end $$;
+end $;
 grant execute on function public.mtrw_send_friend_invite(uuid) to authenticated;
+
+create or replace function public.mtrw_remove_friend(p_user_id uuid)
+returns json language plpgsql security definer set search_path=public as $
+declare uid uuid:=auth.uid(); begin
+ if uid is null then raise exception 'not_authenticated'; end if;
+ if p_user_id is null or p_user_id=uid then raise exception 'invalid_target'; end if;
+ delete from mtrw_friendships where (user_id=uid and friend_id=p_user_id) or (user_id=p_user_id and friend_id=uid);
+ update mtrw_social_friend_invites set status='rejected',responded_at=now()
+ where ((from_user_id=uid and to_user_id=p_user_id) or (from_user_id=p_user_id and to_user_id=uid)) and status='pending';
+ return json_build_object('success',true);
+end $;
+grant execute on function public.mtrw_remove_friend(uuid) to authenticated;
 
 create or replace function public.mtrw_invite_nearby_to_family(p_user_id uuid)
 returns json language plpgsql security definer set search_path=public as $$
