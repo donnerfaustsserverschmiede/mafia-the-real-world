@@ -38,6 +38,7 @@
             Spieler unter 18 Jahren werden ausdrücklich aufgefordert,
             dieses Spiel nicht zu spielen. Diese Inhalte sind nicht für
             Minderjährige bestimmt und dürfen nicht nachgeahmt werden.
+            Für die Missachtung dieses Hinweises übernehmen wir keine Haftung.
           </p>
           <div class="mtrw-warning-countdown" aria-live="polite">
             Spielstart in <strong><span id="mtrw-warning-seconds">10</span> Sekunden</strong>
