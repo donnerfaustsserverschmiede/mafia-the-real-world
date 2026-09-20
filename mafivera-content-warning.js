@@ -34,9 +34,10 @@
             Darstellung.
           </p>
           <p class="mtrw-warning-safety">
-            Besonders jüngere Spieler sollten beachten, dass diese Inhalte
-            nicht für die Realität bestimmt sind und nicht nachgeahmt werden
-            dürfen.
+            <strong>MAFIVERA ist ein Spiel ab 18 Jahren.</strong>
+            Spieler unter 18 Jahren werden ausdrücklich aufgefordert,
+            dieses Spiel nicht zu spielen. Diese Inhalte sind nicht für
+            Minderjährige bestimmt und dürfen nicht nachgeahmt werden.
           </p>
           <div class="mtrw-warning-countdown" aria-live="polite">
             Spielstart in <strong><span id="mtrw-warning-seconds">10</span> Sekunden</strong>
