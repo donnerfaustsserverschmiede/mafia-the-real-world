@@ -9,6 +9,7 @@ function show(title,html){const d=$('drawer'),t=$('drawerTitle'),b=$('drawerBody
 function notify(msg,error=false){if(window.mtrwToast)return window.mtrwToast(msg,error);const x=$('toast');if(x){x.textContent=msg;x.className='toast show'+(error?' error':'');setTimeout(()=>x.className='toast',2800)}}
 async function openWeapons(){
  try{
+  await rpc('mtrw_collect_weapon_production');
   const prof=await rpc('mafivera_bootstrap'),p=prof?.profile||{};
   const totalSlots=Math.min(10,2*(1+Math.floor(Number(p.level||0)/5))),slots=Math.max(1,Math.floor(totalSlots/2));
   const q=await window.db.from('mtrw_production_jobs').select('id,drug_type,quantity,material_cost,finish_at,status').eq('user_id',p.id).eq('status','running').in('drug_type',['weapon_melee','weapon_handgun','weapon_smg','weapon_longarm']).order('created_at');
