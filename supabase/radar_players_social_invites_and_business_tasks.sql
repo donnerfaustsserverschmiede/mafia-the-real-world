@@ -120,3 +120,15 @@ declare uid uuid:=auth.uid(); p profiles; active_count integer; cost bigint; dur
  return json_build_object('success',true,'task_type',lower(trim(p_task_type)),'title',title,'duration_seconds',dur,'reward_xp',rxp);
 end $$;
 grant execute on function public.mafivera_start_business_task(text) to authenticated;
+
+
+-- Admin: return a selected player's GPS position for the map jump.
+create or replace function public.mtrw_admin_player_location(p_user_id uuid)
+returns table(lat double precision,lng double precision,accuracy double precision)
+language sql security definer set search_path=public as $$
+  select p.gps_lat,p.gps_lng,p.gps_accuracy
+  from public.profiles p
+  where p.id=p_user_id
+    and public.mtrw_can_do('view_players');
+$$;
+grant execute on function public.mtrw_admin_player_location(uuid) to authenticated;
