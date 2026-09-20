@@ -1,6 +1,6 @@
 /* MAFIVERA V4 — persistent offline mailbox / notifications */
 (()=>{'use strict';
-let uid=null,channel=null,items=[];
+let uid=null,channel=null,items=[],bootLoaded=false;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate=v=>{try{return new Date(v).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}catch{return ''}};
 const icon=k=>({
@@ -37,8 +37,11 @@ function updateBadge(){ensureUi();const n=unreadCount(),b=document.getElementByI
 async function load(){
   if(!window.db)return;
   const s=await window.db.auth.getSession();uid=s.data.session?.user?.id;if(!uid)return;
+  const before=unreadCount();
   const r=await window.db.rpc('mtrw_my_notifications',{p_limit:100});if(r.error)return;
   items=r.data||[];updateBadge();
+  const after=unreadCount();
+  if(bootLoaded && navigator.onLine && before===0 && after>0) window.__mtrwMailboxToast?.('Du hast '+after+' neue Nachricht'+(after===1?'':'en')+' im Postfach.');
 }
 function openDrawer(title,html){const d=document.getElementById('drawer');if(!d)return;document.getElementById('drawerTitle').textContent=title;document.getElementById('drawerBody').innerHTML=html;d.classList.remove('hidden')}
 async function openMailbox(){
@@ -86,7 +89,9 @@ function browserNotify(n){
   try{if(document.hidden&&'Notification'in window&&Notification.permission==='granted')new Notification(n.title,{body:n.message,tag:'mafivera-'+n.id})}catch{}
 }
 async function start(){
-  ensureUi();await load();
+  ensureUi();await load();bootLoaded=true;
+  if(unreadCount()>0) window.__mtrwMailboxToast?.('Du hast '+unreadCount()+' ungelesene Nachricht'+(unreadCount()===1?'':'en')+' im Postfach.');
+
   try{
     if('Notification'in window&&Notification.permission==='default'){}
   }catch{}
@@ -95,7 +100,7 @@ async function start(){
     const n=p.new;if(!n)return;items=[n,...items.filter(x=>x.id!==n.id)];updateBadge();browserNotify(n);
     window.__mtrwMailboxToast?.(n.title+': '+n.message);
   }).subscribe();
-  window.addEventListener('online',load);
+  window.addEventListener('online',async()=>{await load();if(unreadCount()>0)window.__mtrwMailboxToast?.('Wieder online — '+unreadCount()+' Nachricht'+(unreadCount()===1?'':'en')+' warten im Postfach.');});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 }
 let tries=0;const timer=setInterval(async()=>{if(window.db){clearInterval(timer);const s=await window.db.auth.getSession();if(s.data.session)start()}else if(++tries>120)clearInterval(timer)},500);
