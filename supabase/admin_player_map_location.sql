@@ -1,4 +1,4 @@
--- Admin map jump: fall back to the selected player's HQ/territory when GPS is unavailable.
+-- Admin map jump: use only the player's last known GPS position, including while offline.
 drop function if exists public.mtrw_admin_player_location(uuid);
 
 create function public.mtrw_admin_player_location(p_user_id uuid)
@@ -13,27 +13,13 @@ language sql
 security definer
 set search_path=public
 as $$
-  select x.lat,x.lng,x.accuracy,x.source,x.zone_key
-  from (
-    select p.gps_lat as lat,p.gps_lng as lng,p.gps_accuracy as accuracy,
-           'gps'::text as source,null::text as zone_key,1 as priority
-    from public.profiles p
-    where p.id=p_user_id and p.gps_lat is not null and p.gps_lng is not null
-    union all
-    select wt.center_lat,wt.center_lng,null::double precision,
-           'headquarters'::text,wt.zone_key,2
-    from public.world_territories wt
-    where wt.owner_id=p_user_id and wt.building_type='headquarters'
-      and wt.center_lat is not null and wt.center_lng is not null
-    union all
-    select wt.center_lat,wt.center_lng,null::double precision,
-           'territory'::text,wt.zone_key,3
-    from public.world_territories wt
-    where wt.owner_id=p_user_id
-      and wt.center_lat is not null and wt.center_lng is not null
-  ) x
-  where public.mtrw_can_do('view_players')
-  order by x.priority
+  select p.gps_lat,p.gps_lng,p.gps_accuracy,
+         'last_known_gps'::text,null::text
+  from public.profiles p
+  where p.id=p_user_id
+    and p.gps_lat is not null
+    and p.gps_lng is not null
+    and public.mtrw_can_do('view_players')
   limit 1;
 $$;
 
