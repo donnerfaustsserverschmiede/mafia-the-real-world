@@ -1,12 +1,12 @@
-# MAFIVERA V4
+# MAFIVERA V5
 
-Release snapshot: 2026-09-20
+**Release:** 22.09.2026  
+**Status:** Aktuelle veröffentlichte Spielversion
 
-## Included
-- Territory error fix: map cells are materialized server-side before hitman marches.
-- Separate drug and weapon production.
-- 5 drug production slots + 5 weapon production slots.
-- Weapon dealer with hourly random 10-minute window.
-- Warehouse capacity: +1,000 Material and +1,000 Waffenteile per finished warehouse.
-- HUD displays Material and Waffenteile as current/capacity.
-- Current MAFIVERA production and territory systems.
+## Release-Stand
+
+V5 ist der aktuelle gespeicherte Entwicklungs- und Veröffentlichungsstand von MAFIVERA – The Real World.
+
+Enthalten sind unter anderem die überarbeiteten Marsch- und Gebietssysteme, Mafia-Familienränge und Beförderungen, das isolierte Admin-System, globale Lootboxen, der stündliche Waffenhändler sowie die überarbeitete Push-Infrastruktur.
+
+Der vollständige Änderungsverlauf steht in [CHANGELOG.md](./CHANGELOG.md).
