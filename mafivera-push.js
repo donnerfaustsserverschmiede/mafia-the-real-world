@@ -2,7 +2,7 @@
 (()=>{'use strict';
 if(window.__mtrwPushLoaded)return;window.__mtrwPushLoaded=true;
 const SUPABASE_PUSH='https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mtrw-push-v2';
-const SW='./mafivera-sw.js?v=MAFIVERA-PUSH-20260922-02';
+const SW='./mafivera-sw.js?v=MAFIVERA-PUSH-V5-20260922-01';
 const b64=s=>{const p='='.repeat((4-s.length%4)%4),x=(s+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(x);return Uint8Array.from(r,c=>c.charCodeAt(0))};
 async function prefs(){if(!window.db)return null;const r=await window.db.rpc('mtrw_get_notification_preferences');if(r.error)throw r.error;return r.data||null}
 async function savePrefs(v){const r=await window.db.rpc('mtrw_set_notification_preferences',v);if(r.error)throw r.error;return r.data}
