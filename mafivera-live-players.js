@@ -26,7 +26,13 @@ const boot=async()=>{
   const load=async()=>{
     const cutoff=new Date(Date.now()-30000).toISOString();
     const r=await db.from('mtrw_live_players').select('*').gte('updated_at',cutoff);
-    if(r.error)return; removeStale(r.data||[]); (r.data||[]).forEach(render);
+    if(r.error)return;
+    const me=window.__mtrwProfile;
+    if(!me||!Number.isFinite(Number(me.gps_lat))||!Number.isFinite(Number(me.gps_lng))){removeStale([]);return;}
+    const lat1=Number(me.gps_lat),lng1=Number(me.gps_lng),rad=500;
+    const dist=(lat2,lng2)=>{const R=6371000,a=(Number(lat2)-lat1)*Math.PI/180,b=(Number(lng2)-lng1)*Math.PI/180;const x=Math.sin(a/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(Number(lat2)*Math.PI/180)*Math.sin(b/2)**2;return R*2*Math.asin(Math.sqrt(x));};
+    const nearby=(r.data||[]).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&dist(p.lat,p.lng)<=rad);
+    removeStale(nearby); nearby.forEach(render);
   };
   watchId=navigator.geolocation.watchPosition(upsert,()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
   const channel=db.channel('mtrw-live-players').on('postgres_changes',{event:'*',schema:'public',table:'mtrw_live_players'},()=>load()).subscribe();
