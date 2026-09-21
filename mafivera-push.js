@@ -1,7 +1,7 @@
 /* MAFIVERA – Web Push client */
 (()=>{'use strict';
 if(window.__mtrwPushLoaded)return;window.__mtrwPushLoaded=true;
-const SUPABASE_PUSH='https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mtrw-push';
+const SUPABASE_PUSH='https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mtrw-push-v2';
 const b64=s=>{const p='='.repeat((4-s.length%4)%4),x=(s+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(x);return Uint8Array.from(r,c=>c.charCodeAt(0))};
 async function prefs(){try{return await window.db.rpc('mtrw_get_notification_preferences')}catch(e){return null}}
 async function savePrefs(v){const r=await window.db.rpc('mtrw_set_notification_preferences',v);if(r.error)throw r.error;return r.data}
