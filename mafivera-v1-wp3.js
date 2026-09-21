@@ -68,7 +68,74 @@ async function production(){
 async function productionState(){return null}
 async function business(){return production()}
 async function family(){try{const q=await db.from('mtrw_family_members').select('family_id,role,family_points').eq('user_id',uid).maybeSingle();if(q.error)throw q.error;if(!q.data){const hasHQ=Object.values(world).some(x=>x?.owner_id===uid&&x?.building_type==='headquarters');return drawer('Familie',`<div class="hero"><span class="hero-icon">♜</span><div><b>Noch keine Familie</b><p>${hasHQ?'Du kannst jetzt deine eigene Familie gründen oder einer bestehenden beitreten.':'Für die Gründung einer eigenen Familie benötigst du zuerst ein Hauptquartier.'}</p></div></div>${hasHQ?'<button class="action primary" data-action="create-family">♜ Familie gründen</button>':'<div class="hint">🏛️ Baue zuerst dein Hauptquartier. Es ist das Zentrum deiner Schläger und Voraussetzung für die Gründung einer eigenen Familie.</div>'}<button class="action" data-action="family-list">👥 Familien suchen</button>`);}const f=await db.from('mtrw_families').select('*').eq('id',q.data.family_id).single();if(f.error)throw f.error;const m=await db.from('mtrw_family_members').select('role,family_points,user_id').eq('family_id',f.data.id);const ids=(m.data||[]).map(x=>x.user_id);const pp=ids.length?await db.from('profiles').select('id,username,mafia_name').in('id',ids):{data:[]};const names={};(pp.data||[]).forEach(p=>names[p.id]=p.username);drawer('Familie',`<div class="hero"><span class="hero-icon">♜</span><div><b>${esc(f.data.name)} [${esc(f.data.tag)}]</b><p>Level ${f.data.level} · ${fmt(f.data.points)} Punkte · ${fmt(f.data.treasury)} $ Kasse</p></div></div><div class="statgrid"><div><b>${m.data?.length||0}</b><small>Mitglieder</small></div><div><b>${f.data.member_cap}</b><small>Kapazität</small></div><div><b>${f.data.wins}</b><small>Siege</small></div></div><button class="action" data-action="donate-family">💰 Tagesbeitrag 100 $</button><div class="list">${(m.data||[]).map(x=>`<div class="row"><span>${esc(x.role)}</span><b>${esc(names[x.user_id]||x.user_id.slice(0,8))}</b></div>`).join('')}</div>`)}catch(e){toast(e.message,true)}}
-async function social(){try{const s=await rpc('mtrw_social_snapshot');const friends=s.friends||[],sent=s.sent||[],received=s.received||[];const rank=await db.from('profiles').select('id,username,mafia_name,reputation,level').order('reputation',{ascending:false}).limit(50);if(rank.error)throw rank.error;drawer('Sozial',`<button class="action primary" data-action="invite">🔗 Freund per Link einladen</button><div class="social-block"><h3>Freunde <small>${friends.length}</small></h3><div class="list">${friends.length?friends.map(f=>`<div class="row"><span>👤 ${esc(f.username)}<small>Level ${f.level} · ${fmt(f.reputation)} ⭐</small></span></div>`).join(''):'<div class="hint">Noch keine Freunde. Erstelle einen Einladungslink.</div>'}</div></div><div class="social-block"><h3>Einladungen</h3><div class="list">${sent.length?sent.map(i=>`<div class="row"><span>🔗 ${esc(i.username||'Noch nicht beigetreten')}<small>${i.status==='accepted'?'✅ Beigetreten':'⏳ Ausstehend'}</small></span></div>`).join(''):'<div class="hint">Keine gesendeten Einladungen.</div>'}${received.map(i=>`<div class="row"><span>🎉 Einladung von ${esc(i.username)}</span><button class="mini" data-action="accept-invite" data-zone="${esc(i.code)}">Annehmen</button></div>`).join('')}</div></div><div class="social-block"><h3>Rangliste</h3><div class="list">${(rank.data||[]).map((p,i)=>`<div class="rankrow"><b>${i+1}</b><span><strong>${esc(p.username)}</strong><small>Level ${p.level}</small></span><em>${fmt(p.reputation)} ⭐</em></div>`).join('')}</div></div><div class="tabs"><a href="https://discord.gg/qRRP2EJ69f" target="_blank" rel="noopener">💬 Discord</a></div>`)}catch(e){toast(e.message,true)}}
+async function socialProfile(p,back='friends'){
+  const s=await rpc('mtrw_social_snapshot');
+  const friends=s.friends||[],incoming=s.friend_requests_received||[],outgoing=s.friend_requests_sent||[];
+  const isFriend=friends.some(x=>x.id===p.id);
+  const incomingReq=incoming.find(x=>x.from_user_id===p.id);
+  const outgoingReq=outgoing.find(x=>x.to_user_id===p.id);
+  const action=isFriend
+    ? '<button class="action" disabled>✅ Bereits befreundet</button>'
+    : incomingReq
+      ? `<button class="action primary" data-social="accept-request" data-id="${esc(incomingReq.id)}">🤝 Freundschaftsanfrage annehmen</button>`
+      : outgoingReq
+        ? '<button class="action" disabled>⏳ Anfrage ausstehend</button>'
+        : `<button class="action primary" data-social="add-friend" data-id="${esc(p.id)}">🤝 Freund hinzufügen</button>`;
+  drawer('Spielerprofil',`<div class="player-profile"><div class="player-avatar">👤</div><div><h2>${esc(p.username||'Spieler')}</h2><small>${esc(p.mafia_name||'Keine Familie')}</small></div></div><div class="statgrid"><div><b>${fmt(p.level||0)}</b><small>Level</small></div><div><b>${fmt(p.reputation||0)}</b><small>Reputation</small></div><div><b>${fmt(p.xp||0)}</b><small>XP</small></div></div><div class="list">${action}<button class="action" data-social="back" data-tab="${back}">← Zurück</button></div>`);
+  bindSocial();
+}
+async function renderSocial(tab='friends',prefix=''){
+  try{
+    const s=await rpc('mtrw_social_snapshot');
+    const friends=s.friends||[],incoming=s.friend_requests_received||[],outgoing=s.friend_requests_sent||[];
+    let body='';
+    if(tab==='friends'){
+      body=`<div class="social-block"><h3>Bestätigte Freunde <small>${friends.length}</small></h3><div class="list">${friends.length?friends.map(f=>`<button class="row social-player" data-social="profile" data-id="${esc(f.id)}" data-user="${esc(f.username||'Spieler')}" data-level="${f.level||0}" data-rep="${f.reputation||0}" data-mafia="${esc(f.mafia_name||'')}" data-xp="0"><span>👤 ${esc(f.username||'Spieler')}<small>Level ${fmt(f.level)} · ${fmt(f.reputation)} ⭐</small></span><b>›</b></button>`).join(''):'<div class="hint">Noch keine bestätigten Freunde.</div>'}</div></div>`;
+    }else if(tab==='add'){
+      const q=String(prefix||'').trim();
+      let results=[];
+      if(q){const r=await db.rpc('mtrw_social_player_search',{p_prefix:q});if(r.error)throw r.error;results=r.data||[];}
+      body=`<div class="production-card"><h3>🔎 Spieler suchen</h3><input id="socialPlayerSearch" type="text" maxlength="24" autocomplete="off" placeholder="Spielername eingeben …" value="${esc(q)}"><small>Es werden nur Spieler angezeigt, deren Name mit der eingegebenen Buchstabenfolge beginnt. Beispiel: D → Donner…, D-O → D-O…</small></div><div class="social-block"><h3>Suchergebnisse</h3><div class="list">${q?(results.length?results.map(p=>`<button class="row social-player" data-social="profile" data-id="${esc(p.id)}" data-user="${esc(p.username||'Spieler')}" data-level="${p.level||0}" data-rep="${p.reputation||0}" data-mafia="${esc(p.mafia_name||'')}" data-xp="${p.xp||0}"><span>👤 ${esc(p.username||'Spieler')}<small>Level ${fmt(p.level)} · ${fmt(p.reputation)} ⭐</small></span><b>›</b></button>`).join(''):'<div class="hint">Keine Spieler mit diesem Anfang gefunden.</div>'):'<div class="hint">Gib mindestens einen Buchstaben ein, um Spieler zu suchen.</div>'}</div></div>`;
+      if(incoming.length)body+=`<div class="social-block"><h3>Freundschaftsanfragen <small>${incoming.length}</small></h3><div class="list">${incoming.map(i=>`<div class="row"><span>👤 ${esc(i.username||'Spieler')}<small>Level ${fmt(i.level)} · Anfrage</small></span><button class="mini" data-social="accept-request" data-id="${esc(i.id)}">Annehmen</button><button class="mini danger" data-social="reject-request" data-id="${esc(i.from_user_id)}">Ablehnen</button></div>`).join('')}</div></div>`;
+      if(outgoing.length)body+=`<div class="social-block"><h3>Gesendete Anfragen</h3><div class="list">${outgoing.map(i=>`<div class="row"><span>👤 ${esc(i.username||'Spieler')}<small>⏳ Anfrage ausstehend</small></span></div>`).join('')}</div></div>`;
+      body+=`<div class="social-block"><h3>Direkte Einladung</h3><button class="action primary" data-social="invite-link">🔗 Freund per Link einladen</button><small>Der Link kann direkt geteilt oder kopiert werden.</small></div>`;
+    }else{
+      const rank=await db.from('profiles').select('id,username,mafia_name,reputation,level,xp').order('reputation',{ascending:false}).limit(50);
+      if(rank.error)throw rank.error;
+      body=`<div class="social-block"><h3>Spielerrangliste</h3><div class="list">${(rank.data||[]).map((p,i)=>`<button class="rankrow social-player" data-social="profile" data-id="${esc(p.id)}" data-user="${esc(p.username||'Spieler')}" data-level="${p.level||0}" data-rep="${p.reputation||0}" data-mafia="${esc(p.mafia_name||'')}" data-xp="${p.xp||0}"><b>${i+1}</b><span><strong>${esc(p.username||'Spieler')}</strong><small>Level ${fmt(p.level)}</small></span><em>${fmt(p.reputation)} ⭐</em><i>›</i></button>`).join('')}</div></div>`;
+    }
+    drawer('Sozial',`<div class="tabs social-tabs"><button class="mini ${tab==='friends'?'active':''}" data-social="tab" data-tab="friends">👥 Freundeliste</button><button class="mini ${tab==='add'?'active':''}" data-social="tab" data-tab="add">➕ Freunde hinzufügen</button><button class="mini ${tab==='rank'?'active':''}" data-social="tab" data-tab="rank">🏆 Spielerrangliste</button></div>${body}<div class="tabs"><a href="https://discord.gg/qRRP2EJ69f" target="_blank" rel="noopener">💬 Discord</a></div>`);
+    bindSocial();
+  }catch(e){toast(e.message||'Sozialmenü konnte nicht geladen werden.',true)}
+}
+function bindSocial(){
+  document.querySelectorAll('#drawerBody [data-social]').forEach(b=>{
+    b.onclick=async()=>{
+      const a=b.dataset.social;
+      try{
+        if(a==='tab')return renderSocial(b.dataset.tab||'friends');
+        if(a==='back')return renderSocial(b.dataset.tab||'friends');
+        if(a==='profile'){
+          return socialProfile({id:b.dataset.id,username:b.dataset.user,level:Number(b.dataset.level||0),reputation:Number(b.dataset.rep||0),mafia_name:b.dataset.mafia||'',xp:Number(b.dataset.xp||0)},'friends');
+        }
+        if(a==='add-friend'){await rpc('mtrw_send_friend_invite',{p_user_id:b.dataset.id});toast('Freundschaftsanfrage gesendet.');return renderSocial('add',document.getElementById('socialPlayerSearch')?.value||'')}
+        if(a==='accept-request'){await rpc('mtrw_accept_friend_invite',{p_invite_id:b.dataset.id});toast('Freundschaftsanfrage angenommen.');return renderSocial('friends')}
+        if(a==='reject-request'){await rpc('mtrw_remove_friend',{p_user_id:b.dataset.id});toast('Freundschaftsanfrage abgelehnt.');return renderSocial('add')}
+        if(a==='invite-link'){
+          const d=await rpc('mtrw_create_invite'),link=location.origin+location.pathname+'?invite='+encodeURIComponent(d.code);
+          try{if(navigator.share)await navigator.share({title:'MAFIVERA',text:'Füge mich bei MAFIVERA als Freund hinzu:',url:link});else{await navigator.clipboard.writeText(link);toast('Einladungslink kopiert.')}}catch(e){try{await navigator.clipboard.writeText(link);toast('Einladungslink kopiert.')}catch(_){prompt('Einladungslink',link)}}
+          return;
+        }
+      }catch(e){toast(e.message||'Aktion fehlgeschlagen',true)}
+    };
+  });
+  const input=document.getElementById('socialPlayerSearch');
+  if(input){
+    input.oninput=()=>{clearTimeout(input._socialTimer);input._socialTimer=setTimeout(()=>renderSocial('add',input.value),180)};
+    input.focus();input.setSelectionRange(input.value.length,input.value.length);
+  }
+}
+async function social(){return renderSocial('friends')}
 async function hitmen(){await refresh();drawer('Schläger',`<div class="hero"><span class="hero-icon">👤</span><div><b>${fmt(profile.hitmen)} freie Schläger</b><p>Rekrutierungszentren produzieren automatisch weiter.</p></div></div><div class="statgrid"><div><b>${fmt(profile.recruitment_centers)}</b><small>Zentren</small></div><div><b>${fmt(profile.garrison)}</b><small>Stationiert</small></div><div><b>${fmt(profile.max_hitmen)}</b><small>Kapazität</small></div></div>`)}
 async function acceptInvite(code){try{await rpc('mtrw_accept_invite',{p_code:code});localStorage.removeItem('mtrw_invite');toast('Freundschaft hergestellt.')}catch(e){toast(e.message,true)}}
 async function consumeInvite(){const u=new URL(location.href),code=u.searchParams.get('invite')||localStorage.getItem('mtrw_invite');if(!code)return;if(u.searchParams.has('invite'))localStorage.setItem('mtrw_invite',code);await acceptInvite(code)}
