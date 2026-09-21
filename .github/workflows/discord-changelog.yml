@@ -29,11 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" == "release" ]]; then
-            title="${RELEASE_NAME:-Neue Version}"
             version="${TAG_NAME:-}"
             commits=$(git log -1 --pretty=format:'%s' "$SHA")
           else
-            title="MAFIVERA ${BRANCH_NAME} – Neue Änderungen"
             version=""
             if [[ -f VERSION.md ]]; then
               version=$(grep -m1 -oE 'V[0-9]+([.][0-9]+)*' VERSION.md || true)
@@ -57,56 +55,28 @@ jobs:
             clean="${clean//register/Registrierung}"
             clean="${clean//logging/Protokollierung}"
             clean="${clean//Discord logging/Discord-Protokollierung}"
-            item="• ${clean}"
-            changes+="$item"
+            changes+="• ${clean}"$'\n'
+          done <<< "$commits"
+          [[ -n "$changes" ]] || changes="• Keine Änderungen"
+          export VERSION="$version" CHANGES="$changes"
           python3 - <<'PY'
           import json, os
-          from datetime import datetime, timezone
-          def clip(v, n=1000):
-              v=v.strip(); return v if len(v)<=n else v[:n-1]+'…'
+          def clip(v, n=1500):
+              v=v.strip()
+              return v if len(v)<=n else v[:n-1]+'…'
           version=os.environ.get('VERSION','').strip() or 'main'
           message=(
               f'📋 **Changelog · MAFIVERA**\n\n'
               f'**Version {version}**\n\n'
               f'**Änderungen:**\n'
               f'{clip(os.environ["CHANGES"])}\n\n'
-              f'**Hinweis:** MAFIVERA wird weiterhin entwickelt. '
-              f'Euer Feedback, Vorschläge und Ideen gern in '
-              f'#vorschläge-und-ideen '
+              f'**Hinweis:** MAFIVERA wird weiterhin entwickelt.\n'
+              f'Euer Feedback, Vorschläge und Ideen gern in #vorschläge-und-ideen\n'
               f'(https://discord.com/channels/1549525247760400384/1549686789076295770)'
           )
           payload={'username':'MAFIVERA Changelog','content':message,'allowed_mentions':{'parse':[]}}
-          with open('/tmp/discord-payload.json','w',encoding='utf-8') as f: json.dump(payload,f,ensure_ascii=False)
-          PY
-      - name: Changelog an Discord senden
-        env:
-          DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${DISCORD_CHANGELOG_WEBHOOK:-}" ]]; then echo 'DISCORD_CHANGELOG_WEBHOOK is not configured.'; exit 1; fi
-          curl --fail-with-body --silent --show-error -H 'Content-Type: application/json' -X POST --data-binary @/tmp/discord-payload.json "$DISCORD_CHANGELOG_WEBHOOK"
-\n'
-          done <<< "$commits"
-          [[ -n "$changes" ]] || changes="• Keine Änderungen"
-          export TITLE="$title" VERSION="$version" CHANGES="$changes"
-          python3 - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          def clip(v, n=1000):
-              v=v.strip(); return v if len(v)<=n else v[:n-1]+'…'
-          version=os.environ.get('VERSION','').strip() or 'main'
-          message=(
-              f'📋 **Changelog · MAFIVERA – Neue Änderungen**\\n\\n'
-              f'🚀 **Version**\\n{version}\\n\\n'
-              f'✨ **Neu**\\n{clip(os.environ["FEATURES"])}\\n\\n'
-              f'🐛 **Behoben**\\n{clip(os.environ["FIXES"])}\\n\\n'
-              f'🔧 **Geändert**\\n{clip(os.environ["CHANGES"])}\\n\\n'
-              f'💛 **MAFIVERA wird weiterentwickelt.**\\n'
-              f'Fehlerberichte, Wünsche und Erfahrungen fließen weiterhin direkt in die Entwicklung ein.'
-          )
-          payload={'username':'MAFIVERA Changelog','content':message,'allowed_mentions':{'parse':[]}}
-          with open('/tmp/discord-payload.json','w',encoding='utf-8') as f: json.dump(payload,f,ensure_ascii=False)
+          with open('/tmp/discord-payload.json','w',encoding='utf-8') as f:
+              json.dump(payload,f,ensure_ascii=False)
           PY
       - name: Changelog an Discord senden
         env:
