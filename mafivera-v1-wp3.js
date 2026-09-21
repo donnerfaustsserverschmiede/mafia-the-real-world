@@ -102,9 +102,9 @@ async function renderSocial(tab='friends',prefix=''){
     }else{
       const rank=await db.from('profiles').select('id,username,mafia_name,reputation,level,xp').order('reputation',{ascending:false}).limit(50);
       if(rank.error)throw rank.error;
-      body=`<div class="social-block"><h3>Spielerrangliste</h3><div class="list">${(rank.data||[]).map((p,i)=>`<button class="rankrow social-player" data-social="profile" data-back="${tab}" data-id="${esc(p.id)}" data-user="${esc(p.username||'Spieler')}" data-level="${p.level||0}" data-rep="${p.reputation||0}" data-mafia="${esc(p.mafia_name||'')}" data-xp="${p.xp||0}"><b>${i+1}</b><span><strong>${esc(p.username||'Spieler')}</strong><small>Level ${fmt(p.level)}</small></span><em>${fmt(p.reputation)} ⭐</em><i>›</i></button>`).join('')}</div></div>`;
+      body=`<div class="social-block"><h3>Spielerrangliste</h3><div class="list">${(rank.data||[]).map((p,i)=>`<button style="color:#fff" class="rankrow social-player" data-social="profile" data-back="${tab}" data-id="${esc(p.id)}" data-user="${esc(p.username||'Spieler')}" data-level="${p.level||0}" data-rep="${p.reputation||0}" data-mafia="${esc(p.mafia_name||'')}" data-xp="${p.xp||0}"><b>${i+1}</b><span><strong>${esc(p.username||'Spieler')}</strong><small>Level ${fmt(p.level)}</small></span><em>${fmt(p.reputation)} ⭐</em><i>›</i></button>`).join('')}</div></div>`;
     }
-    drawer('Sozial',`<div class="tabs social-tabs"><button style="color:#ff9800" class="mini ${tab==='friends'?'active':''}" data-social="tab" data-tab="friends">👥 Freundeliste</button><button style="color:#ff9800" class="mini ${tab==='add'?'active':''}" data-social="tab" data-tab="add">➕ Freunde hinzufügen</button><button style="color:#ff9800" class="mini ${tab==='rank'?'active':''}" data-social="tab" data-tab="rank">🏆 Spielerrangliste</button></div>${body}`);
+    drawer('Sozial',`<div class="tabs social-tabs"><button class="mini ${tab==='friends'?'active':''}" data-social="tab" data-tab="friends">👥 Freundeliste</button><button class="mini ${tab==='add'?'active':''}" data-social="tab" data-tab="add">➕ Freunde hinzufügen</button><button class="mini ${tab==='rank'?'active':''}" data-social="tab" data-tab="rank">🏆 Spielerrangliste</button></div>${body}`);
     bindSocial();
   }catch(e){toast(e.message||'Sozialmenü konnte nicht geladen werden.',true)}
 }
