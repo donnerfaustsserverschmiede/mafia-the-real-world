@@ -1,0 +1,4 @@
+self.addEventListener('push',event=>{let d={title:'MAFIVERA',body:'Neue Benachrichtigung'};try{if(event.data)d=event.data.json()}catch(e){try{d.body=event.data?.text()||d.body}catch(_){}}event.waitUntil(self.registration.showNotification(d.title||'MAFIVERA',{body:d.body||'',icon:'./assets/mafivera-logo.webp',badge:'./assets/mafivera-logo.webp',tag:'mafivera-'+(d.kind||'notification'),data:d,renotify:true}));});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{for(const c of cs){if('focus'in c)return c.focus()}return clients.openWindow('./')}));});
+self.addEventListener('install',()=>self.skipWaiting());
+self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
