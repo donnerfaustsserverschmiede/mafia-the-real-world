@@ -183,3 +183,32 @@
   .mf-app .leaflet-control-zoom{top:88px!important;right:8px!important}
   .mf-app .leaflet-control-zoom a{width:40px!important;height:40px!important;line-height:38px!important;font-size:24px!important}
 }
+
+
+/* MAFIVERA MAP RESOURCE MARKERS — clean symbols, no square frame */
+.mf-map .leaflet-marker-icon.res-marker{
+  width:28px!important;
+  height:28px!important;
+  margin:0!important;
+}
+.mf-map .leaflet-marker-icon.res-marker span{
+  display:block!important;
+  width:auto!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  font-size:24px!important;
+  line-height:28px!important;
+  text-shadow:0 2px 4px #000,0 0 2px #000!important;
+}
+.mf-map .leaflet-marker-icon.res-marker .money{color:#f0c34c!important}
+.mf-map .leaflet-marker-icon.res-marker .material{color:#52dfb0!important}
+.mf-map .leaflet-marker-icon.res-marker .reputation{color:#e9b8ff!important}
+.mf-map .leaflet-marker-icon.res-marker .weapon_parts{color:#ff9b55!important}
+@media(max-width:900px){
+  .mf-map .leaflet-marker-icon.res-marker{width:26px!important;height:26px!important}
+  .mf-map .leaflet-marker-icon.res-marker span{font-size:21px!important;line-height:26px!important}
+}
