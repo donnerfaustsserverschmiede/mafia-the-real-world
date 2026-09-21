@@ -1,4 +1,4 @@
-/* MAFIVERA – radar/GPS: player-centered 500 m radar */
+/* MAFIVERA – radar/GPS: player-centered 500 m radar + persistent player GPS */
 (()=>{'use strict';
 if(window.__mtrwRadarGpsLoaded)return;
 window.__mtrwRadarGpsLoaded=true;
@@ -19,6 +19,17 @@ function draw(lat,lng){
     window.__mtrwRadarCircle=radar;
   }else radar.setLatLng(p);
 }
+async function saveGps(lat,lng,accuracy){
+  try{
+    const db=window.db;if(!db||!valid(lat,lng))return;
+    const {data:{user}}=await db.auth.getUser();if(!user)return;
+    await db.from('profiles').update({
+      gps_lat:Number(lat),
+      gps_lng:Number(lng),
+      gps_accuracy:Number.isFinite(Number(accuracy))?Number(accuracy):null
+    }).eq('id',user.id);
+  }catch(e){}
+}
 async function fromProfile(){
   try{
     const db=window.db;if(!db)return;
@@ -31,7 +42,11 @@ async function fromProfile(){
 function startGps(){
   if(!navigator.geolocation||watchId!==null)return;
   watchId=navigator.geolocation.watchPosition(
-    p=>{if(valid(p.coords.latitude,p.coords.longitude))draw(p.coords.latitude,p.coords.longitude);},
+    p=>{
+      if(!valid(p.coords.latitude,p.coords.longitude))return;
+      draw(p.coords.latitude,p.coords.longitude);
+      saveGps(p.coords.latitude,p.coords.longitude,p.coords.accuracy);
+    },
     ()=>{},
     {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
   );
