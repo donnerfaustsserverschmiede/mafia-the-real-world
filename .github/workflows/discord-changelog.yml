@@ -34,14 +34,18 @@ jobs:
             commits=$(git log -1 --pretty=format:'%s' "$SHA")
           else
             title="MAFIVERA ${BRANCH_NAME} – Neue Änderungen"
-            version="${BRANCH_NAME}"
+            version=""
+            if [[ -f VERSION.md ]]; then
+              version=$(grep -m1 -oE 'V[0-9]+([.][0-9]+)*' VERSION.md || true)
+            fi
+            version="${version:-${BRANCH_NAME}}"
             if [[ "$BEFORE" =~ ^0+$ ]]; then
               commits=$(git log -10 --no-merges --pretty=format:'%s' "$SHA")
             else
               commits=$(git log --no-merges --pretty=format:'%s' "$BEFORE..$SHA" || true)
             fi
           fi
-          features=""; fixes=""; changes=""
+          changes=""
           while IFS= read -r subject; do
             [[ -z "${subject:-}" ]] && continue
             clean="$subject"
@@ -54,12 +58,38 @@ jobs:
             clean="${clean//logging/Protokollierung}"
             clean="${clean//Discord logging/Discord-Protokollierung}"
             item="• ${clean}"
-            if [[ "$subject" =~ ^(feat|feature)(\(.+\))?: ]]; then features+="$item"$'\n'; elif [[ "$subject" =~ ^(fix|bugfix)(\(.+\))?: ]]; then fixes+="$item"$'\n'; else changes+="$item"$'\n'; fi
+            changes+="$item"
+          python3 - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          def clip(v, n=1000):
+              v=v.strip(); return v if len(v)<=n else v[:n-1]+'…'
+          version=os.environ.get('VERSION','').strip() or 'main'
+          message=(
+              f'📋 **Changelog · MAFIVERA**\n\n'
+              f'**Version {version}**\n\n'
+              f'**Änderungen:**\n'
+              f'{clip(os.environ["CHANGES"])}\n\n'
+              f'**Hinweis:** MAFIVERA wird weiterhin entwickelt. '
+              f'Euer Feedback, Vorschläge und Ideen gern in '
+              f'#vorschläge-und-ideen '
+              f'(https://discord.com/channels/1549525247760400384/1549686789076295770)'
+          )
+          payload={'username':'MAFIVERA Changelog','content':message,'allowed_mentions':{'parse':[]}}
+          with open('/tmp/discord-payload.json','w',encoding='utf-8') as f: json.dump(payload,f,ensure_ascii=False)
+          PY
+      - name: Changelog an Discord senden
+        env:
+          DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${DISCORD_CHANGELOG_WEBHOOK:-}" ]]; then echo 'DISCORD_CHANGELOG_WEBHOOK is not configured.'; exit 1; fi
+          curl --fail-with-body --silent --show-error -H 'Content-Type: application/json' -X POST --data-binary @/tmp/discord-payload.json "$DISCORD_CHANGELOG_WEBHOOK"
+\n'
           done <<< "$commits"
-          [[ -n "$features" ]] || features="• Keine neuen Funktionen"
-          [[ -n "$fixes" ]] || fixes="• Keine Fehlerbehebungen"
-          [[ -n "$changes" ]] || changes="• Keine weiteren Änderungen"
-          export TITLE="$title" VERSION="$version" FEATURES="$features" FIXES="$fixes" CHANGES="$changes"
+          [[ -n "$changes" ]] || changes="• Keine Änderungen"
+          export TITLE="$title" VERSION="$version" CHANGES="$changes"
           python3 - <<'PY'
           import json, os
           from datetime import datetime, timezone
