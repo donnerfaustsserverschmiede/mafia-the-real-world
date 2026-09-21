@@ -65,14 +65,17 @@ jobs:
           from datetime import datetime, timezone
           def clip(v, n=1000):
               v=v.strip(); return v if len(v)<=n else v[:n-1]+'…'
-          fields=[]
-          if os.environ.get('VERSION'): fields.append({'name':'🚀 Version','value':clip(os.environ['VERSION']),'inline':True})
-          fields += [
-            {'name':'✨ Neu','value':clip(os.environ['FEATURES']),'inline':False},
-            {'name':'🐛 Behoben','value':clip(os.environ['FIXES']),'inline':False},
-            {'name':'🔧 Geändert','value':clip(os.environ['CHANGES']),'inline':False}
-          ]
-          payload={'username':'MAFIVERA','embeds':[{'title':f'📋 Changelog · {os.environ["TITLE"]}','description':'Hier siehst du kurz und verständlich, was sich im Spiel geändert hat.','fields':fields,'footer':{'text':'MAFIVERA · Die Welt gehört dir'},'timestamp':datetime.now(timezone.utc).isoformat()}],'allowed_mentions':{'parse':[]}}
+          version=os.environ.get('VERSION','').strip() or 'main'
+          message=(
+              f'📋 **Changelog · MAFIVERA – Neue Änderungen**\\n\\n'
+              f'🚀 **Version**\\n{version}\\n\\n'
+              f'✨ **Neu**\\n{clip(os.environ["FEATURES"])}\\n\\n'
+              f'🐛 **Behoben**\\n{clip(os.environ["FIXES"])}\\n\\n'
+              f'🔧 **Geändert**\\n{clip(os.environ["CHANGES"])}\\n\\n'
+              f'💛 **MAFIVERA wird weiterentwickelt.**\\n'
+              f'Fehlerberichte, Wünsche und Erfahrungen fließen weiterhin direkt in die Entwicklung ein.'
+          )
+          payload={'username':'MAFIVERA Changelog','content':message,'allowed_mentions':{'parse':[]}}
           with open('/tmp/discord-payload.json','w',encoding='utf-8') as f: json.dump(payload,f,ensure_ascii=False)
           PY
       - name: Changelog an Discord senden
