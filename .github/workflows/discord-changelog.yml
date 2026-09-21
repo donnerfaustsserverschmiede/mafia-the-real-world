@@ -72,7 +72,7 @@ jobs:
               f'{clip(os.environ["CHANGES"])}\n\n'
               f'**Hinweis:** MAFIVERA wird weiterhin entwickelt.\n'
               f'Euer Feedback, Vorschläge und Ideen gern hier: https://discord.com/channels/1549525247760400384/1549686789076295770\n'
-              f'(https://discord.com/channels/1549525247760400384/1549686789076295770)'
+
           )
           payload={'username':'MAFIVERA Changelog','content':message,'allowed_mentions':{'parse':[]}}
           with open('/tmp/discord-payload.json','w',encoding='utf-8') as f:
