@@ -64,17 +64,17 @@ async function familyAction(action,value){
     }
 
     if(action==='alliance-request'){
-      const r=await db.rpc('mtrw_alliance_request',{p_to_alliance:value});
+      const r=await db.rpc('mtrw_family_alliance_request',{p_to_family:value});
       if(r.error)throw r.error;
-      window.__mtrwFamilyToast?.('Bündnisanfrage wurde gesendet.');
+      window.__mtrwFamilyToast?.('Bündnisanfrage an die Familie wurde gesendet.');
       return renderFamily();
     }
 
     if(action==='alliance-decision'){
       const [rid,accept]=String(value||'').split('|');
-      const r=await db.rpc('mtrw_alliance_request_decide',{p_request:rid,p_accept:accept==='1'});
+      const r=await db.rpc('mtrw_family_alliance_request_decide',{p_request:rid,p_accept:accept==='1'});
       if(r.error)throw r.error;
-      window.__mtrwFamilyToast?.(accept==='1'?'Bündnis angenommen.':'Bündnis abgelehnt.');
+      window.__mtrwFamilyToast?.(accept==='1'?'Bündnis mit der Familie angenommen.':'Bündnis abgelehnt.');
       return renderFamily();
     }
 
@@ -179,14 +179,14 @@ async function renderFamily(){
       ${leadership&&level<20?`<button class="mini" data-family-action="upgrade" data-value="${d[0]}" ${Number(f.data.treasury||0)<cost?'disabled':''}>Ausbauen</button>`:'<small>'+((level>=20)?'MAX':'Nur Leitung')+'</small>'}</div>`;
     }).join('')}</div>`;
   }else if(view==='alliances'){
-    let allianceHtml='<div class="hint">Suche andere Allianzen und sende ihnen eine Bündnisanfrage.</div>';
+    let allianceHtml='<div class="hint">Suche andere Familien und sende ihnen eine Bündnisanfrage.</div>';
     try{
       const ar=await db.rpc('mtrw_alliance_snapshot');
       const rr=await db.rpc('mtrw_alliance_requests_snapshot');
       const alliance=ar.data?.alliance;
       const allies=ar.data?.diplomacy||[];
       const requests=rr.data||[];
-      allianceHtml=`<div class="production-card"><h3>🔎 Allianzen suchen</h3><input id="allianceSearch" class="input" placeholder="Allianzname oder Tag..." /><div id="allianceSearchResults"></div></div>`;
+      allianceHtml=`<div class="production-card"><h3>🔎 Familien suchen</h3><input id="allianceSearch" class="input" placeholder="Familienname oder Familien-Tag..." /><div id="allianceSearchResults"></div></div>`;
       if(requests.length){
         allianceHtml+=`<div class="production-card"><h3>📨 Bündnisanfragen</h3><div class="list">${requests.map(x=>`<div class="row"><span>🤝 <b>${esc(x.name)} [${esc(x.tag)}]</b><small>Level ${fmt(x.level)} · ${fmt(x.points)} Punkte</small></span><span><button class="mini" data-family-action="alliance-decision" data-value="${x.id}|1">Annehmen</button><button class="mini danger" data-family-action="alliance-decision" data-value="${x.id}|0">Ablehnen</button></span></div>`).join('')}</div></div>`;
       }
@@ -231,7 +231,7 @@ async function renderFamily(){
     search.addEventListener('input',()=>{
       clearTimeout(timer);
       timer=setTimeout(async()=>{
-        const r=await db.rpc('mtrw_alliance_search',{p_query:search.value});
+        const r=await db.rpc('mtrw_family_alliance_search',{p_query:search.value});
         const box=document.getElementById('allianceSearchResults');
         if(!box)return;
         if(r.error||!search.value.trim()){box.innerHTML='';return;}
