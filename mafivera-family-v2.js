@@ -107,6 +107,8 @@ async function familyAction(action,value){
     }
   }catch(e){
     const msg=e.message==='donation_already_today'?'Du hast heute bereits gespendet.':
+      e.message==='family_points_insufficient'?'Die Familienpunkte reichen für diesen Ausbau nicht aus.':
+      e.message==='family_upgrade_leadership_required'?'Nur Don oder Underboss dürfen den Ausbau durchführen.':
       e.message==='family_treasury_insufficient'?'Die Familienkasse reicht für diesen Ausbau nicht aus.':
       e.message==='family_leadership_required'?'Nur die Familienleitung darf den Ausbau starten.':
       e.message||'Familienaktion fehlgeschlagen';
@@ -148,7 +150,7 @@ async function renderFamily(){
 
   const last=q.data.last_donation_at?new Date(q.data.last_donation_at):null;
   const donatedToday=last&&last.toLocaleDateString('de-DE')===new Date().toLocaleDateString('de-DE');
-  const leadership=['Anführer','Ältester','Vize'].includes(q.data.role);
+  const leadership=['Anführer','Vize'].includes(q.data.role);
   const nav=['dashboard','members','expansion','alliances','manage'].map(k=>`
     <button class="mini ${view===k?'active':''}" data-family-action="tab" data-value="${k}">
       ${({dashboard:'Dashboard',members:'Mitglieder',expansion:'Ausbau',alliances:'Bündnisse',manage:'Verwalten'})[k]}
@@ -156,9 +158,15 @@ async function renderFamily(){
 
   let body='';
   if(view==='members'){
-    const canManageRanks=q.data.role==='Anführer'||q.data.user_id===f.data.owner_id;
+    const canManageRanks=q.data.role==='Anführer';
     const rankName={Anführer:'Don',Vize:'Underboss',Ältester:'Consigliere',Mitglied:'Soldat'};
-    body=`<div class="hint">Familienmitglieder können sich selbstständig aus der Familie abmelden.</div><div class="list">${(members.data||[]).map(m=>{
+    const rankOrder={Anführer:0,Vize:1,Ältester:2,Mitglied:3};
+    const sortedMembers=[...(members.data||[])].sort((a,b)=>{
+      const ra=rankOrder[a.role]??99, rb=rankOrder[b.role]??99;
+      if(ra!==rb)return ra-rb;
+      return String(names[a.user_id]||a.user_id).localeCompare(String(names[b.user_id]||b.user_id),'de',{sensitivity:'base'});
+    });
+    body=`<div class="hint">Mitglieder werden automatisch nach Rang sortiert: Don → Underboss → Consigliere → Soldat.</div><div class="list">${sortedMembers.map(m=>{
       const self=m.user_id===uid, role=m.role;
       const up=role==='Mitglied'?'Ältester':role==='Ältester'?'Vize':role==='Vize'?'Anführer':null;
       const down=role==='Anführer'?'Vize':role==='Vize'?'Ältester':role==='Ältester'?'Mitglied':null;
@@ -172,11 +180,12 @@ async function renderFamily(){
       ['workshop','Bauhütte','🏗️','+5% schnellerer Gebäudeausbau je Stufe'],
       ['trade','Handelswege','💰','+5% Dealerpreis je Stufe']
     ];
-    body=`<div class="hint">Die Familienkasse wird durch die täglichen Mitgliedsbeiträge aufgebaut. Nur die Familienleitung kann diese gemeinsame Kasse für den Ausbau verwenden.</div>
+    body=`<div class="hint">Jede Spende bringt 100 Familienpunkte. Die Verbesserungen werden aus diesen Familienpunkten bezahlt. Ausbau ist nur durch Don oder Underboss möglich.</div>
     <div class="list">${defs.map(d=>{
       const level=upgrades[d[0]]||0,next=level+1,cost=2000*next;
-      return `<div class="row"><span>${d[2]} <b>${d[1]} · Stufe ${level}/20</b><small>${d[3]} · nächste Stufe ${level>=20?'MAX':fmt(cost)+' $'}</small></span>
-      ${leadership&&level<20?`<button class="mini" data-family-action="upgrade" data-value="${d[0]}" ${Number(f.data.treasury||0)<cost?'disabled':''}>Ausbauen</button>`:'<small>'+((level>=20)?'MAX':'Nur Leitung')+'</small>'}</div>`;
+      const familyPoints=Number(f.data.points||0);
+      return `<div class="row"><span>${d[2]} <b>${d[1]} · Stufe ${level}/20</b><small>${d[3]} · nächste Stufe ${level>=20?'MAX':fmt(cost)+' Familienpunkte'}</small></span>
+      ${leadership&&level<20?`<button class="mini" data-family-action="upgrade" data-value="${d[0]}" ${familyPoints<cost?'disabled':''}>Ausbauen</button>`:'<small>'+((level>=20)?'MAX':(q.data.role==='Vize'?'Nur Don oder Underboss':'Nur Don oder Underboss'))+'</small>'}</div>`;
     }).join('')}</div>`;
   }else if(view==='alliances'){
     let allianceHtml='<div class="hint">Suche andere Familien und sende ihnen eine Bündnisanfrage.</div>';
