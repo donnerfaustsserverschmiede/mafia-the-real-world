@@ -37,12 +37,31 @@ async function familyAction(action,value){
     if(action==='rank'){
       const [memberId,nextRole]=String(value||'').split('|');
       if(!memberId||!nextRole)throw Error('invalid_rank_change');
-      const r=await db.rpc('mtrw_family_set_member_role',{p_family_id:qFamilyId,p_user_id:memberId,p_role:nextRole});
+      const r=await db.rpc('mtrw_family_set_member_role',{p_family_id:(await db.from('mtrw_family_members').select('family_id').eq('user_id',uid).single()).data.family_id,p_user_id:memberId,p_role:nextRole});
       if(r.error)throw r.error;
       window.__mtrwFamilyToast?.(nextRole==='Mitglied'?'Mitglied wurde degradiert.':'Mitglied wurde befördert.');
       return renderFamily();
     }
 
+    if(action==='kick'){
+      const memberId=String(value||'');
+      if(!memberId)throw Error('family_member_not_found');
+      if(!confirm('Dieses Mitglied wirklich aus der Familie entfernen?'))return;
+      const fq=await db.from('mtrw_family_members').select('family_id').eq('user_id',uid).single();
+      if(fq.error)throw fq.error;
+      const r=await db.rpc('mtrw_family_remove_member',{p_family_id:fq.data.family_id,p_user_id:memberId});
+      if(r.error)throw r.error;
+      window.__mtrwFamilyToast?.('Mitglied wurde aus der Familie entfernt.');
+      return renderFamily();
+    }
+
+    if(action==='leave-alliance'){
+      if(!confirm('Allianz wirklich verlassen?'))return;
+      const r=await db.rpc('mtrw_alliance_leave',{});
+      if(r.error)throw r.error;
+      window.__mtrwFamilyToast?.('Allianz verlassen.');
+      return renderFamily();
+    }
     if(action==='upgrade'){
       const q=await db.from('mtrw_family_members').select('family_id').eq('user_id',uid).single();
       if(q.error)throw q.error;
@@ -127,7 +146,7 @@ async function renderFamily(){
       const self=m.user_id===uid, role=m.role;
       const up=role==='Mitglied'?'Ältester':role==='Ältester'?'Vize':role==='Vize'?'Anführer':null;
       const down=role==='Anführer'?'Vize':role==='Vize'?'Ältester':role==='Ältester'?'Mitglied':null;
-      return `<div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}<small>♜ ${esc(rankName[role]||role)} · ${fmt(m.family_points)} Punkte</small></span><span class="family-rank-actions">${canManageRanks&&!self&&up?`<button class="mini" data-family-action="rank" data-value="${esc(m.user_id+'|'+up)}">⬆️ Befördern</button>`:''}${canManageRanks&&!self&&down?`<button class="mini danger" data-family-action="rank" data-value="${esc(m.user_id+'|'+down)}">⬇️ Degradieren</button>`:''}</span></div>`;
+      return `<div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}<small>♜ ${esc(rankName[role]||role)} · ${fmt(m.family_points)} Punkte</small></span><span class="family-rank-actions">${canManageRanks&&!self&&up?`<button class="mini" data-family-action="rank" data-value="${esc(m.user_id+'|'+up)}">⬆️ Befördern</button>`:''}${canManageRanks&&!self&&down?`<button class="mini danger" data-family-action="rank" data-value="${esc(m.user_id+'|'+down)}">⬇️ Degradieren</button>`:''}${canManageRanks&&!self?`<button class="mini danger" data-family-action="kick" data-value="${esc(m.user_id)}">🚪 Rauswerfen</button>`:""}</span></div>`;
     }).join('')}</div>`;
   }
 }else if(view==='expansion'){
@@ -159,7 +178,7 @@ async function renderFamily(){
     }catch(e){
       allianceHtml='<div class="hero"><span class="hero-icon">🤝</span><div><b>Diplomatie</b><p>Keine aktiven Bündnisse gefunden.</p></div></div>';
     }
-    body=allianceHtml;
+    body=allianceHtml+`<div class="production-card"><h3>🚪 Allianz</h3><p>Du kannst die Allianz selbstständig verlassen.</p><button class="action danger" data-family-action="leave-alliance">🚪 Allianz verlassen</button></div>`;
   }else if(view==='manage'){
     body=`<div class="list">
       <div class="row"><span>👑 Deine Rolle</span><b>${esc(q.data.role)}</b></div>
