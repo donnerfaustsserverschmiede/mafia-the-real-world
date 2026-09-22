@@ -162,9 +162,9 @@ async function renderFamily(){
       const self=m.user_id===uid, role=m.role;
       const up=role==='Mitglied'?'Ältester':role==='Ältester'?'Vize':role==='Vize'?'Anführer':null;
       const down=role==='Anführer'?'Vize':role==='Vize'?'Ältester':role==='Ältester'?'Mitglied':null;
-      return \`<div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}<small>♜ ${esc(rankName[role]||role)} · ${fmt(m.family_points)} Punkte</small></span><span class="family-rank-actions">${self?`<button class="mini danger" data-family-action="leave-family">🚪 Familie verlassen</button>`:''}${canManageRanks&&!self&&up?`<button class="mini" data-family-action="rank" data-value="${esc(m.user_id+'|'+up)}">⬆️ Befördern</button>`:''}${canManageRanks&&!self&&down?`<button class="mini danger" data-family-action="rank" data-value="${esc(m.user_id+'|'+down)}">⬇️ Degradieren</button>`:''}${canManageRanks&&!self?`<button class="mini danger" data-family-action="kick" data-value="${esc(m.user_id)}">🚪 Rauswerfen</button>`:''}</span></div>\`;
+      return `<div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}<small>♜ ${esc(rankName[role]||role)} · ${fmt(m.family_points)} Punkte</small></span><span class="family-rank-actions">${self?`<button class="mini danger" data-family-action="leave-family">🚪 Familie verlassen</button>`:''}${canManageRanks&&!self&&up?`<button class="mini" data-family-action="rank" data-value="${esc(m.user_id+'|'+up)}">⬆️ Befördern</button>`:''}${canManageRanks&&!self&&down?`<button class="mini danger" data-family-action="rank" data-value="${esc(m.user_id+'|'+down)}">⬇️ Degradieren</button>`:''}${canManageRanks&&!self?`<button class="mini danger" data-family-action="kick" data-value="${esc(m.user_id)}">🚪 Rauswerfen</button>`:''}</span></div>`;
     }).join('')}</div>`;
-  }}else if(view==='expansion'){
+  }else if(view==='expansion'){
     const defs=[
       ['march_speed','Marschtempo','⚡','+5% Marschgeschwindigkeit je Stufe'],
       ['troop_strength','Truppenstärke','⚔️','+5% Angriffskraft je Stufe'],
