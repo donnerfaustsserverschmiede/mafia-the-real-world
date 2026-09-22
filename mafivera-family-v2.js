@@ -55,13 +55,29 @@ async function familyAction(action,value){
       return renderFamily();
     }
 
-    if(action==='leave-alliance'){
-      if(!confirm('Allianz wirklich verlassen?'))return;
-      const r=await db.rpc('mtrw_alliance_leave',{});
+    if(action==='leave-family'){
+      if(!confirm('Familie wirklich verlassen?'))return;
+      const r=await db.rpc('mtrw_family_leave',{});
       if(r.error)throw r.error;
-      window.__mtrwFamilyToast?.('Allianz verlassen.');
+      window.__mtrwFamilyToast?.('Du hast die Familie verlassen.');
       return renderFamily();
     }
+
+    if(action==='alliance-request'){
+      const r=await db.rpc('mtrw_alliance_request',{p_to_alliance:value});
+      if(r.error)throw r.error;
+      window.__mtrwFamilyToast?.('Bündnisanfrage wurde gesendet.');
+      return renderFamily();
+    }
+
+    if(action==='alliance-decision'){
+      const [rid,accept]=String(value||'').split('|');
+      const r=await db.rpc('mtrw_alliance_request_decide',{p_request:rid,p_accept:accept==='1'});
+      if(r.error)throw r.error;
+      window.__mtrwFamilyToast?.(accept==='1'?'Bündnis angenommen.':'Bündnis abgelehnt.');
+      return renderFamily();
+    }
+
     if(action==='upgrade'){
       const q=await db.from('mtrw_family_members').select('family_id').eq('user_id',uid).single();
       if(q.error)throw q.error;
@@ -142,14 +158,13 @@ async function renderFamily(){
   if(view==='members'){
     const canManageRanks=q.data.role==='Anführer'||q.data.user_id===f.data.owner_id;
     const rankName={Anführer:'Don',Vize:'Underboss',Ältester:'Consigliere',Mitglied:'Soldat'};
-    body=`<div class="hint">Der Don kann Familienmitglieder befördern oder um jeweils einen Rang degradieren.</div><div class="list">${(members.data||[]).map(m=>{
+    body=`<div class="hint">Familienmitglieder können sich selbstständig aus der Familie abmelden.</div><div class="list">${(members.data||[]).map(m=>{
       const self=m.user_id===uid, role=m.role;
       const up=role==='Mitglied'?'Ältester':role==='Ältester'?'Vize':role==='Vize'?'Anführer':null;
       const down=role==='Anführer'?'Vize':role==='Vize'?'Ältester':role==='Ältester'?'Mitglied':null;
-      return `<div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}<small>♜ ${esc(rankName[role]||role)} · ${fmt(m.family_points)} Punkte</small></span><span class="family-rank-actions">${canManageRanks&&!self&&up?`<button class="mini" data-family-action="rank" data-value="${esc(m.user_id+'|'+up)}">⬆️ Befördern</button>`:''}${canManageRanks&&!self&&down?`<button class="mini danger" data-family-action="rank" data-value="${esc(m.user_id+'|'+down)}">⬇️ Degradieren</button>`:''}${canManageRanks&&!self?`<button class="mini danger" data-family-action="kick" data-value="${esc(m.user_id)}">🚪 Rauswerfen</button>`:""}</span></div>`;
+      return \`<div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}<small>♜ ${esc(rankName[role]||role)} · ${fmt(m.family_points)} Punkte</small></span><span class="family-rank-actions">${self?`<button class="mini danger" data-family-action="leave-family">🚪 Familie verlassen</button>`:''}${canManageRanks&&!self&&up?`<button class="mini" data-family-action="rank" data-value="${esc(m.user_id+'|'+up)}">⬆️ Befördern</button>`:''}${canManageRanks&&!self&&down?`<button class="mini danger" data-family-action="rank" data-value="${esc(m.user_id+'|'+down)}">⬇️ Degradieren</button>`:''}${canManageRanks&&!self?`<button class="mini danger" data-family-action="kick" data-value="${esc(m.user_id)}">🚪 Rauswerfen</button>`:''}</span></div>\`;
     }).join('')}</div>`;
-  }
-}else if(view==='expansion'){
+  }}else if(view==='expansion'){
     const defs=[
       ['march_speed','Marschtempo','⚡','+5% Marschgeschwindigkeit je Stufe'],
       ['troop_strength','Truppenstärke','⚔️','+5% Angriffskraft je Stufe'],
@@ -164,21 +179,21 @@ async function renderFamily(){
       ${leadership&&level<20?`<button class="mini" data-family-action="upgrade" data-value="${d[0]}" ${Number(f.data.treasury||0)<cost?'disabled':''}>Ausbauen</button>`:'<small>'+((level>=20)?'MAX':'Nur Leitung')+'</small>'}</div>`;
     }).join('')}</div>`;
   }else if(view==='alliances'){
-    let allianceHtml='<div class="hint">Diplomatie</div>';
+    let allianceHtml='<div class="hint">Suche andere Allianzen und sende ihnen eine Bündnisanfrage.</div>';
     try{
       const ar=await db.rpc('mtrw_alliance_snapshot');
-      if(!ar.error&&ar.data?.alliance){
-        const a=ar.data.alliance;
-        const allies=ar.data.diplomacy||[];
-        allianceHtml=`<div class="hero"><span class="hero-icon">🤝</span><div><b>${esc(a.name)} [${esc(a.tag)}]</b><p>Bestehende Allianz-Diplomatie</p></div></div>`
-          +`<div class="list">${allies.length?allies.map(x=>`<div class="row"><span>🤝 ${esc(x.ally_alliance_name||x.name||'Bündnis')}<small>Status: ${esc(x.status||'ally')}</small></span><b>Aktiv</b></div>`).join(''):'<div class="hint">Noch keine Bündnisse vorhanden.</div>'}</div>`;
-      }else{
-        allianceHtml='<div class="hero"><span class="hero-icon">🤝</span><div><b>Noch keine Diplomatie</b><p>Es besteht derzeit kein aktives Bündnis.</p></div></div><div class="hint">Das bestehende Allianz-System bleibt separat erhalten und wird hier angezeigt, sobald dein Spieler einer Allianz angehört.</div>';
+      const rr=await db.rpc('mtrw_alliance_requests_snapshot');
+      const alliance=ar.data?.alliance;
+      const allies=ar.data?.diplomacy||[];
+      const requests=rr.data||[];
+      allianceHtml=`<div class="production-card"><h3>🔎 Allianzen suchen</h3><input id="allianceSearch" class="input" placeholder="Allianzname oder Tag..." /><div id="allianceSearchResults"></div></div>`;
+      if(requests.length){
+        allianceHtml+=`<div class="production-card"><h3>📨 Bündnisanfragen</h3><div class="list">${requests.map(x=>`<div class="row"><span>🤝 <b>${esc(x.name)} [${esc(x.tag)}]</b><small>Level ${fmt(x.level)} · ${fmt(x.points)} Punkte</small></span><span><button class="mini" data-family-action="alliance-decision" data-value="${x.id}|1">Annehmen</button><button class="mini danger" data-family-action="alliance-decision" data-value="${x.id}|0">Ablehnen</button></span></div>`).join('')}</div></div>`;
       }
-    }catch(e){
-      allianceHtml='<div class="hero"><span class="hero-icon">🤝</span><div><b>Diplomatie</b><p>Keine aktiven Bündnisse gefunden.</p></div></div>';
-    }
-    body=allianceHtml+`<div class="production-card"><h3>🚪 Allianz</h3><p>Du kannst die Allianz selbstständig verlassen.</p><button class="action danger" data-family-action="leave-alliance">🚪 Allianz verlassen</button></div>`;
+      if(allies.length) allianceHtml+=`<div class="production-card"><h3>🤝 Aktive Bündnisse</h3><div class="list">${allies.map(x=>`<div class="row"><span>🤝 ${esc(x.ally_alliance_name||x.name||'Bündnis')}<small>Status: ${esc(x.status||'ally')}</small></span><b>Aktiv</b></div>`).join('')}</div></div>`;
+      else allianceHtml+='<div class="hint">Noch keine aktiven Bündnisse.</div>';
+      body=allianceHtml;
+    }catch(e){body='<div class="hint">Bündnisse konnten nicht geladen werden.</div>';}
   }else if(view==='manage'){
     body=`<div class="list">
       <div class="row"><span>👑 Deine Rolle</span><b>${esc(q.data.role)}</b></div>
@@ -210,6 +225,21 @@ async function renderFamily(){
     `<div class="hero"><span class="hero-icon">♜</span><div><b>${esc(f.data.name)}</b><p>Familienlevel ${fmt(f.data.level)} · ${fmt(f.data.points)} Punkte</p></div></div>
     <div class="tabs family-tabs">${nav}</div>${body}`);
   bind();
+  const search=document.getElementById('allianceSearch');
+  if(search){
+    let timer;
+    search.addEventListener('input',()=>{
+      clearTimeout(timer);
+      timer=setTimeout(async()=>{
+        const r=await db.rpc('mtrw_alliance_search',{p_query:search.value});
+        const box=document.getElementById('allianceSearchResults');
+        if(!box)return;
+        if(r.error||!search.value.trim()){box.innerHTML='';return;}
+        box.innerHTML=`<div class="list">${(r.data||[]).map(x=>`<div class="row"><span>🤝 <b>${esc(x.name)} [${esc(x.tag)}]</b><small>Level ${fmt(x.level)} · ${fmt(x.member_count)} Mitglieder · ${fmt(x.points)} Punkte</small></span><button class="mini" data-family-action="alliance-request" data-value="${x.id}">Bündnis anfragen</button></div>`).join('')}</div>`;
+        bind();
+      },250);
+    });
+  }
 }
 
 async function showFamilyList(){
