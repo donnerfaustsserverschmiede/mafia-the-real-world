@@ -1,7 +1,7 @@
 /* MAFIVERA – shared global loot boxes */
 (()=>{'use strict';
 if(window.__mtrwLootLoaded)return;window.__mtrwLootLoaded=true;
-const RADIUS=600,REFRESH=60000;let map=null,markers=new Map(),timer=null,channel=null,selected=null;
+const RADIUS=600,REFRESH=300000;let map=null,markers=new Map(),timer=null,channel=null,selected=null;
 function pos(){const p=window.__mtrwPlayerLocation||window.__mtrwProfile||{};return{lat:Number(p.gps_lat),lng:Number(p.gps_lng)}}
 function valid(p){return Number.isFinite(p.lat)&&Number.isFinite(p.lng)}
 function dist(a,b){const R=6371000,la=a.lat*Math.PI/180,lb=b.lat*Math.PI/180,dl=(b.lat-a.lat)*Math.PI/180,dg=(b.lng-a.lng)*Math.PI/180;const x=Math.sin(dl/2)**2+Math.cos(la)*Math.cos(lb)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
