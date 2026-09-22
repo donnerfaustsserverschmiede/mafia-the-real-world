@@ -18,7 +18,7 @@ function installRelationOverlay(){
   let rel=[];try{const r=await db.rpc('mtrw_user_relations',{p_user_ids:ids});if(!r.error)rel=r.data||[]}catch(e){}
   const mapRel=new Map(rel.map(x=>[x.user_id,x.relation]));
   rects.forEach(rect=>{const owner=world[rect?.__mtrwZone]?.owner_id;});
-  Object.entries(world).forEach(([zone,t])=>{if(!t?.owner_id)return;const relation=mapRel.get(t.owner_id)||'stranger';const col=t.owner_id===window.__mtrwUserId?'#a855f7':(color[relation]||color.stranger);const rect=rects.find(x=>x?.__mtrwZone===zone);if(rect){rect.setStyle({color:col,fillColor:col,fillOpacity:.28,weight:2});}});
+  Object.entries(world).forEach(([zone,t])=>{if(!t?.owner_id)return;const relation=mapRel.get(t.owner_id)||'stranger';const col=t.owner_id===window.__mtrwUserId?'#2f91ff':(color[relation]||color.stranger);const rect=rects.find(x=>x?.__mtrwZone===zone);if(rect){rect.setStyle({color:col,fillColor:col,fillOpacity:.28,weight:2});}});
  }
  window.mtrwApplyRelationColors=apply;setInterval(apply,1500);setTimeout(apply,500);setTimeout(apply,3000);
 }
