@@ -23,11 +23,11 @@ async function saveGps(lat,lng,accuracy){
   try{
     const db=window.db;if(!db||!valid(lat,lng))return;
     const {data:{user}}=await db.auth.getUser();if(!user)return;
-    await db.from('profiles').update({
-      gps_lat:Number(lat),
-      gps_lng:Number(lng),
-      gps_accuracy:Number.isFinite(Number(accuracy))?Number(accuracy):null
-    }).eq('id',user.id);
+    await db.rpc('mtrw_presence_heartbeat',{
+      p_lat:Number(lat),
+      p_lng:Number(lng),
+      p_accuracy:Number.isFinite(Number(accuracy))?Number(accuracy):null
+    });
   }catch(e){}
 }
 async function fromProfile(){
