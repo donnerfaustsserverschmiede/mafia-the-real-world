@@ -1,7 +1,7 @@
 /* MAFIVERA – shared global loot boxes */
 (()=>{'use strict';
 if(window.__mtrwLootLoaded)return;window.__mtrwLootLoaded=true;
-const RADIUS=600,REFRESH=300000;let map=null,layer=null,markers=new Map(),timer=null,channel=null,selected=null;
+const RADIUS=600,REFRESH=15000;let map=null,layer=null,markers=new Map(),timer=null,channel=null,selected=null;
 function pos(){const p=window.__mtrwPlayerLocation||window.__mtrwProfile||{};return{lat:Number(p.gps_lat),lng:Number(p.gps_lng)}}
 function valid(p){return Number.isFinite(p.lat)&&Number.isFinite(p.lng)}
 function dist(a,b){const R=6371000,la=a.lat*Math.PI/180,lb=b.lat*Math.PI/180,dl=(b.lat-a.lat)*Math.PI/180,dg=(b.lng-a.lng)*Math.PI/180;const x=Math.sin(dl/2)**2+Math.cos(la)*Math.cos(lb)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
@@ -16,7 +16,7 @@ function focus(b){selected=b;const map2=window.__mtrwMap;if(map2)map2.flyTo([b.l
 async function claim(b,big,reward,hint){if(!selected||big.classList.contains('opening'))return;big.classList.add('opening');hint.textContent='Die Lootbox wird geöffnet …';try{const r=await window.db.rpc('mtrw_claim_loot_box',{p_box_id:b.id});if(r.error)throw r.error;const x=r.data||{};setTimeout(()=>{big.textContent='🎁';big.className='mtrw-loot-big';reward.textContent='Gefunden: '+(x.display||'Belohnung');hint.textContent='Die Lootbox ist für alle Spieler verschwunden.';remove(b.id)},650)}catch(e){big.classList.remove('opening');hint.textContent=e.message==='loot_box_too_far'?'Du bist noch zu weit entfernt.':e.message==='loot_box_unavailable'?'Die Lootbox wurde bereits von jemand anderem geöffnet.':'Lootbox konnte nicht geöffnet werden.';if(e.message==='loot_box_unavailable')remove(b.id)}}
 function remove(id){const m=markers.get(id);if(m){m.remove();markers.delete(id)}}
 function realtime(){if(channel||!window.db)return;channel=window.db.channel('mtrw-loot-boxes').on('postgres_changes',{event:'*',schema:'public',table:'mtrw_loot_boxes'},()=>load()).subscribe()}
-function boot(){css();map=window.__mtrwMap;if(map&&!map.getPane('mtrwLootPane')){const pane=map.createPane('mtrwLootPane');pane.style.zIndex='650'}realtime();load();timer=setInterval(load,REFRESH)}
+function boot(){css();map=window.__mtrwMap;if(map&&!map.getPane('mtrwLootPane')){const pane=map.createPane('mtrwLootPane');pane.style.zIndex='650'}realtime();load();window.addEventListener('mtrw:location-updated',load);timer=setInterval(load,REFRESH)}
 function wait(){if(window.db&&window.__mtrwMap)boot();else setTimeout(wait,300)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wait);else wait();
 window.addEventListener('beforeunload',()=>{if(timer)clearInterval(timer);if(channel&&window.db)window.db.removeChannel(channel);window.removeEventListener('mtrw:location-updated',load)});
