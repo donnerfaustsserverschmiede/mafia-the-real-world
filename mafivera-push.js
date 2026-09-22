@@ -34,7 +34,7 @@ async function status(){
  try{const reg=await navigator.serviceWorker.getRegistration('./');subscribed=!!(await reg?.pushManager.getSubscription())}catch(e){}
  return {prefs:p,permission:('Notification'in window?Notification.permission:'unsupported'),subscribed};
 }
-async function repair(){try{if(!('Notification'in window)||Notification.permission!=='granted'||!window.db)return false;const st=await status();if(!st.subscribed){await enable();return true}if(!st.prefs?.push_enabled)await savePrefs({p_push_enabled:true});return true}catch(e){console.warn('MAFIVERA Push-AutoRepair',e);return false}}
+async function repair(){try{if(!('Notification'in window)||Notification.permission!=='granted'||!window.db)return false;const st=await status();if(!st.subscribed){await enable();return true}if(!st.prefs?.push_enabled)await savePrefs({p_push_enabled:true});return true}catch(e){window.__mtrwPushLastError=String(e?.message||e);console.warn('MAFIVERA Push-AutoRepair',e);return false}}
 window.mtrwPush={enable,disable,prefs,savePrefs,status,repair};
-setTimeout(()=>repair(),3000);
+setTimeout(()=>repair(),3000);window.addEventListener('pointerdown',()=>{if(Notification?.permission==='granted')repair()},{once:true,passive:true});
 })();
