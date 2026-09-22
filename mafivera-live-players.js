@@ -21,7 +21,7 @@ const boot=async()=>{
   };
   const removeStale=rows=>{
     const active=new Set(rows.map(p=>p.user_id));
-    markers.forEach((m,id)=>{if(!active.has(id)){map.removeLayer(m);markers.delete(id)}})
+    markers.forEach((m,id)=>{if(!active.has(id)){map.removeLayer(m);markers.delete(id)}});radars.forEach((m,id)=>{if(!active.has(id)){map.removeLayer(m);radars.delete(id)}})
   };
   const load=async()=>{
     const cutoff=new Date(Date.now()-30000).toISOString();
