@@ -29,8 +29,17 @@ async function familyAction(action,value){
     if(action==='donate'){
       const q=await db.from('mtrw_family_members').select('family_id').eq('user_id',uid).single();
       if(q.error)throw q.error;
-      await db.rpc('mtrw_family_donate',{p_family_id:q.data.family_id,p_amount:100});
-      window.__mtrwFamilyToast?.('Tagesbeitrag von 100 $ geleistet.');
+      const r=await db.rpc('mtrw_family_donate',{p_family_id:q.data.family_id,p_amount:100});
+      if(r.error)throw r.error;
+      window.__mtrwFamilyToast?.('100 $ gespendet → 100 Familienpunkte.');
+      return renderFamily();
+    }
+    if(action==='rank'){
+      const [memberId,nextRole]=String(value||'').split('|');
+      if(!memberId||!nextRole)throw Error('invalid_rank_change');
+      const r=await db.rpc('mtrw_family_set_member_role',{p_family_id:qFamilyId,p_user_id:memberId,p_role:nextRole});
+      if(r.error)throw r.error;
+      window.__mtrwFamilyToast?.(nextRole==='Mitglied'?'Mitglied wurde degradiert.':'Mitglied wurde befördert.');
       return renderFamily();
     }
 
@@ -97,7 +106,7 @@ async function renderFamily(){
   if(members.error)throw members.error;
   const ids=(members.data||[]).map(x=>x.user_id);
   const profiles=ids.length?await db.from('profiles').select('id,username,mafia_name,level').in('id',ids):{data:[]};
-  const names={};(profiles.data||[]).forEach(p=>names[p.id]=p.username||p.mafia_name||p.id.slice(0,8));
+  const names={};(profiles.data||[]).forEach(p=>names[p.id]=p.username||p.mafia_name||p.id.slice(0,8));const qFamilyId=q.data.family_id;
   const up=await db.from('mtrw_family_upgrades').select('upgrade_key,level').eq('family_id',q.data.family_id);
   if(up.error)throw up.error;
   const upgrades={};(up.data||[]).forEach(x=>upgrades[x.upgrade_key]=Number(x.level||0));
@@ -112,11 +121,16 @@ async function renderFamily(){
 
   let body='';
   if(view==='members'){
-    body=`<div class="list">${(members.data||[]).map(m=>`
-      <div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}
-      <small>${esc(m.role)} · ${fmt(m.family_points)} Punkte</small></span>
-      <b>${money(m.donated_total||0)}</b></div>`).join('')}</div>`;
-  }else if(view==='expansion'){
+    const canManageRanks=q.data.role==='Anführer'||q.data.user_id===f.data.owner_id;
+    const rankName={Anführer:'Don',Vize:'Underboss',Ältester:'Consigliere',Mitglied:'Soldat'};
+    body=`<div class="hint">Der Don kann Familienmitglieder befördern oder um jeweils einen Rang degradieren.</div><div class="list">${(members.data||[]).map(m=>{
+      const self=m.user_id===uid, role=m.role;
+      const up=role==='Mitglied'?'Ältester':role==='Ältester'?'Vize':role==='Vize'?'Anführer':null;
+      const down=role==='Anführer'?'Vize':role==='Vize'?'Ältester':role==='Ältester'?'Mitglied':null;
+      return `<div class="row"><span>👤 ${esc(names[m.user_id]||m.user_id.slice(0,8))}<small>♜ ${esc(rankName[role]||role)} · ${fmt(m.family_points)} Punkte</small></span><span class="family-rank-actions">${canManageRanks&&!self&&up?`<button class="mini" data-family-action="rank" data-value="${esc(m.user_id+'|'+up)}">⬆️ Befördern</button>`:''}${canManageRanks&&!self&&down?`<button class="mini danger" data-family-action="rank" data-value="${esc(m.user_id+'|'+down)}">⬇️ Degradieren</button>`:''}</span></div>`;
+    }).join('')}</div>`;
+  }
+}else if(view==='expansion'){
     const defs=[
       ['march_speed','Marschtempo','⚡','+5% Marschgeschwindigkeit je Stufe'],
       ['troop_strength','Truppenstärke','⚔️','+5% Angriffskraft je Stufe'],
@@ -162,12 +176,12 @@ async function renderFamily(){
     </div>
     <div class="hint">${esc(f.data.description||'Zusammenhalt, Ehre, Familie')}</div>
     <div class="production-card"><h3>💰 Tagesbeitrag</h3>
-      <p>Jedes Mitglied kann <b>genau einmal pro Kalendertag</b> 100 $ in die gemeinsame Familienkasse einzahlen.</p>
+      <p>Jedes Mitglied kann <b>genau einmal pro Kalendertag</b> 100 $ spenden. Die 100 $ werden direkt in <b>100 Familienpunkte</b> umgewandelt.</p>
       ${donatedToday?'<button class="action" disabled>✅ Heute bereits gespendet</button>':'<button class="action primary" data-family-action="donate">💰 100 $ spenden</button>'}
-      <small>${donatedToday?'Die nächste Spende ist morgen möglich.':'Die Spende wird gesammelt und steht der Familienleitung für den Ausbau zur Verfügung.'}</small>
+      <small>${donatedToday?'Die nächste Spende ist morgen möglich.':'Das Geld geht nicht in eine Familienkasse. Es wird vollständig in Familienpunkte umgewandelt.'}</small>
     </div>
     <div class="statgrid">
-      <div><b>${money(f.data.treasury)}</b><small>Familienkasse</small></div>
+      <div><b>${fmt(f.data.points)}</b><small>Familienpunkte</small></div>
       <div><b>${fmt(f.data.points)}</b><small>Familienpunkte</small></div>
       <div><b>${money(q.data.donated_total||0)}</b><small>Deine Spenden</small></div>
     </div>`;
