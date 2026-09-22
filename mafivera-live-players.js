@@ -4,7 +4,7 @@ const boot=async()=>{
   if(!window.db||!window.__mtrwMap||!window.L||!navigator.geolocation)return;
   const db=window.db,map=window.__mtrwMap;
   const {data:{user}}=await db.auth.getUser(); if(!user)return;
-  const markers=new Map(); let watchId=null;
+  const markers=new Map(),radars=new Map(); let watchId=null;
   const upsert=async(pos)=>{
     const lat=pos.coords.latitude,lng=pos.coords.longitude;
     let username='Spieler',level=0,alliance_id=null;
@@ -32,7 +32,7 @@ const boot=async()=>{
     const lat1=Number(me.gps_lat),lng1=Number(me.gps_lng),rad=500;
     const dist=(lat2,lng2)=>{const R=6371000,a=(Number(lat2)-lat1)*Math.PI/180,b=(Number(lng2)-lng1)*Math.PI/180;const x=Math.sin(a/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(Number(lat2)*Math.PI/180)*Math.sin(b/2)**2;return R*2*Math.asin(Math.sqrt(x));};
     const rel=await db.rpc('mtrw_live_player_relations');const relMap=new Map((rel.data||[]).map(x=>[x.user_id,x.relation]));const nearby=(r.data||[]).map(p=>({...p,relation:relMap.get(p.user_id)||'stranger'})).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&dist(p.lat,p.lng)<=rad);
-    removeStale(nearby); nearby.forEach(render);
+    removeStale(nearby); nearby.forEach(render); nearby.forEach(p=>{if(p.user_id===user.id)return;let r=radars.get(p.user_id);if(!r){r=L.circle([p.lat,p.lng],{radius:500,color:'#45e06f',weight:1,fillColor:'#45e06f',fillOpacity:.025,interactive:false,bubblingMouseEvents:false}).addTo(map);radars.set(p.user_id,r)}else r.setLatLng([p.lat,p.lng])});
   };
   watchId=navigator.geolocation.watchPosition(upsert,()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
   const channel=db.channel('mtrw-live-players').on('postgres_changes',{event:'*',schema:'public',table:'mtrw_live_players'},()=>load()).subscribe();
