@@ -10,7 +10,6 @@ function toast(t,e=false){const x=document.getElementById('toast');if(x){x.textC
 function coords(d){const lat=Number(d?.lat),lng=Number(d?.lng);return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?[lat,lng]:null}
 function removeMarker(){if(marker){marker.remove();marker=null}}
 function center(d){const p=coords(d),m=window.__mtrwMap;if(p&&m)m.setView(p,Math.max(m.getZoom(),17),{animate:false})}
-function hideAlert(){if(alertEl)alertEl.style.display='none'}
 function dismiss(){removeMarker();hideAlert();last=null}
 function offer(d){
  const el=document.getElementById('drawer');if(!el)return;
