@@ -1,4 +1,4 @@
-/* MAFIVERA – map cleanup: readable fields, no symbol brackets/grid clutter */
+/* MAFIVERA – map cleanup: readable fields, resource markers visible from normal play zoom */
 (()=>{'use strict';
 function apply(){
   const map=window.__mtrwMap;
@@ -8,9 +8,13 @@ function apply(){
     document.querySelectorAll('.mtrw-resource-marker span').forEach(el=>{
       if(el.classList.contains('material'))el.textContent='◆';
       else if(el.classList.contains('weapon_parts'))el.textContent='⚙';
+      else if(el.classList.contains('money'))el.textContent='$';
+      else if(el.classList.contains('reputation'))el.textContent='★';
     });
-    document.querySelectorAll('.mtrw-resource-marker,.res-marker').forEach(el=>{
-      el.style.display=zoom>=16?'':'none';
+    /* Legacy V1 markers stay hidden; the official marker layer above owns resource icons. */
+    document.querySelectorAll('.res-marker').forEach(el=>{el.style.display='none';});
+    document.querySelectorAll('.mtrw-resource-marker').forEach(el=>{
+      el.style.display=zoom>=14?'':'none';
     });
     (window.__mtrwGridRects||[]).forEach(rect=>{
       try{
