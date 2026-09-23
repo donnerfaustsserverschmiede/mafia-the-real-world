@@ -31,12 +31,6 @@ function draw(d){
  marker.on('click',e=>{L.DomEvent.stopPropagation(e);offer(d)});
  last=d;
 }
-function ensureAlert(d){
- if(!alertEl){alertEl=document.createElement('button');alertEl.id='weaponDealerAlert';alertEl.type='button';document.body.appendChild(alertEl);alertEl.onclick=()=>{if(last){center(last);offer(last)}}}
- const name=names[d.weapon_type]||'Waffen';
- alertEl.innerHTML=`🔫 <b>WAFFENHÄNDLER AKTIV</b> · ${name} · ${Number(d.price||0).toLocaleString('de-DE')} $/Stück`;
- alertEl.style.display='block';
-}
 async function tick(){
  try{
   const m=window.__mtrwMap;if(!db()||!m)return;
