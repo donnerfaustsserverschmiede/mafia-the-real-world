@@ -35,7 +35,7 @@ async function tick(){
  try{
   const m=window.__mtrwMap;if(!db()||!m)return;
   const d=await rpc('mtrw_weapon_dealer_state');
-  if(d?.active){last=d;draw(d);ensureAlert(d)}else{removeMarker();hideAlert();last=null}
+  if(d?.active){last=d;draw(d)}else{removeMarker();last=null}
  }catch(e){}
 }
 function boot(){if(timer)return;tick();timer=setInterval(tick,5000);window.addEventListener('mtrw:location-updated',tick)}
