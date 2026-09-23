@@ -1,7 +1,7 @@
 /* MAFIVERA — random hourly weapon dealer */
 (()=>{'use strict';
 if(window.__mtrwWeaponDealerLoaded)return;window.__mtrwWeaponDealerLoaded=true;
-let marker=null,last=null,alertEl=null,timer=null;
+let marker=null,last=null,timer=null;
 const db=()=>window.db;
 const names={weapon_melee:'Hieb- und Stichwaffen',weapon_handgun:'Handfeuerwaffen',weapon_smg:'Kleine Langwaffen / Maschinenpistolen',weapon_longarm:'Langwaffen'};
 const invKeys={weapon_melee:'melee',weapon_handgun:'handguns',weapon_smg:'smgs',weapon_longarm:'longarms'};
