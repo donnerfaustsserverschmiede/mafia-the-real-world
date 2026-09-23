@@ -10,7 +10,7 @@ const css=document.createElement('style');css.textContent=`
 `;document.head.appendChild(css);
 const root=document.createElement('div');root.id='mtrwMailbox';root.innerHTML='<button id="mtrwMailboxBtn" aria-label="Mailbox">📬<span id="mtrwMailboxBadge"></span></button><div id="mtrwMailboxPanel"><div class="mtrw-mh"><b>📬 Mailbox</b><button class="mtrw-close">×</button></div><div id="mtrwMailboxList">Lade…</div></div>';document.body.appendChild(root);
 const list=root.querySelector('#mtrwMailboxList'),badge=root.querySelector('#mtrwMailboxBadge'),panel=root.querySelector('#mtrwMailboxPanel');
-const centerEvent=async n=>{const d=n?.action_data||{};const lat=Number(d.lat??d.latitude??d.gps_lat),lng=Number(d.lng??d.longitude??d.gps_lng);if(!Number.isFinite(lat)||!Number.isFinite(lng)||!window.__mtrwMap)return false;panel.classList.remove('open');const map=window.__mtrwMap;map.setView([lat,lng],Math.max(map.getZoom(),17),{animate:true});setTimeout(()=>{try{map.setView([lat,lng],Math.max(map.getZoom(),17),{animate:false})}catch(_){}} ,500);return true};
+const centerEvent=async n=>{const d=n?.action_data||{};const lat=Number(d.lat??d.latitude),lng=Number(d.lng??d.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng)||!window.__mtrwMap)return false;panel.classList.remove('open');window.__mtrwMap.setView([lat,lng],Math.max(window.__mtrwMap.getZoom(),17),{animate:true});return true};
 root.querySelector('#mtrwMailboxBtn').onclick=()=>{panel.classList.toggle('open');if(panel.classList.contains('open'))load()};
 root.querySelector('.mtrw-close').onclick=()=>panel.classList.remove('open');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
