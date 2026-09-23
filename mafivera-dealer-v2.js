@@ -1,7 +1,7 @@
 /* MAFIVERA V2 — dealer marker, persistent during active offer, dismissible per slot */
 (()=>{'use strict';
 if(window.__mtrwDealerV2Loaded)return;window.__mtrwDealerV2Loaded=true;
-let marker=null,last=null,alertEl=null,timer=null;
+let marker=null,last=null,timer=null;
 const db=()=>window.db,DISMISS_KEY='mtrw_dealer_dismissed_until';
 async function rpc(n,a={}){const r=await db().rpc(n,a);if(r.error)throw r.error;return r.data}
 const names={cocaine:'Kokain',weed:'Cannabis',meth:'Meth',heroin:'Heroin'};
