@@ -1,25 +1,5 @@
-/* MAFIVERA – dealer notifications: mailbox only
-   Dealer / weapon-dealer spawn messages are intentionally NOT shown as left-side alerts.
-   The mailbox is the single notification channel. Clicking the mailbox entry centers the map.
-*/
+/* MAFIVERA – dealer alert only locates; dealer opens on marker tap */
 (()=>{'use strict';
-function removeSpawnAlerts(){
-  const selectors=[
-    '#dealerAlert',
-    '#weaponDealerAlert',
-    '[data-dealer-alert]',
-    '[data-weapon-dealer-alert]',
-    '.dealer-alert',
-    '.weapon-dealer-alert'
-  ];
-  selectors.forEach(sel=>{
-    document.querySelectorAll(sel).forEach(el=>{
-      try{el.remove()}catch(_){el.style.display='none'}
-    });
-  });
-}
-removeSpawnAlerts();
-const observer=new MutationObserver(removeSpawnAlerts);
-observer.observe(document.documentElement,{childList:true,subtree:true});
-setTimeout(()=>observer.disconnect(),30000);
+function locateDealer(){const map=window.__mtrwMap;if(!map)return;let target=null;map.eachLayer(l=>{if(!target&&l.getLatLng&&l._icon?.classList?.contains('dealer-marker'))target=l});if(!target){const el=document.querySelector('.dealer-marker');if(el){const r=el.getBoundingClientRect(),c=map.getContainer().getBoundingClientRect();try{target={getLatLng:()=>map.containerPointToLatLng([(r.left+r.width/2)-c.left,(r.top+r.height/2)-c.top])}}catch(e){}}}if(target)map.setView(target.getLatLng(),map.getZoom(),{animate:true});else window.mtrwToast?.('Dealer ist gerade nicht verfügbar.',true)}
+document.addEventListener('click',e=>{const b=e.target.closest?.('#dealerAlert');if(!b)return;e.preventDefault();e.stopImmediatePropagation();locateDealer()},true);
 })();
