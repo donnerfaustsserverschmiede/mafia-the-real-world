@@ -13,7 +13,7 @@ const GLAT=.0018,GLNG=.0025;
 const OVERPASS='https://overpass-api.de/api/interpreter';
 const cache=new Map();
 const allCounts=new Map();
-const rendered=new Map();
+const rendered=new Map();\nconst tileLayers=new Map();
 let map=null,overlay=null,skullLayer=null,lastQueryKey='',busy=false,pending=false;
 
 window.__mtrwHeistZones=new Set();
@@ -87,7 +87,7 @@ function redraw(){
 function mergeCounts(counts){
  for(const[k,count]of Object.entries(counts)){
    const n=Number(count)||0;
-   if(n>0)allCounts.set(k,(allCounts.get(k)||0)+n);
+   if(n>0)allCounts.set(k,Math.max(allCounts.get(k)||0,n));
  }
 }
 
