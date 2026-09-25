@@ -87,7 +87,7 @@ async function refresh(force=false){
  if(busy)return;
  busy=true;
  try{
-   let counts=cache.get(key);
+   lastQueryKey=key;\n   let counts=cache.get(key);
    if(!counts){
      const elements=await query(north,south,east,west);
      counts={};
