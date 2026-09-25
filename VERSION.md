@@ -1,12 +1,24 @@
-# MAFIVERA V5
+# MAFIVERA V6.1.0
 
-**Release:** 22.09.2026  
+**Release:** 25.09.2026  
 **Status:** Aktuelle veröffentlichte Spielversion
 
-## Release-Stand
+## Razzia-System
+- Zufällige Polizeirazzien gegen eigene Gebäude, solange der Spieler online ist.
+- Das Hauptquartier (HQ) ist ausdrücklich von Razzien ausgeschlossen.
+- Das betroffene Feld blinkt während der Razzia blau-rot.
+- Die Razzia erscheint in der Mailbox und kann direkt zum betroffenen Feld führen.
+- Spieler können Schläger zur Verteidigung entsenden.
+- Die Polizeistärke wurde für eine anspruchsvollere, aber weiterhin spielbare Herausforderung erhöht.
+- Bei erfolgreicher Verteidigung bleibt das Gebäude und Inventar unverändert.
+- Bei einer verlorenen Razzia greifen die vorgesehenen Geld-, Material- und Item-Verluste des angegriffenen Gebäudes.
+- Ergebnis der Razzia wird anschließend ebenfalls in der Mailbox dokumentiert.
 
-V5 ist der aktuelle gespeicherte Entwicklungs- und Veröffentlichungsstand von MAFIVERA – The Real World.
+## Admin
+- Der temporäre Master-Testknopf „Razzia testen“ wurde aus der Admin-Zentrale entfernt.
+- Das normale Razzia-System bleibt unverändert für alle Spieler aktiv.
 
-Enthalten sind unter anderem die überarbeiteten Marsch- und Gebietssysteme, Mafia-Familienränge und Beförderungen, das isolierte Admin-System, globale Lootboxen, der stündliche Waffenhändler sowie die überarbeitete Push-Infrastruktur.
+## Allgemeine Stabilität
+- Bestehende Familien-, Gebiets-, Marsch-, Händler-, Lootbox- und Admin-Systeme bleiben erhalten.
 
-Der vollständige Änderungsverlauf steht in [CHANGELOG.md](./CHANGELOG.md).
+Weitere Informationen, Updates und Support gibt es im offiziellen Discord.
