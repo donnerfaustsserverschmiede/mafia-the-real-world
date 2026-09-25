@@ -64,7 +64,7 @@ function colorFor(count){
 
 function addTile(k,count){
  if(!map||!overlay||rendered.get(k)===count)return;
- const m=/^z_(-?\\d+)_(-?\\d+)$/.exec(k);
+ const m=/^z_(-?\d+)_(-?\d+)$/.exec(k);
  if(!m)return;
  const r=Number(m[1]),c=Number(m[2]);
  const col=colorFor(count);
