@@ -1,7 +1,7 @@
 /* MAFIVERA – central version/update checker */
 (()=>{'use strict';
 if(window.__mtrwUpdateLoaded)return;window.__mtrwUpdateLoaded=true;
-const CURRENT='6.0.0';
+const CURRENT='6.1.1';
 const VERSION_URL='./version.json';
 let checking=false;
 function css(){if(document.getElementById('mtrwUpdateStyle'))return;const s=document.createElement('style');s.id='mtrwUpdateStyle';s.textContent='.mtrw-update-overlay{position:fixed;inset:0;z-index:300000;display:none;align-items:center;justify-content:center;background:#000b;backdrop-filter:blur(7px);padding:20px}.mtrw-update-overlay.show{display:flex}.mtrw-update-card{width:min(92vw,390px);padding:26px 22px;text-align:center;color:#fff;border:1px solid #d6a63a;border-radius:22px;background:linear-gradient(180deg,#202630,#0c1016);box-shadow:0 25px 80px #000e}.mtrw-update-icon{font-size:54px;margin-bottom:8px}.mtrw-update-card h2{margin:0 0 8px;font-size:23px}.mtrw-update-card p{margin:8px 0;color:#bfc7d1;line-height:1.45}.mtrw-update-version{color:#ffd66b;font-weight:900;margin:12px 0}.mtrw-update-btn{width:100%;margin-top:12px;padding:14px 18px;border:1px solid #e2b64e;border-radius:13px;background:linear-gradient(180deg,#e1b341,#9f7118);color:#111;font:900 16px system-ui;cursor:pointer}.mtrw-update-btn:disabled{opacity:.65;cursor:wait}.mtrw-update-status{min-height:20px;margin-top:10px;font-size:12px;color:#aeb7c3}';document.head.appendChild(s)}
