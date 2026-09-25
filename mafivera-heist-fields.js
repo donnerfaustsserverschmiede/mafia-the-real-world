@@ -98,7 +98,7 @@ async function refresh(force=false){
      }
      cache.set(key,counts);
    }
-   draw(counts);
+   draw(counts); window.mtrwRefreshResourceMarkers?.();
  }catch(e){
    console.warn('MAFIVERA Heist-Ziele:',e);
  }finally{busy=false}
