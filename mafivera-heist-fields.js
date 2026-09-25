@@ -60,9 +60,9 @@ function draw(counts){
    const light=Math.round(38-24*ratio);
    const opacity=Math.min(.78,.36+.10*Math.min(count,5));
    L.rectangle(bounds(r,c),{
-     color:`rgb(${Math.max(75,125-light)},18,24)`,
+     color:`rgb(${red},18,24)`,
      weight:1,
-     fillColor:`rgb(${Math.max(58,105-light)},8,15)`,
+     fillColor:`rgb(${Math.max(35,red-20)},8,15)`,
      fillOpacity:opacity,
      interactive:false,
      className:'mtrw-heist-field'
@@ -108,7 +108,7 @@ function boot(){
  css();
  overlay=L.layerGroup().addTo(map);
  skullLayer=L.layerGroup().addTo(map);
- const legend=document.createElement('div');legend.className='mtrw-heist-legend';legend.textContent='💀 Heist-Ziel';
+ const legend=document.createElement('div');legend.className='mtrw-heist-legend';legend.innerHTML='💀 Heist-Ziel · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:#ddd;text-decoration:none">© OpenStreetMap</a>';
  const host=document.querySelector('.mf-map');if(host&&!host.querySelector('.mtrw-heist-legend'))host.appendChild(legend);
  refresh(true);
  map.on('moveend',()=>refresh(false));
