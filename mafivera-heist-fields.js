@@ -13,7 +13,8 @@ const GLAT=.0018,GLNG=.0025;
 const OVERPASS='https://overpass-api.de/api/interpreter';
 const cache=new Map();
 const allCounts=new Map();
-const rendered=new Map();\nconst tileLayers=new Map();
+const rendered=new Map();
+const tileLayers=new Map();
 let map=null,overlay=null,skullLayer=null,lastQueryKey='',busy=false,pending=false;
 
 window.__mtrwHeistZones=new Set();
@@ -67,16 +68,24 @@ function addTile(k,count){
  if(!m)return;
  const r=Number(m[1]),c=Number(m[2]);
  const col=colorFor(count);
- L.rectangle(tileBounds(r,c),{
+
+ const oldRect=tileLayers.get(k);
+ const oldSkull=tileLayers.get(k+'#skull');
+ if(oldRect){try{overlay.removeLayer(oldRect)}catch(_){}}
+ if(oldSkull){try{skullLayer.removeLayer(oldSkull)}catch(_){}}
+
+ const rect=L.rectangle(tileBounds(r,c),{
    color:col.border,weight:1,fillColor:col.fill,fillOpacity:col.opacity,interactive:false,className:'mtrw-heist-field'
  }).addTo(overlay);
  const[lat,lng]=center(r,c);
- L.marker([lat,lng],{interactive:false,zIndexOffset:1100,icon:L.divIcon({
+ const marker=L.marker([lat,lng],{interactive:false,zIndexOffset:1100,icon:L.divIcon({
    className:'mtrw-heist-skull',html:'<span>💀</span>',iconSize:[38,38],iconAnchor:[19,19]
  })}).addTo(skullLayer);
+
+ tileLayers.set(k,rect);
+ tileLayers.set(k+'#skull',marker);
  rendered.set(k,count);
 }
-
 function redraw(){
  if(!map||!overlay)return;
  for(const[k,count]of allCounts)addTile(k,count);
