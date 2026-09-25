@@ -68,7 +68,7 @@ function render(){
   for(const q of visible){
     const lat=(q.r+.5)*GLAT,lng=(q.c+.5)*GLNG;
     const stored=world[tileKey(q.r,q.c)];
-    const p=stored?.resources?.[0]||baseResourceForTile(q.r,q.c);
+    const k=tileKey(q.r,q.c); if(window.__mtrwHeistZones?.has(k)) continue; const p=stored?.resources?.[0]||baseResourceForTile(q.r,q.c);
     L.marker([lat,lng],{
       interactive:false,
       zIndexOffset:1000,
