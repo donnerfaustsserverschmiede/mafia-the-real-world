@@ -1,9 +1,9 @@
 {
-  "version": "6.1.0",
-  "build": 61000,
+  "version": "6.1.1",
+  "build": 61100,
   "channel": "production",
   "minVersion": "6.0.0",
-  "title": "MAFIVERA 6.1.0",
-  "message": "MAFIVERA 6.1.0 ist da – inklusive Razzia-System.",
+  "title": "MAFIVERA 6.1.1",
+  "message": "MAFIVERA 6.1.1 ist da – Menüs wurden von unnötigen Beschreibungstexten bereinigt.",
   "updated": "2026-09-25"
 }
