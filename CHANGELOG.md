@@ -1,60 +1,35 @@
-# MAFIVERA — Version 5 ist da
+# MAFIVERA — Version 6.1.0 ist da
 
-**Version 5 · 22.09.2026**
+**Version 6.1.0 · 25.09.2026**
 
-Version 5 bündelt die aktuellen großen Änderungen und Fehlerbehebungen von MAFIVERA – The Real World.
+## 🚨 Razzia-System
+- Zufällige Polizeirazzien während der Online-Zeit eines Spielers.
+- Nur das HQ ist von Razzien ausgeschlossen.
+- Das angegriffene Gebäudefeld blinkt während der laufenden Razzia blau-rot.
+- Die Razzia wird über die Mailbox angekündigt.
+- Über die Razzia kann der Spieler Schläger zur Verteidigung entsenden.
+- Die Polizeistärke wurde erhöht, damit die Verteidigung eine echte Herausforderung darstellt.
+- Erfolgreiche Verteidigung schützt Gebäude und Bestand.
+- Bei einer verlorenen Razzia greifen die vorgesehenen Geld-, Material- und Item-Verluste.
+- Razzia-Ergebnisse werden in der Mailbox dokumentiert.
 
-## Marsch- & Gebietssystem
-- Marschsystem repariert: Truppen können wieder korrekt entsendet werden.
-- Gebiete werden nach erfolgreicher Ankunft korrekt dem Spieler übertragen.
-- Truppen können wieder zuverlässig zurückgerufen werden.
-- Der Fehler durch das fehlende PostgreSQL-pg_net-Schema wurde behoben.
-- Push-Fehler können Spielaktionen künftig nicht mehr zurückrollen.
+## 🛡️ Admin-Zentrale
+- Der nur für den Master vorhandene Testknopf „Razzia testen“ wurde nach Abschluss der Tests wieder entfernt.
+- Das reguläre Razzia-System bleibt aktiv.
 
-## Mafia-Familien
-- Neues Mafia-Rangsystem: Don, Underboss, Consigliere und Soldat.
-- Familienmitglieder können innerhalb der erlaubten Rangfolge befördert werden.
-- Beförderungen sind serverseitig abgesichert und können nur vom Don der jeweiligen Familie durchgeführt werden.
-- Bestehende Familien- und Bewerbungsfunktionen bleiben kompatibel.
-
-## Admin-System
-- Admin-Zentrale vom normalen Spiel-Drawer entkoppelt.
-- Eigenes Admin-Overlay mit eigenem Scrollbereich.
-- Stabilere Touch- und Klicksteuerung auf Mobilgeräten.
-- Spielerprofile lassen sich wieder aus der Admin-Zentrale öffnen.
-- Schließen, Zurückkehren und erneutes Öffnen wurden stabilisiert.
-- Bestehende Admin-Hierarchie und Master-Berechtigung bleiben erhalten.
-
-## Lootbox-System
-- Globale Lootbox-Infrastruktur integriert.
-- Lootboxen werden zeitgesteuert in der Umgebung aktiver Spieler erzeugt.
-- Belohnungen können Geld, Material, Waffenteile, Reputation, fertige Drogen und Waffen enthalten.
-- Geöffnete Lootboxen werden global als beansprucht geführt.
-
-## Waffenhändler
-- Waffenhändler erscheint stündlich mit zufälligem Startzeitpunkt innerhalb der Stunde.
-- Zufällige Position, Waffenart, Menge und Preis.
-- Waffenhändler benötigt keine Waffenfabrik, um zu erscheinen.
-
-## Push-Benachrichtigungen
-- Push-System technisch überarbeitet.
-- VAPID-/Service-Worker-Anbindung aktualisiert.
-- Push-Abonnements werden serverseitig gespeichert.
-- Push-Dispatch läuft über die MAFIVERA Push Edge Function.
-- Automatische Reparatur ergänzt: Wenn die Browser-/Android-Berechtigung bereits erteilt ist, aber das Push-Abonnement fehlt, versucht MAFIVERA beim Öffnen der Einstellungen die Registrierung erneut.
-- Push-Versand darf keine Spieltransaktion mehr abbrechen.
-
-## Allgemeine Stabilität
-- Cache-Versionen aktualisiert.
-- Diverse UI-, Interaktions- und Synchronisationsprobleme behoben.
-- Bestehende Master-, Admin-, Familien- und Spielsysteme bleiben erhalten.
+## 🔧 Bestehende Systeme
+- Mafia-Familien und Familienränge
+- Marsch- und Gebietssystem
+- Lootboxen
+- Waffenhändler
+- Dealer
+- Admin-System
+- Mailbox und Ingame-Benachrichtigungen
 
 ---
 
-# Version 5 ist da
+# MAFIVERA 6.1.0
 
-MAFIVERA entwickelt sich weiter: Gebietseroberung, Märsche, Familien, Admin-System, Lootboxen, Waffenhandel und Benachrichtigungen wurden weiter ausgebaut und stabilisiert.
-
-Danke an alle Spieler und Tester, die Fehler melden und damit helfen, MAFIVERA weiterzuentwickeln.
+Die neue Produktionsversion bringt das Razzia-System als regulären Bestandteil von MAFIVERA – The Real World.
 
 Weitere Informationen, Updates und Support gibt es im offiziellen Discord.
