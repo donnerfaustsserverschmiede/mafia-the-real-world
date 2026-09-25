@@ -27,15 +27,15 @@
       const r=await fetch(url,{cache:'no-store',credentials:'same-origin'});
       if(!r.ok)return;
       const html=await r.text();
-      const m=html.match(/window\.__MTRW_BUILD=['\"]([^'\"]+)['\"]/);
+      const m=html.match(/window\\.__MTRW_BUILD=['"]([^'"]+)['"]/);
       const latest=m?.[1]?.trim();
       if(!latest || latest===current())return;
 
-      reloading=true;
-      try{sessionStorage.setItem('mtrw_update_notice','1')}catch(e){}
-      await clearClientCaches();
-      const clean=location.href.replace(/[?&]mtrw_reload=1/g,'').replace(/[?&]mtrw_version_check=[^&]*/g,'');
-      location.replace(clean+(clean.includes('?')?'&':'?')+'mtrw_reload=1');
+      // The visible UPDATE window is the single source of truth.
+      // Never silently reload a player's game.
+      if(typeof window.mtrwCheckForUpdate==='function'){
+        window.mtrwCheckForUpdate();
+      }
     }catch(e){}
   }
 
