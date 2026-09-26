@@ -189,8 +189,23 @@ function boot(){
  fieldPane=map.getPane('mtrwHeistFieldPane')||map.createPane('mtrwHeistFieldPane');fieldPane.style.zIndex='900';fieldPane.style.pointerEvents='auto';
  skullPane=map.getPane('mtrwHeistSkullPane')||map.createPane('mtrwHeistSkullPane');skullPane.style.zIndex='950';skullPane.style.pointerEvents='none';
  overlay=L.layerGroup().addTo(map);skullLayer=L.layerGroup().addTo(map);
- refresh(true);
- map.once('load',()=>refresh(true));setTimeout(()=>refresh(true),3000);setTimeout(()=>refresh(true),10000);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
+ // The map exists before world_territories has finished loading. Do not
+ // filter OSM targets against an empty world and accidentally render nothing.
+ const startWhenWorldReady=()=>{
+   if(Object.keys(window.__mtrwWorld||{}).length){refresh(true);return true}
+   return false;
+ };
+ if(!startWhenWorldReady()){
+   clearInterval(window.__mtrwHeistWorldWait);
+   window.__mtrwHeistWorldWait=setInterval(()=>{
+     if(startWhenWorldReady())clearInterval(window.__mtrwHeistWorldWait);
+   },250);
+   setTimeout(()=>clearInterval(window.__mtrwHeistWorldWait),30000);
+ }
+ map.once('load',()=>{if(Object.keys(window.__mtrwWorld||{}).length)refresh(true)});
+ setTimeout(()=>{if(Object.keys(window.__mtrwWorld||{}).length)refresh(true)},3000);
+ setTimeout(()=>{if(Object.keys(window.__mtrwWorld||{}).length)refresh(true)},10000);
+ map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
  window.mtrwRefreshHeistFields=()=>refresh(true);
 }
 const wait=setInterval(()=>{if(window.__mtrwMap){clearInterval(wait);boot()}},250);setTimeout(()=>clearInterval(wait),30000);
