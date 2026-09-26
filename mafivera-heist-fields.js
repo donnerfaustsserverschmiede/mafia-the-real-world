@@ -195,27 +195,40 @@ async function ensureCentralHeistWorld(){
  try{
    const status=await window.db.rpc('mtrw_heist_world_sync_status');
    if(status.error)throw status.error;
-   const d=status.data||{};
+   let d=status.data||{};
+
    if(Number(d.field_count)>0||d.status==='ready'){
      await loadCentralHeistFields();
      return;
    }
-   // Only the first client that reaches an empty world performs the
-   // one-time OSM -> Supabase world synchronization.
-   const res=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mafivera-heist-osm',{
-     method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
-     body:JSON.stringify({sync_world:true}),cache:'no-store'
+
+   // The world build is a one-time server operation. Use GET so the
+   // browser does not need a CORS preflight for the public sync trigger.
+   const res=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mafivera-heist-osm?sync_world=true',{
+     method:'GET',cache:'no-store',headers:{Accept:'application/json'}
    });
    const out=await res.json().catch(()=>({}));
    if(!res.ok)throw Error(out?.error||('world_sync_http_'+res.status));
+
+   // If another player is currently building the world, wait for that
+   // central sync to finish instead of treating an empty table as final.
+   if(out?.status==='syncing'){
+     const until=Date.now()+90000;
+     while(Date.now()<until){
+       await new Promise(ok=>setTimeout(ok,3000));
+       const s=await window.db.rpc('mtrw_heist_world_sync_status');
+       if(s.error)break;
+       d=s.data||{};
+       if(Number(d.field_count)>0||d.status==='ready')break;
+     }
+   }
+
    await loadCentralHeistFields();
  }catch(e){
    console.warn('MAFIVERA Heist-Welt-Sync:',e);
-   // Existing central fields remain usable even if the sync request fails.
    await loadCentralHeistFields();
  }
 }
-
 function refreshCentralHeistView(){
  loadCentralHeistFields();
 }
