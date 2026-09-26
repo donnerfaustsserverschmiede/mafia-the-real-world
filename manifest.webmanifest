@@ -4,16 +4,16 @@
   "description":"MAFIVERA – Die Welt gehört dir.",
   "lang":"de",
   "dir":"ltr",
-  "start_url":"./",
+  "start_url":"./?mtrw_app=1",
   "scope":"./",
-  "id":"./",
-  "display":"standalone",
+  "id":"mafivera-app",
+  "display":"standalone","display_override":["standalone"],
   "background_color":"#05080d",
   "theme_color":"#05080d",
-  "orientation":"portrait-primary",
+  "orientation":"portrait-primary","prefer_related_applications":false,
   "icons":[
-    {"src":"./assets/mafivera-icon-192.svg?v=20260926-05","sizes":"192x192","type":"image/svg+xml","purpose":"any"},
-    {"src":"./assets/mafivera-icon-512.svg?v=20260926-05","sizes":"512x512","type":"image/svg+xml","purpose":"any"}
+    {"src":"./assets/mafivera-logo.webp?v=20260926-07","sizes":"192x192","type":"image/webp","purpose":"any"},
+    {"src":"./assets/mafivera-logo.webp?v=20260926-07","sizes":"512x512","type":"image/webp","purpose":"any"}
   ],
   "categories":["games","entertainment"]
 }
