@@ -166,72 +166,60 @@ async function syncServer(){
  }finally{syncBusy=false}
 }
 
-async function preloadRegisteredFields(){
+async function loadCentralHeistFields(){
  if(!map||!window.db)return false;
  try{
-   const b=map.getBounds(),world=window.__mtrwWorld||{};
+   const bounds=map.getBounds(),world=window.__mtrwWorld||{};
    const r=await window.db.from('mtrw_heist_fields').select('zone_key,target_count');
    if(r.error)throw r.error;
    const rows=Array.isArray(r.data)?r.data:[];
-   const visible={};
+   allCounts.clear();
    for(const row of rows){
-     const k=String(row?.zone_key||'');
-     const w=world[k]; if(!w)continue;
+     const k=String(row?.zone_key||''),w=world[k];
+     if(!w)continue;
      const lat=Number(w.center_lat),lng=Number(w.center_lng);
-     if(Number.isFinite(lat)&&Number.isFinite(lng)&&b.contains([lat,lng])) visible[k]=Math.max(1,Number(row.target_count)||1);
+     if(Number.isFinite(lat)&&Number.isFinite(lng)&&bounds.contains([lat,lng]))
+       allCounts.set(k,Math.max(1,Number(row.target_count)||1));
    }
-   if(rows.length){
-     for(const[k,n]of Object.entries(visible))allCounts.set(k,n);
-     redraw();
-   }
-   window.__mtrwHeistScanStatus=rows.length?'server-ready':'waiting';
+   redraw();
+   window.__mtrwHeistScanStatus=rows.length?'central-ready':'waiting';
    return rows.length>0;
  }catch(e){
-   console.warn('MAFIVERA Heist-Schnellstart:',e);
+   window.__mtrwHeistScanStatus='error';
+   console.warn('MAFIVERA zentrale Heistkarte:',e);
    return false;
  }
 }
 
-async function refresh(force=false){
- if(!map)return;
- const b=map.getBounds(),south=b.getSouth(),west=b.getWest(),north=b.getNorth(),east=b.getEast(),step=.05;
- const key=[Math.floor(south/step),Math.floor(west/step),Math.floor(north/step),Math.floor(east/step)].join(':');
- if(busy){pending=true;return}
- if(!force&&key===lastQueryKey)return;
- busy=true;
+async function ensureCentralHeistWorld(){
  try{
-   lastQueryKey=key;
-   window.__mtrwHeistScanStatus='scanning';
-   let counts=cache.get(key);
-   if(!counts){
-     const elements=await query(north,south,east,west);counts={};
-     for(const el of elements){
-       const p=targetPoint(el);if(!p||!Number.isFinite(p[0])||!Number.isFinite(p[1]))continue;
-       const q=cell(p[0],p[1]),k=tileKey(q.r,q.c);counts[k]=(counts[k]||0)+1;
-     }
-     cache.set(key,counts);
-     if(Object.keys(counts).length){
-       try{localStorage.setItem('mtrw_heist_cache_v2',JSON.stringify({at:Date.now(),key,counts}))}catch(_){}
-     }
+   const status=await window.db.rpc('mtrw_heist_world_sync_status');
+   if(status.error)throw status.error;
+   const d=status.data||{};
+   if(Number(d.field_count)>0||d.status==='ready'){
+     await loadCentralHeistFields();
+     return;
    }
-   allCounts.clear();
-   const world=window.__mtrwWorld||{};
-   for(const[k,count]of Object.entries(counts||{})){
-     const n=Number(count)||0;
-     if(n>0 && world[k]) allCounts.set(k,n);
-   }
-   redraw();
-   window.__mtrwHeistScanStatus='ok';
-   await syncServer();
- }catch(e){window.__mtrwHeistScanStatus='error';console.warn('MAFIVERA Heist-Ziele:',e)}
- finally{
-   busy=false;
-   if(pending){pending=false;const now=map?.getBounds();if(now){
-     const nk=[Math.floor(now.getSouth()/.05),Math.floor(now.getWest()/.05),Math.floor(now.getNorth()/.05),Math.floor(now.getEast()/.05)].join(':');
-     if(nk!==lastQueryKey)refresh(false);
-   }}
+   // Only the first client that reaches an empty world performs the
+   // one-time OSM -> Supabase world synchronization.
+   const res=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mafivera-heist-osm',{
+     method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+     body:JSON.stringify({sync_world:true}),cache:'no-store'
+   });
+   const out=await res.json().catch(()=>({}));
+   if(!res.ok)throw Error(out?.error||('world_sync_http_'+res.status));
+   await loadCentralHeistFields();
+ }catch(e){
+   console.warn('MAFIVERA Heist-Welt-Sync:',e);
+   // Existing central fields remain usable even if the sync request fails.
+   await loadCentralHeistFields();
  }
 }
+
+function refreshCentralHeistView(){
+ loadCentralHeistFields();
+}
+
 
 function boot(){
  map=window.__mtrwMap;if(!map||typeof L==='undefined')return;
@@ -239,41 +227,25 @@ function boot(){
  fieldPane=map.getPane('mtrwHeistFieldPane')||map.createPane('mtrwHeistFieldPane');fieldPane.style.zIndex='900';fieldPane.style.pointerEvents='auto';
  skullPane=map.getPane('mtrwHeistSkullPane')||map.createPane('mtrwHeistSkullPane');skullPane.style.zIndex='950';skullPane.style.pointerEvents='none';
  overlay=L.layerGroup().addTo(map);skullLayer=L.layerGroup().addTo(map);
- // The map exists before world_territories has finished loading. Do not
- // filter OSM targets against an empty world and accidentally render nothing.
- const startWhenWorldReady=()=>{
-   if(Object.keys(window.__mtrwWorld||{}).length){
-     // Draw known Heist fields immediately from the last local scan and
-     // server registration, then refresh OSM in the background.
-     try{
-       const raw=localStorage.getItem('mtrw_heist_cache_v2');
-       const saved=raw?JSON.parse(raw):null;
-       if(saved?.counts && Date.now()-Number(saved.at||0)<24*60*60*1000){
-         allCounts.clear();
-         const world=window.__mtrwWorld||{};
-         for(const[k,v]of Object.entries(saved.counts)){
-           if(world[k] && Number(v)>0)allCounts.set(k,Number(v));
-         }
-         redraw();
-       }
-     }catch(_){}
-     preloadRegisteredFields().finally(()=>refresh(true));
-     return true;
-   }
-   return false;
- };
- if(!startWhenWorldReady()){
+
+ const waitForWorld=()=>{
+   if(!Object.keys(window.__mtrwWorld||{}).length)return false;
    clearInterval(window.__mtrwHeistWorldWait);
-   window.__mtrwHeistWorldWait=setInterval(()=>{
-     if(startWhenWorldReady())clearInterval(window.__mtrwHeistWorldWait);
-   },250);
+   // First paint comes from the central database, not from a fresh OSM scan.
+   ensureCentralHeistWorld();
+   return true;
+ };
+ if(!waitForWorld()){
+   clearInterval(window.__mtrwHeistWorldWait);
+   window.__mtrwHeistWorldWait=setInterval(()=>waitForWorld(),250);
    setTimeout(()=>clearInterval(window.__mtrwHeistWorldWait),30000);
  }
- map.once('load',()=>{if(Object.keys(window.__mtrwWorld||{}).length)refresh(true)});
- setTimeout(()=>{if(Object.keys(window.__mtrwWorld||{}).length)refresh(true)},3000);
- setTimeout(()=>{if(Object.keys(window.__mtrwWorld||{}).length)refresh(true)},10000);
- map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
- window.mtrwRefreshHeistFields=()=>refresh(true);
+ map.on('moveend',refreshCentralHeistView);
+ map.on('zoomend',refreshCentralHeistView);
+ clearInterval(window.__mtrwHeistRefreshTimer);
+ // Refresh the visible slice only; never re-run OSM.
+ window.__mtrwHeistRefreshTimer=setInterval(refreshCentralHeistView,30000);
+ window.mtrwRefreshHeistFields=refreshCentralHeistView;
 }
 const wait=setInterval(()=>{if(window.__mtrwMap){clearInterval(wait);boot()}},250);setTimeout(()=>clearInterval(wait),30000);
 })();
