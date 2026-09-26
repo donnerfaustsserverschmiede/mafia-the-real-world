@@ -6,6 +6,7 @@ const db=()=>window.db;
 const names={weapon_melee:'Hieb- und Stichwaffen',weapon_handgun:'Handfeuerwaffen',weapon_smg:'Kleine Langwaffen / Maschinenpistolen',weapon_longarm:'Langwaffen'};
 const invKeys={weapon_melee:'melee',weapon_handgun:'handguns',weapon_smg:'smgs',weapon_longarm:'longarms'};
 function rpc(n,a={}){return db().rpc(n,a).then(r=>{if(r.error)throw r.error;return r.data})}
+function hideAlert(){const a=document.getElementById('dealerAlert');if(a)a.remove();const w=document.getElementById('weaponDealerAlert');if(w)w.remove()}
 function toast(t,e=false){const x=document.getElementById('toast');if(x){x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',2800)}}
 function coords(d){const lat=Number(d?.lat),lng=Number(d?.lng);return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?[lat,lng]:null}
 function removeMarker(){if(marker){marker.remove();marker=null}}
