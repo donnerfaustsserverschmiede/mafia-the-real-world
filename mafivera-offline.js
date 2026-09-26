@@ -20,7 +20,7 @@ async function ensure(){if(ready)return state;state=await read()||{profile:null,
 function localBootstrap(){return state?.profile?{profile:clone(state.profile)}:null}
 function queue(name,args){state.queue.push({id:crypto.randomUUID(),name,args:clone(args),created_at:new Date().toISOString()});state.updated_at=Date.now();write(state)}
 function saveProfile(p){state.profile={...state.profile,...clone(p)}}
-function save(){state.updated_at=Date.now();write(state)}
+function save(){state.updated_at=Date.now();window.__mtrwProfile=clone(state.profile||{});const p=state.profile||{};[['hudMoney',p.money],['hudMaterial',p.material],['hudHitmen',p.hitmen],['hudLevel',p.level],['hudDrugs',p.product]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=Number(v||0).toLocaleString('de-DE')});const wp=document.getElementById('hudWeaponParts');if(wp)wp.textContent=Number(p.weapon_parts||0).toLocaleString('de-DE')+'/'+Number(p.weapon_parts_cap||10000).toLocaleString('de-DE');write(state);window.dispatchEvent(new CustomEvent('mtrw:offline-updated',{detail:{profile:clone(state.profile)}}))}
 function remember(k,v){state=state||{profile:null,world:{},queue:[],updated_at:0};state[k]=clone(v);save()}
 function localResult(name,a){
  const p=state.profile||{},w=state.world||{};
@@ -45,8 +45,8 @@ function localResult(name,a){
  if(name==='mafivera_station'){const z=w[a.p_zone_key]||{};const n=Math.max(1,Number(a.p_count||1));if(Number(p.hitmen||0)<n)throw Error('Nicht genügend Schläger.');p.hitmen-=n;w[a.p_zone_key]={...z,garrison:Number(z.garrison||0)+n};saveProfile(p);queue(name,a);save();return {success:true}}
  if(name==='mafivera_recall'){const z=w[a.p_zone_key]||{};const n=Math.max(1,Number(a.p_count||1));if(Number(z.garrison||0)<n)throw Error('Nicht genügend stationierte Schläger.');p.hitmen=Number(p.hitmen||0)+n;w[a.p_zone_key]={...z,garrison:Number(z.garrison||0)-n};saveProfile(p);queue(name,a);save();return {recalled:n}}
  if(name==='mafivera_sell_products'){const n=Math.max(1,Number(a.p_count||1));if(Number(p.product||0)<n)throw Error('Nicht genügend Produkte.');p.product-=n;p.money=Number(p.money||0)+n*100;saveProfile(p);queue(name,a);save();return {success:true,money:p.money}}
- if(name==='mtrw_sell_to_dealer'){const n=Math.max(1,Number(a.p_quantity||1));p.product=Math.max(0,Number(p.product||0)-n);p.money=Number(p.money||0)+n*1000;saveProfile(p);queue(name,a);return {success:true,sold:n,earned:n*1000,money:p.money}}
- if(name==='mtrw_sell_weapon_to_dealer'){const n=Math.max(1,Number(a.p_quantity||1));p.money=Number(p.money||0)+n*500;saveProfile(p);queue(name,a);return {success:true,sold:n,earned:n*500,money:p.money}}
+ if(name==='mtrw_sell_to_dealer'){state.dealer=null;const n=Math.max(1,Number(a.p_quantity||1));p.product=Math.max(0,Number(p.product||0)-n);p.money=Number(p.money||0)+n*1000;saveProfile(p);queue(name,a);return {success:true,sold:n,earned:n*1000,money:p.money}}
+ if(name==='mtrw_sell_weapon_to_dealer'){state.weaponDealer=null;const n=Math.max(1,Number(a.p_quantity||1));p.money=Number(p.money||0)+n*500;saveProfile(p);queue(name,a);return {success:true,sold:n,earned:n*500,money:p.money}}
  throw Error('OFFLINE_UNSUPPORTED');
 }
 function renderProduction(){
