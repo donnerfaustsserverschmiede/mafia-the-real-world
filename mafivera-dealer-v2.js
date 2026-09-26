@@ -3,7 +3,7 @@
 if(window.__mtrwDealerV2Loaded)return;window.__mtrwDealerV2Loaded=true;
 let marker=null,last=null,alertEl=null,timer=null;
 const db=()=>window.db,DISMISS_KEY='mtrw_dealer_dismissed_until';
-async function rpc(n,a={}){const r=await db().rpc(n,a);if(r.error)throw r.error;return r.data}
+async function rpc(n,a={}){try{const r=await db().rpc(n,a);if(r.error)throw r.error;window.__mtrwOfflineCore?.remember?.('dealer',n==='mtrw_dealer_state'?r.data:null);return r.data}catch(e){if(window.__mtrwOfflineCore?.networkError(e)&&window.__mtrwOfflineCore?.handle)return window.__mtrwOfflineCore.handle(n,a);throw e}}
 const names={cocaine:'Kokain',weed:'Cannabis',meth:'Meth',heroin:'Heroin'};
 function hideAlert(){const a=document.getElementById('dealerAlert');if(a)a.remove();const w=document.getElementById('weaponDealerAlert');if(w)w.remove()}
 function toast(t,e=false){const x=document.getElementById('toast');if(x){x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',2800)}}
