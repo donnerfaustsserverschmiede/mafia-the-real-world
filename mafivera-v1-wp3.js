@@ -45,6 +45,7 @@ const WEAPON_RECIPES={weapon_melee:{name:'Hieb- und Stichwaffen',parts:10,second
 function productionTime(sec){const s=Math.max(1,Math.round(Number(sec)||0));if(s<60)return s+' Sek.';const m=Math.floor(s/60),r=s%60;return m+' Min.'+(r?' '+String(r).padStart(2,'0')+' Sek.':'')}
 function productionJobHtml(j,isWeapon){const recipes=isWeapon?WEAPON_RECIPES:DRUG_RECIPES,r=recipes[j.drug_type]||{name:isWeapon?'Waffe':'Drogenproduktion'},finish=new Date(j.finish_at).getTime();return `<div class="task-card"><div><b>${isWeapon?'🏭':'⚗️'} ${esc(r.name)} · ${fmt(j.quantity)} Stück</b><small>${isWeapon?'Waffenteile':'Material'}: ${fmt(j.material_cost)} · Fertig: <span data-production-countdown data-finish="${finish}">wird berechnet…</span></small></div><button class="mini danger" data-action="cancel-production" data-zone="${j.id}">✖ Abbrechen</button></div>`}
 async function production(){
+ if(window.__mtrwOfflineCore?.isOffline())return window.__mtrwOfflineCore.renderProduction?.();
  clearInterval(prodTimer);
  try{await rpc('mtrw_collect_drug_production')}catch(e){}
  try{await rpc('mtrw_collect_weapon_production')}catch(e){}
