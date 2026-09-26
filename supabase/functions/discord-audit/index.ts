@@ -21,7 +21,7 @@ function clean(value: unknown, depth = 0): unknown {
 }
 
 function nameOf(data: any, fallback = 'Unbekannter Spieler'): string {
-  return String(data?.mafia_name || data?.username || data?.display_name || data?.name || fallback);
+  return String(data?.username || data?.display_name || data?.name || fallback);
 }
 
 function num(v: any): string {
@@ -48,7 +48,7 @@ async function resolvePlayer(ctx: any, id: string | null, data: any): Promise<st
   try {
     const { data: p } = await ctx.supabaseAdmin
       .from('profiles')
-      .select('mafia_name,username')
+      .select('username')
       .eq('id', id)
       .maybeSingle();
     return nameOf(p, id.slice(0, 8));
