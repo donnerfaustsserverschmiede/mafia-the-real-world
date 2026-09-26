@@ -1,4 +1,4 @@
-/* MAFIVERA — Heist-Ziel-Analyse
+/* MAFIVERA — Heist-Ziel-Analyse · OSM via Supabase Edge Function
    - ermittelt Läden, Banken und ähnliche OSM-Ziele
    - färbt betroffene Spielfelder dunkelrot
    - markiert sie als Event-Felder
@@ -14,6 +14,7 @@ const cache=new Map(),allCounts=new Map(),rendered=new Map(),tileLayers=new Map(
 let map=null,overlay=null,skullLayer=null,lastQueryKey='',busy=false,pending=false,syncBusy=false;
 
 window.__mtrwHeistZones=new Set();
+window.__mtrwHeistScanStatus='waiting';
 
 const tileKey=(r,c)=>'z_'+r+'_'+c;
 const cell=(lat,lng)=>({r:Math.floor(lat/GLAT),c:Math.floor(lng/GLNG)});
@@ -39,23 +40,52 @@ function targetPoint(el){
 }
 
 async function query(north,south,east,west){
- const q=`[out:json][timeout:25];(
- nwr["shop"](${south},${west},${north},${east});
- nwr["amenity"~"bank|casino|fuel|pharmacy|post_office|money_transfer"](${south},${west},${north},${east});
- nwr["office"~"bank|insurance"](${south},${west},${north},${east});
-);out center tags;`;
- let lastErr=null;
- for(const endpoint of OVERPASS){
-   try{
-     const res=await fetch(endpoint+'?data='+encodeURIComponent(q),{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
-     if(!res.ok)throw Error('Overpass HTTP '+res.status);
-     const data=await res.json();
-     return data.elements||[];
-   }catch(e){lastErr=e;}
- }
- throw lastErr||Error('Overpass nicht erreichbar');
-}
+  const payload={north:Number(north),south:Number(south),east:Number(east),west:Number(west)};
+  const jwt=window.db?.auth ? (await window.db.auth.getSession())?.data?.session?.access_token : null;
 
+  // OSM is queried through our Supabase Edge Function. This avoids browser
+  // CORS/network restrictions that made direct Overpass requests silently fail
+  // in the installed/Android browser.
+  try{
+    const res=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mafivera-heist-osm',{
+      method:'POST',
+      cache:'no-store',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json',
+        ...(jwt?{Authorization:'Bearer '+jwt}:{})
+      },
+      body:JSON.stringify(payload)
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw Error(data?.error||('Heist-OSM HTTP '+res.status));
+    return Array.isArray(data?.elements)?data.elements:[];
+  }catch(edgeError){
+    console.warn('MAFIVERA Heist-OSM Edge:',edgeError);
+    // Fallback for environments where the Edge Function is temporarily
+    // unavailable. The client still tries public Overpass endpoints.
+    const q=`[out:json][timeout:20];(
+      nwr["shop"](${south},${west},${north},${east});
+      nwr["amenity"~"bank|casino|fuel|pharmacy|post_office|money_transfer"](${south},${west},${north},${east});
+      nwr["office"~"bank|insurance"](${south},${west},${north},${east});
+    );out center tags;`;
+    let lastErr=edgeError;
+    for(const endpoint of OVERPASS){
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),18000);
+      try{
+        const res=await fetch(endpoint+'?data='+encodeURIComponent(q),{
+          method:'GET',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal
+        });
+        if(!res.ok)throw Error('Overpass HTTP '+res.status);
+        const data=await res.json();
+        return data.elements||[];
+      }catch(e){lastErr=e}
+      finally{clearTimeout(timeout)}
+    }
+    throw lastErr||Error('Overpass nicht erreichbar');
+  }
+}
 function colorFor(count){
  const n=Math.min(Math.max(Number(count)||1,1),8);
  const red=Math.max(48,132-(n-1)*12),green=Math.max(7,28-(n-1)*3),blue=Math.max(9,32-(n-1)*3);
@@ -109,6 +139,7 @@ async function refresh(force=false){
  busy=true;
  try{
    lastQueryKey=key;
+   window.__mtrwHeistScanStatus='scanning';
    let counts=cache.get(key);
    if(!counts){
      const elements=await query(north,south,east,west);counts={};
@@ -121,8 +152,9 @@ async function refresh(force=false){
    allCounts.clear();
    for(const[k,count]of Object.entries(counts||{})){const n=Number(count)||0;if(n>0)allCounts.set(k,n)}
    redraw();
+   window.__mtrwHeistScanStatus='ok';
    await syncServer();
- }catch(e){console.warn('MAFIVERA Heist-Ziele:',e)}
+ }catch(e){window.__mtrwHeistScanStatus='error';console.warn('MAFIVERA Heist-Ziele:',e)}
  finally{
    busy=false;
    if(pending){pending=false;const now=map?.getBounds();if(now){
@@ -138,7 +170,8 @@ function boot(){
  const legend=document.createElement('div');legend.className='mtrw-heist-legend';
  legend.innerHTML='💀 Heist-Ziel · Event-Feld · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:#ddd;text-decoration:none">© OpenStreetMap</a>';
  const host=document.querySelector('.mf-map');if(host&&!host.querySelector('.mtrw-heist-legend'))host.appendChild(legend);
- refresh(true);setTimeout(()=>refresh(true),3000);setTimeout(()=>refresh(true),10000);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
+ refresh(true);
+ map.once('load',()=>refresh(true));setTimeout(()=>refresh(true),3000);setTimeout(()=>refresh(true),10000);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
  window.mtrwRefreshHeistFields=()=>refresh(true);
 }
 const wait=setInterval(()=>{if(window.__mtrwMap){clearInterval(wait);boot()}},250);setTimeout(()=>clearInterval(wait),30000);
