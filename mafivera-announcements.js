@@ -2,7 +2,39 @@
 (()=>{'use strict';let last='';const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 async function loadAnnouncements(){try{const rows=await window.db.rpc('mtrw_active_announcements');if(rows.error)throw rows.error;const list=rows.data||[];const newest=list[0];if(newest&&newest.id!==last){last=newest.id;show(newest)}render(list)}catch(e){}}
 function render(list){let box=document.getElementById('mtrwAnnouncements');if(!box){box=document.createElement('div');box.id='mtrwAnnouncements';box.className='mtrw-announcements';document.body.appendChild(box)}box.innerHTML=list.map(a=>`<button class="mtrw-announcement-item"><b>📢 ${esc(a.title)}</b><span>${esc(a.message)}</span></button>`).join('');box.querySelectorAll('.mtrw-announcement-item').forEach((b,i)=>b.onclick=()=>show(list[i]))}
-function show(a){if(!a)return;let d=document.getElementById('mtrwAnnouncementPopup');if(!d){d=document.createElement('div');d.id='mtrwAnnouncementPopup';d.className='mtrw-announcement-popup';document.body.appendChild(d)}d.innerHTML=`<div class="mtrw-announcement-card"><div class="mtrw-announcement-head">📢 <b>${esc(a.title)}</b><button id="mtrwAnnouncementClose">×</button></div><div class="mtrw-announcement-message">${esc(a.message)}</div><button id="mtrwAnnouncementOk" class="action primary">Verstanden</button></div>`;d.classList.add('show');d.querySelector('#mtrwAnnouncementClose').onclick=()=>d.classList.remove('show');d.querySelector('#mtrwAnnouncementOk').onclick=()=>d.classList.remove('show')}
+async function show(a){
+ if(!a)return;
+ let d=document.getElementById('mtrwAnnouncementPopup');
+ if(!d){d=document.createElement('div');d.id='mtrwAnnouncementPopup';d.className='mtrw-announcement-popup';document.body.appendChild(d)}
+ const rt=a.reward_type,ra=Number(a.reward_amount||0);
+ const labels={money:'💵 
+function boot(){if(!window.db)return;loadAnnouncements();setInterval(loadAnnouncements,15000)}
+const style=document.createElement('style');style.textContent=`.mtrw-announcements{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;gap:6px;max-width:92vw}.mtrw-announcement-item{background:#151b24ee;color:#fff;border:1px solid #7d2730;border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;text-align:left;max-width:360px;cursor:pointer}.mtrw-announcement-item b{font-size:13px}.mtrw-announcement-item span{font-size:12px;color:#c6cbd2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mtrw-announcement-popup{position:fixed;inset:0;z-index:4000;background:#0008;display:none;place-items:center;padding:20px}.mtrw-announcement-popup.show{display:grid}.mtrw-announcement-card{width:min(520px,94vw);background:#10151e;border:1px solid #7d2730;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000c}.mtrw-announcement-head{display:flex;align-items:center;gap:8px;font-size:20px}.mtrw-announcement-head button{margin-left:auto;background:none;border:0;color:#fff;font-size:28px;cursor:pointer}.mtrw-announcement-message{padding:20px 2px;white-space:pre-wrap;line-height:1.5;color:#e5e8ec}.mtrw-announcement-reward{margin:0 0 10px;padding:10px;border:1px solid #6b4d20;border-radius:10px;background:#241b0b;color:#f5d58a}.mtrw-announcement-card .action{width:100%;margin-top:7px}@media(max-width:600px){.mtrw-announcements{top:8px;max-width:96vw}.mtrw-announcement-item{max-width:300px}}`;document.head.appendChild(style);let t=0;const w=setInterval(()=>{if(window.db){clearInterval(w);boot()}else if(++t>120)clearInterval(w)},500);
+})();,material:'🧱 Material',weapon_parts:'🔩 Waffenteile',reputation:'⭐ Reputation',hitmen:'🥊 Schläger'};
+ const reward=rt&&ra>0?'<div class="mtrw-announcement-reward">🎁 Belohnung: <b>'+ra.toLocaleString('de-DE')+' '+esc(labels[rt]||rt)+'</b></div>':'';
+ d.innerHTML='<div class="mtrw-announcement-card"><div class="mtrw-announcement-head">📢 <b>'+esc(a.title)+'</b><button id="mtrwAnnouncementClose">×</button></div><div class="mtrw-announcement-message">'+esc(a.message)+'</div>'+reward+(rt&&ra>0?'<button id="mtrwAnnouncementClaim" class="action primary">🎁 Belohnung abholen</button>':'')+'<button id="mtrwAnnouncementOk" class="action primary">Verstanden</button></div>';
+ d.classList.add('show');
+ d.querySelector('#mtrwAnnouncementClose').onclick=()=>d.classList.remove('show');
+ d.querySelector('#mtrwAnnouncementOk').onclick=()=>d.classList.remove('show');
+ const claim=d.querySelector('#mtrwAnnouncementClaim');
+ if(claim)claim.onclick=async()=>{
+   claim.disabled=true;
+   try{
+     const rows=await window.db.rpc('mtrw_my_notifications',{p_limit:100});
+     if(rows.error)throw rows.error;
+     const n=(rows.data||[]).find(x=>x.action_type==='announcement_reward'&&String(x.source_id)===String(a.id));
+     if(!n)throw new Error('Belohnung ist nicht verfügbar.');
+     const r=await window.db.rpc('mtrw_claim_announcement_reward',{p_notification_id:n.id});
+     if(r.error)throw r.error;
+     claim.textContent='✓ Belohnung erhalten';
+     claim.disabled=true;
+     window.mtrwMailboxReload?.();
+   }catch(e){
+     claim.disabled=false;
+     alert(e.message==='already_claimed'?'Diese Belohnung wurde bereits abgeholt.':(e.message||'Belohnung konnte nicht abgeholt werden.'));
+   }
+ };
+}
 function boot(){if(!window.db)return;loadAnnouncements();setInterval(loadAnnouncements,15000)}
 const style=document.createElement('style');style.textContent=`.mtrw-announcements{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;gap:6px;max-width:92vw}.mtrw-announcement-item{background:#151b24ee;color:#fff;border:1px solid #7d2730;border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;text-align:left;max-width:360px;cursor:pointer}.mtrw-announcement-item b{font-size:13px}.mtrw-announcement-item span{font-size:12px;color:#c6cbd2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mtrw-announcement-popup{position:fixed;inset:0;z-index:4000;background:#0008;display:none;place-items:center;padding:20px}.mtrw-announcement-popup.show{display:grid}.mtrw-announcement-card{width:min(520px,94vw);background:#10151e;border:1px solid #7d2730;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000c}.mtrw-announcement-head{display:flex;align-items:center;gap:8px;font-size:20px}.mtrw-announcement-head button{margin-left:auto;background:none;border:0;color:#fff;font-size:28px;cursor:pointer}.mtrw-announcement-message{padding:20px 2px;white-space:pre-wrap;line-height:1.5;color:#e5e8ec}.mtrw-announcement-card .action{width:100%}@media(max-width:600px){.mtrw-announcements{top:8px;max-width:96vw}.mtrw-announcement-item{max-width:300px}}`;document.head.appendChild(style);let t=0;const w=setInterval(()=>{if(window.db){clearInterval(w);boot()}else if(++t>120)clearInterval(w)},500);
 })();
