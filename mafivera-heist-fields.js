@@ -9,7 +9,7 @@ if(window.__mtrwHeistFieldEngine)return;
 window.__mtrwHeistFieldEngine=true;
 
 const GLAT=.0018,GLNG=.0025;
-const OVERPASS='https://overpass-api.de/api/interpreter';
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
 const cache=new Map(),allCounts=new Map(),rendered=new Map(),tileLayers=new Map();
 let map=null,overlay=null,skullLayer=null,lastQueryKey='',busy=false,pending=false,syncBusy=false;
 
@@ -44,9 +44,16 @@ async function query(north,south,east,west){
  nwr["amenity"~"bank|casino|fuel|pharmacy|post_office|money_transfer"](${south},${west},${north},${east});
  nwr["office"~"bank|insurance"](${south},${west},${north},${east});
 );out center tags;`;
- const res=await fetch(OVERPASS,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'}});
- if(!res.ok)throw Error('Overpass HTTP '+res.status);
- return(await res.json()).elements||[];
+ let lastErr=null;
+ for(const endpoint of OVERPASS){
+   try{
+     const res=await fetch(endpoint,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'}});
+     if(!res.ok)throw Error('Overpass HTTP '+res.status);
+     const data=await res.json();
+     return data.elements||[];
+   }catch(e){lastErr=e;}
+ }
+ throw lastErr||Error('Overpass nicht erreichbar');
 }
 
 function colorFor(count){
@@ -131,7 +138,7 @@ function boot(){
  const legend=document.createElement('div');legend.className='mtrw-heist-legend';
  legend.innerHTML='💀 Heist-Ziel · Event-Feld · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:#ddd;text-decoration:none">© OpenStreetMap</a>';
  const host=document.querySelector('.mf-map');if(host&&!host.querySelector('.mtrw-heist-legend'))host.appendChild(legend);
- refresh(true);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));
+ refresh(true);setTimeout(()=>refresh(true),3000);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
  window.mtrwRefreshHeistFields=()=>refresh(true);
 }
 const wait=setInterval(()=>{if(window.__mtrwMap){clearInterval(wait);boot()}},250);setTimeout(()=>clearInterval(wait),30000);
