@@ -49,7 +49,7 @@ function addTile(k,count){
  const rect=L.rectangle(b,{pane:'mtrwHeistFieldPane',bubblingMouseEvents:false,color:col.border,weight:2,fillColor:col.fill,fillOpacity:.88,interactive:true,className:'mtrw-heist-field'}).addTo(overlay);
  const level=count>=8?3:count>=4?2:1;
  const marker=L.marker(c,{pane:'mtrwHeistSkullPane',interactive:false,zIndexOffset:1100,icon:L.divIcon({className:'mtrw-heist-skull',html:'<span title="Heist-Stufe '+level+'">💀</span>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(skullLayer);
- layers.set(k,rect);layers.set(k+'#skull',marker);rendered.set(k,count);
+ layers.set(k,rect);layers.set(k+'#skull',marker);rendered.set(k,count);try{rect.bringToFront()}catch(_){}
  rect.on('click',()=>window.mtrwOpenHeistField?.(k,count));
 }
 function redraw(){
@@ -57,8 +57,10 @@ function redraw(){
  overlay.clearLayers();skullLayer.clearLayers();rendered.clear();layers.clear();
  for(const [k,n] of counts)addTile(k,n);
  window.__mtrwHeistZones=new Set(counts.keys());
+ window.__mtrwHeistFieldCount=counts.size;
  window.mtrwRefreshResourceMarkers?.();
  window.mtrwRefreshTerritoryHeistUI?.();
+ window.dispatchEvent(new CustomEvent('mtrw:heist-cells-updated'));
 }
 async function syncViewport(){
  if(busy||!map)return;
