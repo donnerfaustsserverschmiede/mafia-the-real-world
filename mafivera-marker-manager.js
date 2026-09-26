@@ -82,7 +82,7 @@ function render(){
     }).addTo(layer);
   }
 }
-function refresh(){lastKey='';render()}
+function refresh(){render()}
 window.mtrwRefreshResourceMarkers=refresh;
 
 function boot(){
