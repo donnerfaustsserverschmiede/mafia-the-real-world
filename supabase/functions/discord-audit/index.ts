@@ -98,9 +98,32 @@ async function humanText(event: any, ctx: any): Promise<string> {
         ? `Produktion „${recipe}“ ist fertig und kann abgeholt werden`
         : `Produktion „${recipe}“ wurde aktualisiert`;
   } else if (table === 'mtrw_notifications') {
-    const title = String(data.title || 'Benachrichtigung');
-    const message = String(data.message || '').trim();
-    eventText = message ? `${title}: ${message}` : title;
+    if (String(data.kind || '') === 'production_ready' || String(data.action_type || '') === 'production_ready') {
+      const action = data.action_data || {};
+      const jobId = action.job_id || data.source_id;
+      let produced = action.recipe_key || action.drug_type || 'unbekannt';
+      let quantity: any = action.quantity;
+      if (jobId) {
+        try {
+          const { data: job } = await ctx.supabaseAdmin
+            .from('mtrw_production_jobs')
+            .select('quantity,recipe_key,drug_type')
+            .eq('id', jobId)
+            .maybeSingle();
+          if (job) {
+            produced = job.recipe_key || job.drug_type || produced;
+            quantity = job.quantity ?? quantity;
+          }
+        } catch {}
+      }
+      eventText = quantity != null
+        ? 'Produktion fertig – ' + num(quantity) + 'x ' + produced
+        : 'Produktion fertig – ' + produced;
+    } else {
+      const title = String(data.title || 'Benachrichtigung');
+      const message = String(data.message || '').trim();
+      eventText = message ? title + ': ' + message : title;
+    }
   } else if (table === 'mtrw_raid_runtime') {
     eventText = 'Razzia-Aktivität wurde aktualisiert';
   } else if (table === 'auth' && op === 'LOGIN') {
