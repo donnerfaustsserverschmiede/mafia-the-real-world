@@ -19,18 +19,25 @@ function dialog(){let d=document.getElementById('mtrwHeistDialog');if(d)return d
 function fmt(sec){sec=Math.max(0,Math.floor(Number(sec)||0));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return h?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'):String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
 function toast(t,e=false){const x=document.getElementById('toast');if(!x)return;x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',3000)}
 async function getState(zone){
-  let r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
-  if(r.error)throw r.error;
-  if(r.data?.eligible===false){
-    // Register the exact tapped field independently. The bulk map sync is
-    // deliberately not required for opening a Heist.
-    const reg=await window.db.rpc('mtrw_register_heist_field',{p_zone_key:zone});
-    if(reg.error)throw reg.error;
-    r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
-    if(r.error)throw r.error;
+  let last=null;
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      let r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
+      if(r.error)throw r.error;
+      if(r.data?.eligible===false){
+        const reg=await window.db.rpc('mtrw_register_heist_field',{p_zone_key:zone});
+        if(reg.error)throw reg.error;
+        r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
+        if(r.error)throw r.error;
+      }
+      if(r.data?.eligible===false)throw Object.assign(new Error('heist_field_not_registered'),{code:'heist_field_not_registered'});
+      return r.data;
+    }catch(e){
+      last=e;
+      if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+    }
   }
-  if(r.data?.eligible===false)throw Object.assign(new Error('heist_field_not_registered'),{code:'heist_field_not_registered'});
-  return r.data
+  throw last||new Error('heist_state_unavailable');
 }
 function close(){clearInterval(timer);timer=null;currentZone=null;currentState=null;const d=document.getElementById('mtrwHeistDialog');if(d)d.remove()}
 function sectorLabel(zone){const p=String(zone||'').replace(/^z_/,'').split('_');return p.length>=2?`Sektor ${p[0]}, ${p[1]}`:`Sektor ${zone}`}
