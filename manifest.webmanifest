@@ -5,31 +5,16 @@
   "lang": "de",
   "start_url": "./?source=pwa",
   "scope": "./",
+  "id": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay","standalone","fullscreen"],
   "background_color": "#05080d",
   "theme_color": "#05080d",
-  "icons": [
-    {
-      "src": "./assets/mafivera-logo.webp?v=20260925-pwa",
-      "sizes": "192x192",
-      "type": "image/webp",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./assets/mafivera-logo.webp?v=20260925-pwa",
-      "sizes": "256x256",
-      "type": "image/webp",
-      "purpose": "any maskable"
-    }
-  ],
-  "id": "./",
-  "display_override": [
-    "standalone",
-    "fullscreen"
-  ],
   "orientation": "portrait",
-  "categories": [
-    "games",
-    "entertainment"
-  ]
+  "icons": [
+    {"src":"./assets/mafivera-logo.webp?v=MAFIVERA-APP-ICON-20260926","sizes":"192x192","type":"image/webp","purpose":"any maskable"},
+    {"src":"./assets/mafivera-logo.webp?v=MAFIVERA-APP-ICON-20260926","sizes":"256x256","type":"image/webp","purpose":"any maskable"},
+    {"src":"./assets/mafivera-logo.webp?v=MAFIVERA-APP-ICON-20260926","sizes":"512x512","type":"image/webp","purpose":"any maskable"}
+  ],
+  "categories": ["games","entertainment"]
 }
