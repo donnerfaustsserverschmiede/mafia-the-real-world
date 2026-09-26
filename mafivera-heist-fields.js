@@ -22,7 +22,7 @@ window.__mtrwHeistZones=new Set();
 const tileKey=(r,c)=>'z_'+r+'_'+c;
 const cell=(lat,lng)=>({r:Math.floor(lat/GLAT),c:Math.floor(lng/GLNG)});
 const center=(r,c)=>[(r+.5)*GLAT,(c+.5)*GLNG];
-const tileBounds=(r,c)=>[[r*GLAT,c*GLNG],[(r+1)*GLAT,(c+1)*GLNG)];
+const tileBounds=(r,c)=>[[r*GLAT,c*GLNG],[(r+1)*GLAT,(c+1)*GLNG]];
 
 function css(){
  if(document.getElementById('mtrwHeistFieldCSS'))return;
@@ -88,6 +88,9 @@ function addTile(k,count){
 }
 function redraw(){
  if(!map||!overlay)return;
+ overlay.clearLayers();
+ skullLayer?.clearLayers();
+ rendered.clear();
  for(const[k,count]of allCounts)addTile(k,count);
  window.__mtrwHeistZones=new Set(allCounts.keys());
  window.mtrwRefreshResourceMarkers?.();
@@ -124,8 +127,9 @@ async function refresh(force=false){
        counts[k]=(counts[k]||0)+1;
      }
      cache.set(key,counts);
-     mergeCounts(counts);
    }
+   allCounts.clear();
+   for(const[k,count] of Object.entries(counts||{})){ const n=Number(count)||0; if(n>0) allCounts.set(k,n); }
    redraw();
  }catch(e){
    console.warn('MAFIVERA Heist-Ziele:',e);
