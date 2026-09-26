@@ -1,121 +1,37 @@
-/* MAFIVERA CONTENT WARNING — permanent startup gate
- * This screen is intentionally shown for 10 seconds before the game starts.
- * Do not remove or bypass this gate when changing other game systems.
- */
-(() => {
-  'use strict';
-
-  const WARNING_ID = 'mtrw-content-warning';
-  const DURATION_MS = 10000;
-
-  function waitForWarning() {
-    if (document.getElementById(WARNING_ID)) return Promise.resolve();
-
-    return new Promise(resolve => {
-      const overlay = document.createElement('section');
-      overlay.id = WARNING_ID;
-      overlay.setAttribute('role', 'alertdialog');
-      overlay.setAttribute('aria-modal', 'true');
-      overlay.innerHTML = `
-        <div class="mtrw-warning-card">
-          <div class="mtrw-warning-icon">⚠️</div>
-          <div class="mtrw-warning-kicker">WICHTIGER HINWEIS</div>
-          <h1>Fiktiver In-Game-Inhalt</h1>
-          <p>
-            MAFIVERA ist ein fiktives Spiel. Alle dargestellten Handlungen,
-            Gegenstände, Organisationen und Situationen sind ausschließlich
-            <strong>In-Game-Inhalte</strong> und dürfen keinesfalls als
-            Vorbild oder Anleitung für das echte Leben verstanden werden.
-          </p>
-          <p>
-            Das Spiel behandelt unter anderem <strong>Drogen, Waffen,
-            Gewalt und organisierte Kriminalität</strong>. Diese Inhalte
-            dienen ausschließlich dem Spielgeschehen und der fiktiven
-            Darstellung.
-          </p>
-          <p class="mtrw-warning-safety">
-            <strong>MAFIVERA ist ein Spiel ab 18 Jahren.</strong>
-            Spieler unter 18 Jahren werden ausdrücklich aufgefordert,
-            dieses Spiel nicht zu spielen. Diese Inhalte sind nicht für
-            Minderjährige bestimmt und dürfen nicht nachgeahmt werden.
-            Für die Missachtung dieses Hinweises übernehmen wir keine Haftung.
-          </p>
-          <p class="mtrw-warning-discord">
-            Weitere Informationen und Hinweise findest du auf unserem Discord-Server.
-          </p>
-          <div class="mtrw-warning-countdown" aria-live="polite">
-            Spielstart in <strong><span id="mtrw-warning-seconds">10</span> Sekunden</strong>
-          </div>
-        </div>
-      `;
-
-      const style = document.createElement('style');
-      style.id = 'mtrw-content-warning-style';
-      style.textContent = `
-        #mtrw-content-warning{
-          position:fixed;inset:0;z-index:2147483647;
-          display:flex;align-items:center;justify-content:center;
-          padding:24px;box-sizing:border-box;
-          background:radial-gradient(circle at 50% 20%,#1b2430 0%,#070a0f 58%,#030508 100%);
-          color:#f4f6f8;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-        }
-        #mtrw-content-warning .mtrw-warning-card{
-          width:min(680px,100%);box-sizing:border-box;
-          padding:32px 28px 28px;border:1px solid #6f5a24;
-          border-radius:22px;background:rgba(10,14,20,.97);
-          box-shadow:0 20px 80px rgba(0,0,0,.65);
-          text-align:center;
-        }
-        #mtrw-content-warning .mtrw-warning-icon{font-size:46px;margin-bottom:8px}
-        #mtrw-content-warning .mtrw-warning-kicker{
-          color:#e0b84d;font-size:13px;font-weight:800;
-          letter-spacing:.16em;margin-bottom:8px;
-        }
-        #mtrw-content-warning h1{
-          margin:0 0 18px;font-size:clamp(25px,6vw,38px);
-          line-height:1.12;
-        }
-        #mtrw-content-warning p{
-          margin:12px auto;max-width:590px;
-          color:#d8dde5;font-size:16px;line-height:1.55;
-        }
-        #mtrw-content-warning strong{color:#fff}
-        #mtrw-content-warning .mtrw-warning-safety{
-          color:#f0cf78;font-weight:700;
-        }
-        #mtrw-content-warning .mtrw-warning-discord{
-          color:#aeb9c7;font-size:14px;margin-top:18px;
-        }
-        #mtrw-content-warning .mtrw-warning-countdown{
-          margin-top:24px;padding:14px 16px;border-radius:14px;
-          background:#151c26;border:1px solid #303b49;
-          color:#b9c3cf;font-size:15px;
-        }
-        #mtrw-content-warning .mtrw-warning-countdown strong{color:#e0b84d}
-        @media(max-width:600px){
-          #mtrw-content-warning{padding:14px}
-          #mtrw-content-warning .mtrw-warning-card{padding:25px 18px 20px;border-radius:18px}
-          #mtrw-content-warning p{font-size:14px}
-          #mtrw-content-warning .mtrw-warning-icon{font-size:38px}
-        }
-      `;
-      document.head.appendChild(style);
-      document.body.appendChild(overlay);
-
-      const secondsEl = overlay.querySelector('#mtrw-warning-seconds');
-      const started = Date.now();
-      const timer = setInterval(() => {
-        const remaining = Math.max(0, DURATION_MS - (Date.now() - started));
-        if (secondsEl) secondsEl.textContent = String(Math.ceil(remaining / 1000));
-        if (remaining <= 0) {
-          clearInterval(timer);
-          overlay.remove();
-          style.remove();
-          resolve();
-        }
-      }, 100);
-    });
-  }
-
-  window.__mtrwShowContentWarning = waitForWarning;
+/* MAFIVERA STARTUP — Donnerfaust Gaming splash + fictional-content gate */
+(()=>{'use strict';
+const WARNING_ID='mtrw-content-warning',SPLASH_MS=2400,DURATION_MS=10000;
+function showWarning(){
+ if(document.getElementById(WARNING_ID))return Promise.resolve();
+ return new Promise(resolve=>{
+  const overlay=document.createElement('section');overlay.id=WARNING_ID;overlay.setAttribute('role','alertdialog');overlay.setAttribute('aria-modal','true');
+  overlay.innerHTML='<div class="mtrw-splash"><div class="mtrw-splash-bg"></div><div class="mtrw-splash-vignette"></div><div class="mtrw-splash-brand">DONNERFAUST<br><span>GAMING</span></div><div class="mtrw-splash-sub">MAFIVERA · THE REAL WORLD</div></div>';
+  const style=document.createElement('style');style.id='mtrw-content-warning-style';style.textContent=`
+#mtrw-content-warning{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;background:#020408;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#mtrw-content-warning .mtrw-splash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#020408}
+#mtrw-content-warning .mtrw-splash-bg{position:absolute;inset:-8%;background-image:url("data:image/jpeg;base64,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");background-size:cover;background-position:center;filter:brightness(.58) contrast(1.08) saturate(.85);transform:scale(1.05)}
+#mtrw-content-warning .mtrw-splash-vignette{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,transparent 0%,rgba(0,0,0,.18) 34%,rgba(0,0,0,.78) 100%),linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.5))}
+#mtrw-content-warning .mtrw-splash-brand{position:relative;text-align:center;font-weight:1000;letter-spacing:.18em;font-size:clamp(34px,9vw,78px);line-height:.9;text-shadow:0 4px 30px #000,0 0 24px #000;color:#fff}
+#mtrw-content-warning .mtrw-splash-brand span{color:#e2b74e}
+#mtrw-content-warning .mtrw-splash-sub{position:absolute;bottom:9%;left:0;right:0;text-align:center;color:#d8dde5;font-size:12px;letter-spacing:.28em;font-weight:800;text-shadow:0 2px 12px #000}
+#mtrw-content-warning .mtrw-warning-card{position:relative;z-index:2;width:min(680px,100%);box-sizing:border-box;padding:32px 28px 28px;border:1px solid #6f5a24;border-radius:22px;background:rgba(10,14,20,.97);box-shadow:0 20px 80px rgba(0,0,0,.65);text-align:center}
+#mtrw-content-warning .mtrw-warning-icon{font-size:46px;margin-bottom:8px}
+#mtrw-content-warning .mtrw-warning-kicker{color:#e0b84d;font-size:13px;font-weight:800;letter-spacing:.16em;margin-bottom:8px}
+#mtrw-content-warning h1{margin:0 0 18px;font-size:clamp(25px,6vw,38px);line-height:1.12}
+#mtrw-content-warning p{margin:12px auto;max-width:590px;color:#d8dde5;font-size:16px;line-height:1.55}
+#mtrw-content-warning strong{color:#fff}
+#mtrw-content-warning .mtrw-warning-safety{color:#f0cf78;font-weight:700}
+#mtrw-content-warning .mtrw-warning-discord{color:#aeb9c7;font-size:14px;margin-top:18px}
+#mtrw-content-warning .mtrw-warning-countdown{margin-top:24px;padding:14px 16px;border-radius:14px;background:#151c26;border:1px solid #303b49;color:#b9c3cf;font-size:15px}
+#mtrw-content-warning .mtrw-warning-countdown strong{color:#e0b84d}
+@media(max-width:600px){#mtrw-content-warning{padding:14px}#mtrw-content-warning .mtrw-warning-card{padding:25px 18px 20px;border-radius:18px}#mtrw-content-warning p{font-size:14px}#mtrw-content-warning .mtrw-warning-icon{font-size:38px}}
+`;
+  document.head.appendChild(style);document.body.appendChild(overlay);
+  const showCard=()=>{overlay.querySelector('.mtrw-splash').style.display='none';overlay.innerHTML='<div class="mtrw-warning-card"><div class="mtrw-warning-icon">⚠️</div><div class="mtrw-warning-kicker">WICHTIGER HINWEIS</div><h1>Fiktiver In-Game-Inhalt</h1><p>MAFIVERA ist ein fiktives Spiel. Alle dargestellten Handlungen, Gegenstände, Organisationen und Situationen sind ausschließlich <strong>In-Game-Inhalte</strong> und dürfen keinesfalls als Vorbild oder Anleitung für das echte Leben verstanden werden.</p><p>Das Spiel behandelt unter anderem <strong>Drogen, Waffen, Gewalt und organisierte Kriminalität</strong>. Diese Inhalte dienen ausschließlich dem Spielgeschehen und der fiktiven Darstellung.</p><p class="mtrw-warning-safety"><strong>MAFIVERA ist ein Spiel ab 18 Jahren.</strong> Spieler unter 18 Jahren werden ausdrücklich aufgefordert, dieses Spiel nicht zu spielen. Diese Inhalte sind nicht für Minderjährige bestimmt und dürfen nicht nachgeahmt werden. Für die Missachtung dieses Hinweises übernehmen wir keine Haftung.</p><p class="mtrw-warning-discord">Weitere Informationen und Hinweise findest du auf unserem Discord-Server.</p><div class="mtrw-warning-countdown" aria-live="polite">Spielstart in <strong><span id="mtrw-warning-seconds">10</span> Sekunden</strong></div>'};
+  setTimeout(showCard,SPLASH_MS);
+  const secondsEl=()=>overlay.querySelector('#mtrw-warning-seconds'),started=Date.now()+SPLASH_MS;
+  const timer=setInterval(()=>{const rem=Math.max(0,DURATION_MS-(Date.now()-started));const el=secondsEl();if(el)el.textContent=String(Math.ceil(rem/1000));if(rem<=0){clearInterval(timer);overlay.remove();style.remove();resolve()}},100);
+ });
+}
+window.__mtrwShowContentWarning=showWarning;
 })();
