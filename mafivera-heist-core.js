@@ -1,66 +1,32 @@
-/* MAFIVERA — gemeinsames Heist-System
-   Stufe 1 = 5.000 | Stufe 2 = 10.000 | Stufe 3 = 15.000 Verteidigung
+/* MAFIVERA — Heist-Kachel-System
+   Heist wird ausschließlich über die angetippte Event-Kachel gestartet.
+   30 Minuten Laufzeit, danach 60 Minuten Feld-Cooldown.
 */
 (()=>{'use strict';
 if(window.__mtrwHeistCoreUI)return; window.__mtrwHeistCoreUI=true;
-let map=null,marker=null,timer=null,busy=false,lastId=null;
-
-function css(){
- if(document.getElementById('mtrwHeistCoreCSS'))return;
- const s=document.createElement('style');s.id='mtrwHeistCoreCSS';s.textContent=`
- .mtrw-heist-core{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);z-index:1800;width:min(430px,calc(100vw - 24px));background:#0b0d12f2;border:1px solid #7f1d1d;border-radius:16px;box-shadow:0 12px 35px #000b;color:#fff;padding:12px;backdrop-filter:blur(8px);font-family:system-ui,sans-serif}
- .mtrw-heist-core .top{display:flex;justify-content:space-between;gap:10px;align-items:center}.mtrw-heist-core .title{font-weight:900;font-size:16px}.mtrw-heist-core .lvl{font-weight:900;color:#f87171}.mtrw-heist-core .hptext{font-weight:900;font-size:13px}
- .mtrw-heist-core .bar{height:14px;background:#251014;border-radius:99px;overflow:hidden;border:1px solid #4b151b;margin:8px 0}.mtrw-heist-core .fill{height:100%;background:#dc2626;transition:width .35s ease}
- .mtrw-heist-core .meta{display:flex;justify-content:space-between;color:#cbd5e1;font-size:10px}.mtrw-heist-core .attack{margin-top:9px;width:100%;border:0;border-radius:11px;padding:11px;background:#991b1b;color:#fff;font-weight:900;font-size:13px}.mtrw-heist-core .attack:disabled{opacity:.55}
- .mtrw-heist-core .hint{font-size:10px;color:#94a3b8;margin-top:6px}.mtrw-heist-core .close{background:none;border:0;color:#94a3b8;font-size:18px}
- .mtrw-heist-core.hidden{display:none}
- .mtrw-heist-active-marker{background:transparent!important;border:0!important}.mtrw-heist-active-marker span{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:#17070ae8;border:2px solid #ef4444;box-shadow:0 0 18px #ef4444;font-size:22px}
- `;
- document.head.appendChild(s);
-}
-function panel(){
- let p=document.getElementById('mtrwHeistCore');if(p)return p;
- p=document.createElement('div');p.id='mtrwHeistCore';p.className='mtrw-heist-core hidden';document.body.appendChild(p);return p;
-}
+let timer=null,currentZone=null,currentState=null;
+function css(){if(document.getElementById('mtrwHeistCoreCSS'))return;const s=document.createElement('style');s.id='mtrwHeistCoreCSS';s.textContent=`
+.mtrw-heist-dialog{position:fixed;inset:0;z-index:2147482000;background:#0009;display:flex;align-items:center;justify-content:center;padding:18px;font-family:system-ui,sans-serif}
+.mtrw-heist-card{width:min(430px,100%);background:#0b0d12f8;color:#fff;border:1px solid #7f1d1d;border-radius:18px;box-shadow:0 18px 60px #000d;padding:16px}
+.mtrw-heist-card .head{display:flex;align-items:center;justify-content:space-between;gap:10px}.mtrw-heist-card h2{margin:0;font-size:20px}.mtrw-heist-card .close{width:40px;height:40px;border-radius:50%;border:1px solid #475569;background:#151b24;color:#fff;font-size:25px}
+.mtrw-heist-card .sector{color:#fca5a5;font-weight:800;font-size:12px;margin-top:3px}.mtrw-heist-card .box{margin-top:12px;background:#151016;border:1px solid #5b1b21;border-radius:13px;padding:12px}
+.mtrw-heist-card .skulls{font-size:27px;letter-spacing:2px}.mtrw-heist-card .hp{font-weight:900;font-size:17px;margin-top:5px}.mtrw-heist-card .bar{height:13px;background:#251014;border-radius:99px;overflow:hidden;border:1px solid #4b151b;margin:8px 0}.mtrw-heist-card .fill{height:100%;background:#dc2626}
+.mtrw-heist-card .count{font-size:24px;font-weight:950;text-align:center;margin:12px 0;color:#fca5a5}.mtrw-heist-card .hint{font-size:11px;color:#94a3b8;line-height:1.4}
+.mtrw-heist-card button.action{width:100%;margin-top:10px;padding:12px;border:0;border-radius:11px;background:#991b1b;color:#fff;font-weight:900;font-size:14px}.mtrw-heist-card button.action:disabled{opacity:.5}
+.mtrw-heist-card .secondary{background:#1f2937!important}
+`;document.head.appendChild(s)}
+function dialog(){let d=document.getElementById('mtrwHeistDialog');if(d)return d;d=document.createElement('div');d.id='mtrwHeistDialog';d.className='mtrw-heist-dialog';document.body.appendChild(d);return d}
+function fmt(sec){sec=Math.max(0,Math.floor(Number(sec)||0));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return h?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'):String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
 function toast(t,e=false){const x=document.getElementById('toast');if(!x)return;x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',3000)}
-function render(h){
- const p=panel(); if(!h?.active){p.classList.add('hidden');if(marker){try{map.removeLayer(marker)}catch(_){}marker=null}return}
- const pct=Math.max(0,Math.min(100,Number(h.current_hp)/Number(h.max_hp)*100));
- const skull='💀'.repeat(Number(h.level)||1);
- p.classList.remove('hidden');
- p.innerHTML=`<div class="top"><div><div class="title">💰 HEIST <span class="lvl">${skull} STUFE ${h.level}</span></div><div class="hptext">${Number(h.current_hp).toLocaleString('de-DE')} / ${Number(h.max_hp).toLocaleString('de-DE')} Verteidigung</div></div><button class="close" id="mtrwHeistClose">×</button></div>
- <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
- <div class="meta"><span>Gemeinsame Verteidigung</span><span>${pct.toFixed(0)} %</span></div>
- <button class="attack" id="mtrwHeistAttack">🥊 Schläger zum Heist schicken</button>
- <div class="hint">Jeder Angriff senkt dieselbe Verteidigung für alle Spieler. Belohnung wird bei Erfolg anteilig nach Schaden verteilt.</div>`;
- p.querySelector('#mtrwHeistClose').onclick=()=>p.classList.add('hidden');
- p.querySelector('#mtrwHeistAttack').onclick=()=>attack(h.id);
- if(map&&Number.isFinite(Number(h.center_lat))&&Number.isFinite(Number(h.center_lng))){
-   const pos=[Number(h.center_lat),Number(h.center_lng)];
-   if(!marker)marker=L.marker(pos,{zIndexOffset:1400,icon:L.divIcon({className:'mtrw-heist-active-marker',html:'<span>💀</span>',iconSize:[46,46],iconAnchor:[23,23]})}).addTo(map);
-   else marker.setLatLng(pos);
-   marker.bindTooltip(`${skull} Heist · ${Number(h.current_hp).toLocaleString('de-DE')} / ${Number(h.max_hp).toLocaleString('de-DE')}`,{direction:'top'});
- }
+async function getState(zone){const r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});if(r.error)throw r.error;return r.data}
+function close(){clearInterval(timer);timer=null;currentZone=null;currentState=null;const d=document.getElementById('mtrwHeistDialog');if(d)d.remove()}
+function render(state,count){currentState=state;const d=dialog(),zone=currentZone;const skulls=state?.active?'💀'.repeat(Number(state.level)||1):'💀';let body='';
+if(state?.active){const pct=Math.max(0,Math.min(100,Number(state.current_hp)/Number(state.max_hp)*100));body=`<div class="box"><div class="skulls">${skulls}</div><div><b>Heist läuft</b> · Stufe ${state.level}</div><div class="hp">${Number(state.current_hp).toLocaleString('de-DE')} / ${Number(state.max_hp).toLocaleString('de-DE')} Verteidigung</div><div class="bar"><div class="fill" style="width:${pct}%"></div></div><div class="hint">Gemeinsame Verteidigung für alle Spieler. Laufzeit endet nach 30 Minuten.</div><div class="count" id="heistCountdown">Heist endet in ${fmt(state.remaining_seconds)}</div><button class="action" id="heistAttack">🥊 Schläger zum Heist schicken</button></div>`}else if(state?.cooldown){body=`<div class="box"><div class="skulls">💀</div><b>Heist abgeschlossen</b><div class="count" id="heistCountdown">Nächster Heist in ${fmt(state.remaining_seconds)}</div><div class="hint">Dieses Event-Feld ist nach einem Heist 60 Minuten gesperrt. Danach kann hier der nächste Heist gestartet werden.</div></div>`}else{body=`<div class="box"><div class="skulls">💀</div><b>Heist-Ziel verfügbar</b><div class="count">Nächster Heist in JETZT</div><div class="hint">Dieses Feld wurde anhand der OSM-Kartendaten als Heist-Ziel erkannt. Der Heist wird erst gestartet, wenn du ihn hier bestätigst.</div><button class="action" id="heistStart">💀 Heist starten</button></div>`}
+d.innerHTML=`<div class="mtrw-heist-card"><div class="head"><div><h2>💀 HEIST</h2><div class="sector">Sektor ${zone}</div></div><button class="close" id="heistClose">×</button></div>${body}<button class="action secondary" id="heistBack">Schließen</button></div>`;
+d.querySelector('#heistClose').onclick=close;d.querySelector('#heistBack').onclick=close;
+const start=d.querySelector('#heistStart');if(start)start.onclick=async()=>{start.disabled=true;try{const r=await window.db.rpc('mtrw_heist_start',{p_zone_key:zone});if(r.error)throw r.error;render(r.data,count);toast(r.data?.started?'💀 HEIST GESTARTET!':'Heist konnte nicht gestartet werden.')}catch(e){toast(String(e?.message||e),true);start.disabled=false}};
+const attack=d.querySelector('#heistAttack');if(attack)attack.onclick=async()=>{const n=Number(prompt('Wie viele Schläger sollen zum Heist geschickt werden?','100'));if(!Number.isInteger(n)||n<1)return;attack.disabled=true;try{const r=await window.db.rpc('mtrw_heist_attack',{p_heist_id:state.id,p_hitmen:n});if(r.error)throw r.error;toast(r.data?.completed?'💰 HEIST ERFOLGREICH! Belohnungen verteilt.':`🥊 ${Number(r.data?.damage||0).toLocaleString('de-DE')} Schaden verursacht.`);render(await getState(zone),count)}catch(e){const msg=String(e?.message||'');toast(msg==='not_enough_hitmen'?'Nicht genügend Schläger.':msg==='heist_expired'?'Der Heist ist abgelaufen.':msg||'Heist-Angriff fehlgeschlagen.',true);attack.disabled=false}};
+clearInterval(timer);if(state?.active||state?.cooldown){timer=setInterval(async()=>{try{const next=await getState(zone);if(document.getElementById('mtrwHeistDialog'))render(next,count)}catch(_){}},1000)}
 }
-async function state(){
- if(!window.db)return;
- try{const r=await window.db.rpc('mtrw_heist_spawn_or_state');if(r.error)throw r.error;render(r.data)}catch(e){console.warn('MAFIVERA Heist:',e)}
-}
-async function attack(id){
- if(busy||!window.db)return;
- const n=Number(prompt('Wie viele Schläger sollen zum Heist geschickt werden?','100'));if(!Number.isInteger(n)||n<1)return;
- busy=true;const b=document.getElementById('mtrwHeistAttack');if(b)b.disabled=true;
- try{
-   const r=await window.db.rpc('mtrw_heist_attack',{p_heist_id:id,p_hitmen:n});if(r.error)throw r.error;
-   if(r.data?.completed)toast('💰 HEIST ERFOLGREICH! Die Belohnungen wurden verteilt.');
-   else toast(`🥊 ${Number(r.data?.damage||0).toLocaleString('de-DE')} Schaden verursacht.`);
-   await state();
- }catch(e){
-   const code=String(e?.message||'').replace(/^Error:\s*/i,'');
-   toast(code==='not_enough_hitmen'?'Nicht genügend Schläger.':code||'Heist-Angriff fehlgeschlagen.',true);
- }finally{busy=false}
-}
-function boot(){if(typeof L==='undefined'||!window.__mtrwMap)return;map=window.__mtrwMap;css();panel();state();clearInterval(timer);timer=setInterval(state,5000)}
-const wait=setInterval(()=>{if(window.__mtrwMap&&window.db){clearInterval(wait);boot()}},300);
-setTimeout(()=>clearInterval(wait),30000);
+window.mtrwOpenHeistField=async function(zone,count){if(!window.db)return;currentZone=zone;css();const d=dialog();d.innerHTML='<div class="mtrw-heist-card"><div class="head"><h2>💀 HEIST</h2><button class="close" id="heistClose">×</button></div><div class="box">Heist-Sektor wird geladen…</div></div>';d.querySelector('#heistClose').onclick=close;try{const state=await getState(zone);if(currentZone===zone)render(state,count)}catch(e){toast('Heist-Daten konnten nicht geladen werden.',true);close()}};
 })();
