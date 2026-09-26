@@ -134,15 +134,27 @@ async function syncServer(){
  syncBusy=true;
  try{
    const zones=[...allCounts.keys()].filter(k=>!!(window.__mtrwWorld||{})[k]);
-   const r=await window.db.rpc('mtrw_sync_heist_fields',{p_zones:zones});
+   if(!zones.length)return;
+   const session=window.db.auth ? (await window.db.auth.getSession())?.data?.session : null;
+   if(!session){
+     setTimeout(()=>{syncBusy=false;syncServer()},750);
+     return;
+   }
+   let r=await window.db.rpc('mtrw_sync_heist_fields',{p_zones:zones});
+   if(r.error){
+     // Auth can finish one tick after the game UI appears; retry once.
+     await new Promise(ok=>setTimeout(ok,500));
+     r=await window.db.rpc('mtrw_sync_heist_fields',{p_zones:zones});
+   }
    if(r.error)throw r.error;
    window.__mtrwHeistZones=new Set(zones);
    window.mtrwRefreshTerritoryHeistUI?.();
    if(Number(r.data?.owners_cleared||0)>0){
      window.dispatchEvent(new CustomEvent('mtrw-heist-owners-cleared',{detail:r.data}));
    }
- }catch(e){console.warn('MAFIVERA Heist-Sync:',e)}
- finally{syncBusy=false}
+ }catch(e){
+   console.warn('MAFIVERA Heist-Sync:',e);
+ }finally{syncBusy=false}
 }
 
 async function preloadRegisteredFields(){
