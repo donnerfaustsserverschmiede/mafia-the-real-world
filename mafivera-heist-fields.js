@@ -108,7 +108,7 @@ function colorFor(count){
 
 function addTile(k,count){
  if(!map||!overlay||rendered.get(k)===count)return;
- const m=/^z_(-?\\d+)_(-?\\d+)$/.exec(k);if(!m)return;
+ const m=/^z_(-?\d+)_(-?\d+)$/.exec(k);if(!m)return;
  const r=Number(m[1]),c=Number(m[2]),col=colorFor(count);
  const oldRect=tileLayers.get(k),oldSkull=tileLayers.get(k+'#skull');
  if(oldRect){try{overlay.removeLayer(oldRect)}catch(_){}}
@@ -182,8 +182,8 @@ async function refresh(force=false){
 function boot(){
  map=window.__mtrwMap;if(!map||typeof L==='undefined')return;
  css();
- fieldPane=map.getPane('mtrwHeistFieldPane')||map.createPane('mtrwHeistFieldPane');fieldPane.style.zIndex='650';fieldPane.style.pointerEvents='auto';
- skullPane=map.getPane('mtrwHeistSkullPane')||map.createPane('mtrwHeistSkullPane');skullPane.style.zIndex='680';skullPane.style.pointerEvents='none';
+ fieldPane=map.getPane('mtrwHeistFieldPane')||map.createPane('mtrwHeistFieldPane');fieldPane.style.zIndex='900';fieldPane.style.pointerEvents='auto';
+ skullPane=map.getPane('mtrwHeistSkullPane')||map.createPane('mtrwHeistSkullPane');skullPane.style.zIndex='950';skullPane.style.pointerEvents='none';
  overlay=L.layerGroup().addTo(map);skullLayer=L.layerGroup().addTo(map);
  refresh(true);
  map.once('load',()=>refresh(true));setTimeout(()=>refresh(true),3000);setTimeout(()=>refresh(true),10000);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
