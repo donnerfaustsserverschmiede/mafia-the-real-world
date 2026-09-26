@@ -69,10 +69,10 @@ function addTile(k,count){
  const oldRect=tileLayers.get(k),oldSkull=tileLayers.get(k+'#skull');
  if(oldRect){try{overlay.removeLayer(oldRect)}catch(_){}}
  if(oldSkull){try{skullLayer.removeLayer(oldSkull)}catch(_){}}
- const rect=L.rectangle(tileBounds(r,c),{color:col.border,weight:1,fillColor:col.fill,fillOpacity:col.opacity,interactive:false,className:'mtrw-heist-field'}).addTo(overlay);
+ const rect=L.rectangle(tileBounds(r,c),{color:col.border,weight:1,fillColor:col.fill,fillOpacity:col.opacity,interactive:true,className:'mtrw-heist-field'}).addTo(overlay);
  const[lat,lng]=center(r,c);
  const marker=L.marker([lat,lng],{interactive:false,zIndexOffset:1100,icon:L.divIcon({className:'mtrw-heist-skull',html:'<span>💀</span>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(skullLayer);
- tileLayers.set(k,rect);tileLayers.set(k+'#skull',marker);rendered.set(k,count);
+ tileLayers.set(k,rect);tileLayers.set(k+'#skull',marker);rendered.set(k,count);rect.on('click',()=>window.mtrwOpenHeistField?.(k,count));
 }
 
 function redraw(){
