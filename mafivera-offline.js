@@ -21,9 +21,13 @@ function localBootstrap(){return state?.profile?{profile:clone(state.profile)}:n
 function queue(name,args){state.queue.push({id:crypto.randomUUID(),name,args:clone(args),created_at:new Date().toISOString()});state.updated_at=Date.now();write(state)}
 function saveProfile(p){state.profile={...state.profile,...clone(p)}}
 function save(){state.updated_at=Date.now();write(state)}
+function remember(k,v){state=state||{profile:null,world:{},queue:[],updated_at:0};state[k]=clone(v);save()}
 function localResult(name,a){
  const p=state.profile||{},w=state.world||{};
  if(name==='mafivera_bootstrap')return localBootstrap();
+ if(name==='mtrw_dealer_state')return state.dealer||{active:false};
+ if(name==='mtrw_weapon_dealer_state')return state.weaponDealer||{active:false};
+ if(name==='mtrw_reject_weapon_dealer'){state.weaponDealer=null;save();queue(name,a);return {success:true};}
  if(name==='mafivera_inventory')return {items:[],total:Number(p.product||0)};
  if(name==='mtrw_collect_drug_production'||name==='mtrw_collect_weapon_production')return {success:true};
  if(name==='mtrw_start_production'){
@@ -48,7 +52,7 @@ function localResult(name,a){
 async function handle(name,args){await ensure();if(name==='mtrw_family_create'||name.startsWith('mtrw_family_')||name.startsWith('mtrw_social_')||name.includes('heist'))throw Error('Diese Funktion ist offline nicht verfügbar.');return localResult(name,args)}
 async function flush(){if(syncing||offline()||!state?.queue?.length||!window.db)return false;syncing=true;notice(false,'');try{for(const q of [...state.queue]){const r=await window.db.rpc(q.name,q.args);if(r.error)throw r.error;state.queue=state.queue.filter(x=>x.id!==q.id);await write(state)}const boot=await window.db.rpc('mafivera_bootstrap');if(!boot.error&&boot.data?.profile)state.profile=clone(boot.data.profile);try{const q=await window.db.from('world_territories').select('*');if(!q.error)state.world=Object.fromEntries((q.data||[]).map(x=>[x.zone_key,x]))}catch(_){}await write(state);window.dispatchEvent(new CustomEvent('mtrw:offline-synced'));return true}catch(e){return false}finally{syncing=false}}
 function guard(){if(!offline())return;notice(true,'OFFLINE-MODUS · Fortschritt wird lokal gespeichert');document.addEventListener('click',e=>{const t=e.target.closest?.('button,[role="button"],a');if(!t)return;const s=(t.textContent||'').trim();if(/Familie|Sozial|Freunde|Heist|Global Chat|Privatnachricht/i.test(s)){e.preventDefault();e.stopImmediatePropagation();const x=document.getElementById('toast');if(x){x.textContent='Diese Online-Funktion ist offline nicht verfügbar.';x.className='toast show error';setTimeout(()=>x.className='toast',2400)}}},true)}
-window.__mtrwOfflineCore={ensure,snapshot,handle,flush,isOffline:offline,networkError,mutating,localBootstrap,notice};
+window.__mtrwOfflineCore={ensure,snapshot,handle,flush,isOffline:offline,networkError,mutating,localBootstrap,notice,remember};
 window.addEventListener('online',()=>{window.__mtrwOfflineForced=false;notice(false,'');flush()});
 window.addEventListener('offline',()=>{guard()});
 (async()=>{await ensure();if(state?.profile)guard();setInterval(()=>{if(offline())guard();else flush()},10000)})();
