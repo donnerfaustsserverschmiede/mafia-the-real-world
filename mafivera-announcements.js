@@ -3,7 +3,8 @@
 let last='';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={money:'💵 $',material:'🧱 Material',weapon_parts:'🔩 Waffenteile',reputation:'⭐ Reputation',hitmen:'🥊 Schläger'};
-async function loadAnnouncements(){try{const rows=await window.db.rpc('mtrw_active_announcements');if(rows.error)throw rows.error;const list=rows.data||[];const newest=list[0];if(newest&&newest.id!==last){last=newest.id;show(newest)}render(list)}catch(e){}}
+async function tr(a){const lang=localStorage.getItem('mtrw_notification_language')||'de';if(lang==='de')return a;try{const r=await window.db.functions.invoke('mtrw-translate',{body:{target:lang,texts:[a.title,a.message]}});if(r.error)throw r.error;return {...a,title:r.data?.translations?.[0]||a.title,message:r.data?.translations?.[1]||a.message}}catch(_){return a}}
+async function loadAnnouncements(){try{const rows=await window.db.rpc('mtrw_active_announcements');if(rows.error)throw rows.error;const raw=rows.data||[];const list=[];for(const a of raw)list.push(await tr(a));const newest=list[0];if(newest&&newest.id!==last){last=newest.id;show(newest)}render(list)}catch(e){}}
 function render(list){let box=document.getElementById('mtrwAnnouncements');if(!box){box=document.createElement('div');box.id='mtrwAnnouncements';box.className='mtrw-announcements';document.body.appendChild(box)}box.innerHTML=list.map(a=>`<button class="mtrw-announcement-item"><b>📢 ${esc(a.title)}</b><span>${esc(a.message)}</span></button>`).join('');box.querySelectorAll('.mtrw-announcement-item').forEach((b,i)=>b.onclick=()=>show(list[i]))}
 async function show(a){
  if(!a)return;
