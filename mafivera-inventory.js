@@ -6,13 +6,9 @@ const $=id=>document.getElementById(id),fmt=n=>Number(n||0).toLocaleString('de-D
 const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 async function loadInventory(){
   const localInventory=async()=>{
-    const s=await window.__mtrwOfflineCore?.ensure(),p=s?.profile||{},items=[];
-    const names={cocaine:['Kokain','❄️'],weed:['Cannabis','🌿'],meth:['Methamphetamin','💎'],heroin:['Heroin','💉']};
-    for(const k of Object.keys(names)){
-      const q=Number(p[k+'_quantity']||0);
-      if(q>0)items.push({kind:'drug',drug_type:k,name:names[k][0],icon:names[k][1],quantity:q});
-    }
-    return {items,total:Number(p.product||0)};
+    const s=await window.__mtrwOfflineCore?.ensure(),p=s?.profile||{};
+    if(Array.isArray(s?.inventory?.items))return structuredClone?s.inventory:{items:s.inventory.items.map(x=>({...x})),total:Number(s.inventory.total||0)};
+    return {items:[],total:Number(p.product||0)};
   };
   db=window.db||db;
   if(!db)return localInventory();
@@ -31,6 +27,7 @@ async function loadInventory(){
     const wi=wq.data||{};
     WEAPONS.filter(([k])=>Number(wi[k]||0)>0).forEach(([k,name,icon])=>d.items.push({kind:'weapon',drug_type:k,name,icon,quantity:Number(wi[k]||0)}));
     d.total=Object.values(inv).reduce((a,b)=>a+b,0)+WEAPONS.reduce((a,[k])=>a+Number(wi[k]||0),0);
+    window.__mtrwOfflineCore?.remember?.('inventory',{items:d.items.map(x=>({...x})),total:Number(d.total||0)});
     const hud=$('hudDrugs');if(hud)hud.textContent=fmt(d.total);
     const count=$('mtrwInventoryCount');if(count)count.textContent=fmt(d.total);
     return d;
