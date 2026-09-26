@@ -116,7 +116,7 @@ function addTile(k,count){
  const rect=L.rectangle(tileBounds(r,c),{pane:'mtrwHeistFieldPane',bubblingMouseEvents:false,color:col.border,weight:2,fillColor:col.fill,fillOpacity:.88,interactive:true,className:'mtrw-heist-field'}).addTo(overlay);
  const[lat,lng]=center(r,c);
  const level=count>=8?3:count>=4?2:1;
- const marker=L.marker([lat,lng],{pane:'mtrwHeistSkullPane',interactive:false,zIndexOffset:1100,icon:L.divIcon({className:'mtrw-heist-skull',html:'<span title="Heist-Stufe '+level+'">'+'💀'.repeat(level)+'</span>',iconSize:[Math.min(92,38+level*18),38],iconAnchor:[Math.min(46,19+level*9),19]})}).addTo(skullLayer);
+ const marker=L.marker([lat,lng],{pane:'mtrwHeistSkullPane',interactive:false,zIndexOffset:1100,icon:L.divIcon({className:'mtrw-heist-skull',html:'<span title="Heist-Stufe '+level+'">💀</span>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(skullLayer);
  tileLayers.set(k,rect);tileLayers.set(k+'#skull',marker);rendered.set(k,count);rect.on('click',()=>window.mtrwOpenHeistField?.(k,count));
 }
 
@@ -133,7 +133,7 @@ async function syncServer(){
  if(syncBusy||!window.db||!allCounts.size)return;
  syncBusy=true;
  try{
-   const zones=[...allCounts.keys()];
+   const zones=[...allCounts.keys()].filter(k=>!!(window.__mtrwWorld||{})[k]);
    const r=await window.db.rpc('mtrw_sync_heist_fields',{p_zones:zones});
    if(r.error)throw r.error;
    window.__mtrwHeistZones=new Set(zones);
@@ -165,7 +165,11 @@ async function refresh(force=false){
      cache.set(key,counts);
    }
    allCounts.clear();
-   for(const[k,count]of Object.entries(counts||{})){const n=Number(count)||0;if(n>0)allCounts.set(k,n)}
+   const world=window.__mtrwWorld||{};
+   for(const[k,count]of Object.entries(counts||{})){
+     const n=Number(count)||0;
+     if(n>0 && world[k]) allCounts.set(k,n);
+   }
    redraw();
    window.__mtrwHeistScanStatus='ok';
    await syncServer();
