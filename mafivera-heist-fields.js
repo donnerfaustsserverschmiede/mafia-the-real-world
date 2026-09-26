@@ -172,6 +172,9 @@ async function refresh(){
  await loadCentral();
  setTimeout(()=>syncGpsArea().catch(()=>{}),50);
 }
+async function reliableRefresh(){
+ try{await refresh()}catch(_){}
+}
 function boot(){
  map=window.__mtrwMap;
  if(!map||typeof L==='undefined')return;
@@ -188,7 +191,7 @@ function boot(){
    syncGpsArea().catch(()=>{});
  });
  clearInterval(window.__mtrwHeistRefreshTimer);
- window.__mtrwHeistRefreshTimer=setInterval(loadCentral,30000);
+ window.__mtrwHeistRefreshTimer=setInterval(reliableRefresh,2000);
  refresh();
 }
 const wait=setInterval(()=>{if(window.__mtrwMap&&window.db){clearInterval(wait);boot()}},250);
