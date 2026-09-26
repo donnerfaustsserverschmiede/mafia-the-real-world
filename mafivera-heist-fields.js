@@ -85,31 +85,87 @@ async function syncViewport(){
  await loadCentral();
 }
 async function loadCentral(){
- if(!map||!window.db)return;
+ if(!map||!window.db)return false;
  try{
    const b=map.getBounds();
+   // Read the already-centralized Heist world FIRST. Never wait for OSM
+   // discovery before showing known Heist fields.
+   const padLat=.02,padLng=.02;
+   const south=b.getSouth()-padLat,north=b.getNorth()+padLat;
+   const west=b.getWest()-padLng,east=b.getEast()+padLng;
    const q=await window.db.from('mtrw_heist_fields')
      .select('zone_key,target_count,center_lat,center_lng')
-     .gte('center_lat',b.getSouth()).lte('center_lat',b.getNorth())
-     .gte('center_lng',b.getWest()).lte('center_lng',b.getEast());
+     .gte('center_lat',south).lte('center_lat',north)
+     .gte('center_lng',west).lte('center_lng',east)
+     .limit(5000);
    if(q.error)throw q.error;
    counts.clear();
+   const rows=[];
    for(const row of (q.data||[])){
      const k=String(row.zone_key||'');
      const lat=Number(row.center_lat),lng=Number(row.center_lng);
-     if(k&&Number.isFinite(lat)&&Number.isFinite(lng))
-       counts.set(k,Math.max(1,Number(row.target_count)||1));
+     if(k&&Number.isFinite(lat)&&Number.isFinite(lng)){
+       const n=Math.max(1,Number(row.target_count)||1);
+       counts.set(k,n);
+       rows.push({zone_key:k,target_count:n,center_lat:lat,center_lng:lng});
+     }
    }
+   // Heist fields are permanent world events. Cache only known central
+   // fields so the next game boot can paint them immediately while the
+   // authoritative DB request is refreshed.
+   try{localStorage.setItem('mtrw_heist_central_cache',JSON.stringify({ts:Date.now(),rows}));}catch(_){}
    redraw();
+   return true;
  }catch(e){
    window.__mtrwHeistScanStatus='error';
+   // A previous central snapshot is still safe to use because Heist fields
+   // are never removed from the world.
+   try{
+     const raw=localStorage.getItem('mtrw_heist_central_cache');
+     const cache=raw?JSON.parse(raw):null;
+     if(cache?.rows?.length){
+       counts.clear();
+       const b=map.getBounds();
+       for(const row of cache.rows){
+         if(Number(row.center_lat)>=b.getSouth()-.02&&Number(row.center_lat)<=b.getNorth()+.02&&Number(row.center_lng)>=b.getWest()-.02&&Number(row.center_lng)<=b.getEast()+.02)
+           counts.set(String(row.zone_key),Math.max(1,Number(row.target_count)||1));
+       }
+       redraw();
+       return false;
+     }
+   }catch(_){}
    console.warn('MAFIVERA zentrale Heistkarte:',e);
+   return false;
  }
 }
+async function syncViewport(){
+ if(busy||!map)return;
+ const b=map.getBounds();
+ let south=b.getSouth(),west=b.getWest(),north=b.getNorth(),east=b.getEast();
+ if(east<west)east+=360;
+ const MAX=.07;
+ busy=true;
+ try{
+   const jobs=[];
+   for(let s=south;s<north;s+=MAX){
+     const nn=Math.min(north,s+MAX);
+     for(let w=west;w<east;w+=MAX){
+       const ee=Math.min(east,w+MAX);
+       jobs.push(fetch(EDGE,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},
+         body:JSON.stringify({south:s,west:w,north:nn,east:ee})}).then(async r=>({ok:r.ok,data:await r.json().catch(()=>({}))})).catch(e=>({ok:false,data:{error:String(e)}})));
+     }
+   }
+   const results=await Promise.all(jobs);
+   window.__mtrwHeistScanStatus=results.some(x=>x.ok)?'central-ready':'error';
+ }finally{busy=false}
+ // Discovery is background only. Refresh the map after OSM sync finishes.
+ await loadCentral();
+}
 async function refresh(){
- // First ask the server to discover only the current geographic slice.
- // The result is persisted centrally and is then rendered from Supabase.
- await syncViewport();
+ // IMPORTANT: paint the already-centralized world immediately.
+ // OSM discovery runs afterwards in the background and never blocks first paint.
+ await loadCentral();
+ setTimeout(()=>syncViewport().catch(()=>{}),50);
 }
 function boot(){
  map=window.__mtrwMap;
