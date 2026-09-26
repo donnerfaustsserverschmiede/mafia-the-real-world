@@ -38,20 +38,14 @@ function targetPoint(el){
  return null;
 }
 
-async function query(north,south,east,west){
+async function queryOne(north,south,east,west){
   const payload={north:Number(north),south:Number(south),east:Number(east),west:Number(west)};
   const jwt=window.db?.auth ? (await window.db.auth.getSession())?.data?.session?.access_token : null;
-
-  // OSM is queried through our Supabase Edge Function. This avoids browser
-  // CORS/network restrictions that made direct Overpass requests silently fail
-  // in the installed/Android browser.
   try{
     const res=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mafivera-heist-osm',{
-      method:'POST',
-      cache:'no-store',
+      method:'POST',cache:'no-store',
       headers:{
-        'Content-Type':'application/json',
-        'Accept':'application/json',
+        'Content-Type':'application/json','Accept':'application/json',
         ...(jwt?{Authorization:'Bearer '+jwt}:{})
       },
       body:JSON.stringify(payload)
@@ -61,8 +55,6 @@ async function query(north,south,east,west){
     return Array.isArray(data?.elements)?data.elements:[];
   }catch(edgeError){
     console.warn('MAFIVERA Heist-OSM Edge:',edgeError);
-    // Fallback for environments where the Edge Function is temporarily
-    // unavailable. The client still tries public Overpass endpoints.
     const q=`[out:json][timeout:20];(
       nwr["shop"](${south},${west},${north},${east});
       nwr["amenity"~"bank|casino|fuel|pharmacy|post_office|money_transfer"](${south},${west},${north},${east});
@@ -70,20 +62,43 @@ async function query(north,south,east,west){
     );out center tags;`;
     let lastErr=edgeError;
     for(const endpoint of OVERPASS){
-      const controller=new AbortController();
-      const timeout=setTimeout(()=>controller.abort(),18000);
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),18000);
       try{
         const res=await fetch(endpoint+'?data='+encodeURIComponent(q),{
           method:'GET',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal
         });
         if(!res.ok)throw Error('Overpass HTTP '+res.status);
         const data=await res.json();
-        return data.elements||[];
-      }catch(e){lastErr=e}
-      finally{clearTimeout(timeout)}
+        return Array.isArray(data?.elements)?data.elements:[];
+      }catch(e){lastErr=e}finally{clearTimeout(timeout)}
     }
     throw lastErr||Error('Overpass nicht erreichbar');
   }
+}
+
+async function query(north,south,east,west){
+  // Supabase Edge Function accepts bboxes up to 0.08°. A phone viewport
+  // can be wider/taller than that, so split the visible map into safe
+  // chunks instead of sending one invalid_bbox request.
+  const MAX=.07, jobs=[];
+  for(let s=Number(south);s<Number(north);s+=MAX){
+    const n=Math.min(s+MAX,Number(north));
+    for(let w=Number(west);w<Number(east);w+=MAX){
+      const e=Math.min(w+MAX,Number(east));
+      jobs.push(queryOne(n,s,e,w));
+    }
+  }
+  const batches=await Promise.all(jobs);
+  const seen=new Set(),out=[];
+  for(const batch of batches){
+    for(const el of (batch||[])){
+      const id=el?.type&&el?.id!=null ? el.type+':'+el.id : null;
+      if(id&&seen.has(id))continue;
+      if(id)seen.add(id);
+      out.push(el);
+    }
+  }
+  return out;
 }
 function colorFor(count){
  const n=Math.min(Math.max(Number(count)||1,1),8);
