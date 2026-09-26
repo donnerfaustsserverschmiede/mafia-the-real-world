@@ -1,19 +1,42 @@
 {
-  "name":"MAFIVERA – The Real World",
-  "short_name":"MAFIVERA",
-  "description":"MAFIVERA – Die Welt gehört dir.",
-  "lang":"de",
-  "dir":"ltr",
-  "start_url":"./?mtrw_app=1",
-  "scope":"./",
-  "id":"mafivera-app",
-  "display":"standalone","display_override":["standalone"],
-  "background_color":"#05080d",
-  "theme_color":"#05080d",
-  "orientation":"portrait-primary","prefer_related_applications":false,
-  "icons":[
-    {"src":"./assets/mafivera-logo.webp?v=20260926-07","sizes":"192x192","type":"image/webp","purpose":"any"},
-    {"src":"./assets/mafivera-logo.webp?v=20260926-07","sizes":"512x512","type":"image/webp","purpose":"any"}
+  "name": "MAFIVERA – The Real World",
+  "short_name": "MAFIVERA",
+  "description": "MAFIVERA – Die Welt gehört dir.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "https://donnerfaustsserverschmiede.github.io/mafia-the-real-world/?mtrw_app=1",
+  "scope": "https://donnerfaustsserverschmiede.github.io/mafia-the-real-world/",
+  "id": "https://donnerfaustsserverschmiede.github.io/mafia-the-real-world/",
+  "display": "standalone",
+  "display_override": [
+    "standalone"
   ],
-  "categories":["games","entertainment"]
+  "background_color": "#05080d",
+  "theme_color": "#05080d",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./assets/mafivera-logo.webp?v=MAFIVERA-APP-ICON-20260926-04",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/mafivera-logo.webp?v=MAFIVERA-APP-ICON-20260926-04",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing",
+      "auto"
+    ]
+  }
 }
