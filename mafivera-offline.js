@@ -18,7 +18,6 @@ async function probeInternet(){
  if(probeBusy||window.__mtrwOfflineForced)return networkReachable;
  probeBusy=true;
  try{
-   if(navigator.onLine===false){networkReachable=false;return false}
    const endpoints=['https://www.gstatic.com/generate_204?mtrw='+Date.now(),'https://www.google.com/generate_204?mtrw='+Date.now()];
    let reachable=false;
    for(const url of endpoints){
@@ -87,6 +86,6 @@ async function flush(){if(syncing||offline()||!state?.queue?.length||!window.db)
 function guard(){if(!offline())return;notice(true,'OFFLINE-MODUS · Fortschritt wird lokal gespeichert');document.addEventListener('click',e=>{if(!offline())return;const t=e.target.closest?.('button,[role="button"],a');if(!t)return;const s=(t.textContent||'').trim();if(/Familie|Sozial|Freunde|Heist|Global Chat|Privatnachricht/i.test(s)){e.preventDefault();e.stopImmediatePropagation();const x=document.getElementById('toast');if(x){x.textContent='Diese Online-Funktion ist offline nicht verfügbar.';x.className='toast show error';setTimeout(()=>x.className='toast',2400)}}},true)}
 window.__mtrwOfflineCore={ensure,snapshot,handle,flush,isOffline:offline,networkError,mutating,localBootstrap,notice,remember,renderProduction};
 window.addEventListener('online',()=>{networkReachable=true;notice(false,'');probeInternet()});
-window.addEventListener('offline',()=>{networkReachable=false;if(state?.profile)guard()});
-(async()=>{await ensure();networkReachable=navigator.onLine!==false;if(state?.profile)guard();await probeInternet();setInterval(probeInternet,15000)})();
+window.addEventListener('offline',()=>{probeInternet()});
+(async()=>{await ensure();networkReachable=true;await probeInternet();if(state?.profile)guard();setInterval(probeInternet,15000)})();
 })();
