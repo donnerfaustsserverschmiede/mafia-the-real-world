@@ -1,5 +1,5 @@
 /* MAFIVERA PWA service worker — installable app, network-first, no stale game cache */
-const VERSION='6.1.2-pwa-06';
+const VERSION='7.0.0-heist-01';
 self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting()});
