@@ -83,14 +83,14 @@ async function humanText(event: any, ctx: any): Promise<string> {
   } else if (table === 'profiles') {
     if (op === 'INSERT') text = `🟢 **${actor} hat sich registriert.**`;
     else {
-      const changes: string[] = [];
-      for (const key of ['money','reputation','level','xp','material','product','influence','hitmen','weapon_parts']) {
-        if (oldD[key] !== undefined && newD[key] !== undefined && oldD[key] !== newD[key]) {
-          const labels: Record<string,string> = {money:'Geld',reputation:'Reputation',level:'Level',xp:'XP',material:'Material',product:'Ware',influence:'Einfluss',hitmen:'Schläger',weapon_parts:'Waffenteile'};
-          changes.push(`${labels[key]}: ${num(oldD[key])} → ${num(newD[key])}`);
-        }
+      const labels: Record<string,string> = {money:'Geld',reputation:'Reputation',level:'Level',xp:'XP',material:'Material',product:'Ware',influence:'Einfluss',hitmen:'Schläger',weapon_parts:'Waffenteile'};
+      const changedKey = Object.keys(labels).find(key => oldD[key] !== undefined && newD[key] !== undefined && oldD[key] !== newD[key]);
+      if (changedKey) {
+        text = `📊 **${actor}: ${labels[changedKey]} wurde von ${num(oldD[changedKey])} auf ${num(newD[changedKey])} geändert.**`;
+      } else {
+        const changed = Object.keys(newD).find(key => oldD[key] !== newD[key] && !['updated_at','last_seen_at'].includes(key));
+        text = changed ? `📝 **${actor}: ${changed} wurde geändert.**` : `📝 **${actor} hat sein Profil geändert.**`;
       }
-      text = changes.length ? `📊 **${actor}: ${changes.join(', ')}.**` : `📝 **${actor} hat sein Profil geändert.**`;
     }
   } else if (table === 'mtrw_notifications') {
     text = data.message ? `📨 **${actor}: ${String(data.title || 'Benachrichtigung')} – ${String(data.message)}**` : `📨 **${actor} hat eine Benachrichtigung erhalten.**`;
