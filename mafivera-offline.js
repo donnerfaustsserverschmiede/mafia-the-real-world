@@ -43,7 +43,19 @@ function localResult(name,a){
  if(name==='mtrw_dealer_state')return state.dealer||{active:false};
  if(name==='mtrw_weapon_dealer_state')return state.weaponDealer||{active:false};
  if(name==='mtrw_reject_weapon_dealer'){state.weaponDealer=null;save();queue(name,a);return {success:true};}
- if(name==='mafivera_inventory')return {items:[],total:Number(p.product||0)};
+ if(name==='mafivera_inventory'){const inv=state.inventory||{items:[],total:Number(p.product||0)};return clone(inv);}
+ if(name==='mtrw_sell_to_dealer'){
+   state.dealer=null;
+   const n=Math.max(1,Number(a.p_quantity||1)),type=String(a.p_drug_type||'');
+   const items=Array.isArray(state.inventory?.items)?state.inventory.items:[],idx=items.findIndex(x=>String(x?.drug_type)===type);
+   const have=idx>=0?Number(items[idx].quantity||0):0;
+   if(have<n)throw Error('Nicht genügend Ware im Inventar.');
+   items[idx]={...items[idx],quantity:have-n};
+   state.inventory={items:items.filter(x=>Number(x.quantity||0)>0),total:items.reduce((sum,x)=>sum+Number(x.quantity||0),0)};
+   p.product=state.inventory.total;
+   p.money=Number(p.money||0)+n*1000;
+   saveProfile(p);queue(name,a);save();return {success:true,sold:n,earned:n*1000,money:p.money};
+ }
  if(name==='mtrw_collect_drug_production'||name==='mtrw_collect_weapon_production')return {success:true};
  if(name==='mtrw_start_production'){
    const weapon=String(a.p_drug_type||'').startsWith('weapon_'),qty=Math.max(1,Number(a.p_quantity||1));
@@ -60,8 +72,7 @@ function localResult(name,a){
  if(name==='mafivera_station'){const z=w[a.p_zone_key]||{};const n=Math.max(1,Number(a.p_count||1));if(Number(p.hitmen||0)<n)throw Error('Nicht genügend Schläger.');p.hitmen-=n;w[a.p_zone_key]={...z,garrison:Number(z.garrison||0)+n};saveProfile(p);queue(name,a);save();return {success:true}}
  if(name==='mafivera_recall'){const z=w[a.p_zone_key]||{};const n=Math.max(1,Number(a.p_count||1));if(Number(z.garrison||0)<n)throw Error('Nicht genügend stationierte Schläger.');p.hitmen=Number(p.hitmen||0)+n;w[a.p_zone_key]={...z,garrison:Number(z.garrison||0)-n};saveProfile(p);queue(name,a);save();return {recalled:n}}
  if(name==='mafivera_sell_products'){const n=Math.max(1,Number(a.p_count||1));if(Number(p.product||0)<n)throw Error('Nicht genügend Produkte.');p.product-=n;p.money=Number(p.money||0)+n*100;saveProfile(p);queue(name,a);save();return {success:true,money:p.money}}
- if(name==='mtrw_sell_to_dealer'){state.dealer=null;const n=Math.max(1,Number(a.p_quantity||1));p.product=Math.max(0,Number(p.product||0)-n);p.money=Number(p.money||0)+n*1000;saveProfile(p);queue(name,a);return {success:true,sold:n,earned:n*1000,money:p.money}}
- if(name==='mtrw_sell_weapon_to_dealer'){state.weaponDealer=null;const n=Math.max(1,Number(a.p_quantity||1));p.money=Number(p.money||0)+n*500;saveProfile(p);queue(name,a);return {success:true,sold:n,earned:n*500,money:p.money}}
+ if(name==='mtrw_sell_weapon_to_dealer'){state.weaponDealer=null;const n=Math.max(1,Number(a.p_quantity||1)),type=String(a.p_weapon_type||'');const items=Array.isArray(state.inventory?.items)?state.inventory.items:[],idx=items.findIndex(x=>String(x?.drug_type)===type),have=idx>=0?Number(items[idx].quantity||0):0;if(have<n)throw Error('Nicht genügend Waffe im Inventar.');items[idx]={...items[idx],quantity:have-n};state.inventory={items:items.filter(x=>Number(x.quantity||0)>0),total:items.reduce((sum,x)=>sum+Number(x.quantity||0),0)};p.money=Number(p.money||0)+n*500;saveProfile(p);queue(name,a);save();return {success:true,sold:n,earned:n*500,money:p.money}}
  throw Error('OFFLINE_UNSUPPORTED');
 }
 function renderProduction(){
