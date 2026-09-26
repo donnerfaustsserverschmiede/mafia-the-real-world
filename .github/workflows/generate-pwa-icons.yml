@@ -14,16 +14,39 @@ permissions:
 
 jobs:
   icons:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.x"
-      - name: Generate 192px and 512px PNG icons
+
+      - name: Render the existing MAFIVERA logo with Chrome
         run: |
-          ffmpeg -y -i assets/mafivera-logo.webp -vf scale=192:192:flags=lanczos -frames:v 1 assets/mafivera-icon-192.png
-          ffmpeg -y -i assets/mafivera-logo.webp -vf scale=512:512:flags=lanczos -frames:v 1 assets/mafivera-icon-512.png
+          cat > /tmp/mtrw-icon.html <<'HTML'
+          <!doctype html>
+          <html>
+          <head><meta charset="utf-8"><style>
+          html,body{margin:0;width:100%;height:100%;background:#05080d;overflow:hidden}
+          body{display:flex;align-items:center;justify-content:center}
+          img{display:block;width:100%;height:100%;object-fit:contain}
+          </style></head>
+          <body><img src="file:///home/runner/work/mafia-the-real-world/mafia-the-real-world/assets/mafivera-logo.webp"></body>
+          </html>
+          HTML
+
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+            --window-size=192,192 \
+            --screenshot="$GITHUB_WORKSPACE/assets/mafivera-icon-192.png" \
+            "file:///tmp/mtrw-icon.html"
+
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+            --window-size=512,512 \
+            --screenshot="$GITHUB_WORKSPACE/assets/mafivera-icon-512.png" \
+            "file:///tmp/mtrw-icon.html"
+
+      - name: Verify icon dimensions
+        run: |
+          file assets/mafivera-icon-192.png
+          file assets/mafivera-icon-512.png
+
       - name: Commit generated icons
         run: |
           git config user.name "github-actions[bot]"
