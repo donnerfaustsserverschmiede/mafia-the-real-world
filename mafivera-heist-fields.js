@@ -63,20 +63,112 @@ function redraw(){
  window.mtrwRefreshTerritoryHeistUI?.();
  window.dispatchEvent(new CustomEvent('mtrw:heist-cells-updated'));
 }
+function playerCell(){
+ const p=window.__mtrwPlayerLocation||window.__mtrwProfile||{};
+ const lat=Number(p.lat??p.gps_lat),lng=Number(p.lng??p.gps_lng);
+ if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return null;
+ return {lat,lng,r:Math.floor(lat/GLAT),c:Math.floor(lng/GLNG)};
+}
+function visibleHeistBox(){
+ const p=playerCell();
+ if(!p)return null;
+ return {
+   south:Math.max(-90,(p.r-5)*GLAT),
+   west:Math.max(-180,(p.c-5)*GLNG),
+   north:Math.min(90,(p.r+6)*GLAT),
+   east:Math.min(180,(p.c+6)*GLNG)
+ };
+}
+async function syncBox(south,west,north,east){
+ if(!map)return false;
+ const MAX=.07,jobs=[];
+ for(let s=south;s<north;s+=MAX){
+   const nn=Math.min(north,s+MAX);
+   for(let w=west;w<east;w+=MAX){
+     const ee=Math.min(east,w+MAX);
+     jobs.push(fetch(EDGE,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},
+       body:JSON.stringify({south:s,west:w,north:nn,east:ee})})
+       .then(async r=>({ok:r.ok,data:await r.json().catch(()=>({}))}))
+       .catch(e=>({ok:false,data:{error:String(e)}})));
+   }
+ }
+ if(!jobs.length)return false;
+ const results=await Promise.all(jobs);
+ return results.some(x=>x.ok);
+}
+async function loadCentral(){
+ if(!map||!window.db)return false;
+ const box=visibleHeistBox();
+ if(!box)return false;
+ try{
+   // Strictly the player's 11x11 resource area — never the whole map viewport.
+   const q=await window.db.from('mtrw_heist_fields')
+     .select('zone_key,target_count,center_lat,center_lng')
+     .gte('center_lat',box.south).lte('center_lat',box.north)
+     .gte('center_lng',box.west).lte('center_lng',box.east)
+     .limit(5000);
+   if(q.error)throw q.error;
+   counts.clear();
+   const rows=[];
+   for(const row of (q.data||[])){
+     const k=String(row.zone_key||'');
+     const lat=Number(row.center_lat),lng=Number(row.center_lng);
+     if(k&&Number.isFinite(lat)&&Number.isFinite(lng)){
+       const n=Math.max(1,Number(row.target_count)||1);
+       counts.set(k,n);
+       rows.push({zone_key:k,target_count:n,center_lat:lat,center_lng:lng});
+     }
+   }
+   try{localStorage.setItem('mtrw_heist_central_cache',JSON.stringify({ts:Date.now(),rows}));}catch(_){}
+   redraw();
+   return true;
+ }catch(e){
+   window.__mtrwHeistScanStatus='error';
+   try{
+     const raw=localStorage.getItem('mtrw_heist_central_cache');
+     const cache=raw?JSON.parse(raw):null,box2=visibleHeistBox();
+     if(cache?.rows?.length&&box2){
+       counts.clear();
+       for(const row of cache.rows){
+         const lat=Number(row.center_lat),lng=Number(row.center_lng);
+         if(lat>=box2.south&&lat<=box2.north&&lng>=box2.west&&lng<=box2.east)
+           counts.set(String(row.zone_key),Math.max(1,Number(row.target_count)||1));
+       }
+       redraw();
+       return false;
+     }
+   }catch(_){}
+   console.warn('MAFIVERA zentrale Heistkarte:',e);
+   return false;
+ }
+}
+async function syncGpsArea(){
+ const box=visibleHeistBox(),p=playerCell();
+ if(!box||!p)return;
+ const cell=p.r+'_'+p.c;
+ if(cell===lastGpsCell)return;
+ lastGpsCell=cell;
+ if(gpsSyncTimer)clearTimeout(gpsSyncTimer);
+ gpsSyncTimer=setTimeout(async()=>{
+   gpsSyncTimer=null;
+   try{
+     const ok=await syncBox(box.south,box.west,box.north,box.east);
+     if(ok)await loadCentral();
+   }catch(_){}
+ },150);
+}
 async function syncViewport(){
  if(busy||!map)return;
  const box=visibleHeistBox();
  if(!box)return;
  busy=true;
  try{
-   // Only the player's current 11x11 resource area is ever synchronized.
    const ok=await syncBox(box.south,box.west,box.north,box.east);
    window.__mtrwHeistScanStatus=ok?'central-ready':'error';
  }finally{busy=false}
  await loadCentral();
 }
 async function refresh(){
- // Paint only the player's current 11x11 resource area immediately.
  await loadCentral();
  setTimeout(()=>syncGpsArea().catch(()=>{}),50);
 }
