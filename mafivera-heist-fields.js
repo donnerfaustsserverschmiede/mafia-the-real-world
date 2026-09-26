@@ -191,38 +191,107 @@ async function loadCentralHeistFields(){
  }
 }
 
+async function buildCentralHeistWorldFromBrowser(){
+  if(!window.db)throw Error('Datenbank noch nicht bereit.');
+  const claim=await window.db.rpc('mtrw_heist_world_sync_claim');
+  if(claim.error)throw claim.error;
+  const cd=claim.data||{};
+  if(!cd.run){
+    if(Number(cd.field_count)>0||cd.status==='ready')return true;
+    // Another client is building the world. Wait for the central result.
+    const until=Date.now()+90000;
+    while(Date.now()<until){
+      await new Promise(ok=>setTimeout(ok,3000));
+      const s=await window.db.rpc('mtrw_heist_world_sync_status');
+      if(s.error)break;
+      const d=s.data||{};
+      if(Number(d.field_count)>0||d.status==='ready')return true;
+    }
+    return false;
+  }
+
+  try{
+    const q=await window.db.from('world_territories').select('zone_key,center_lat,center_lng');
+    if(q.error)throw q.error;
+    const worldRows=Array.isArray(q.data)?q.data:[];
+    if(!worldRows.length)throw Error('world_territories_empty');
+
+    let south=Infinity,west=Infinity,north=-Infinity,east=-Infinity;
+    const known=new Set();
+    for(const z of worldRows){
+      const zone=String(z?.zone_key||''),lat=Number(z?.center_lat),lng=Number(z?.center_lng);
+      if(!zone||!Number.isFinite(lat)||!Number.isFinite(lng))continue;
+      known.add(zone);
+      south=Math.min(south,lat-GLAT/2);north=Math.max(north,lat+GLAT/2);
+      west=Math.min(west,lng-GLNG/2);east=Math.max(east,lng+GLNG/2);
+    }
+    if(!known.size)throw Error('world_coordinates_invalid');
+
+    // One-time OSM build in the first player's browser. The result is
+    // immediately stored centrally; normal gameplay never scans OSM.
+    const elements=await query(north,south,east,west);
+    const counts=new Map();
+    for(const el of elements){
+      const p=targetPoint(el);if(!p)continue;
+      const zone=tileKey(Math.floor(p[0]/GLAT),Math.floor(p[1]/GLNG));
+      if(!known.has(zone))continue;
+      counts.set(zone,Math.min(99,(counts.get(zone)||0)+1));
+    }
+    const zones=[...counts.keys()];
+    if(!zones.length)throw Error('osm_no_heist_targets');
+
+    const sync=await window.db.rpc('mtrw_sync_heist_fields',{p_zones:zones});
+    if(sync.error)throw sync.error;
+    const finish=await window.db.rpc('mtrw_heist_world_sync_finish',{p_success:true});
+    if(finish.error)throw finish.error;
+    return true;
+  }catch(e){
+    await window.db.rpc('mtrw_heist_world_sync_finish',{p_success:false}).catch(()=>{});
+    throw e;
+  }
+}
+
 async function ensureCentralHeistWorld(){
  try{
    const status=await window.db.rpc('mtrw_heist_world_sync_status');
    if(status.error)throw status.error;
-   let d=status.data||{};
+   const d=status.data||{};
 
    if(Number(d.field_count)>0||d.status==='ready'){
      await loadCentralHeistFields();
      return;
    }
 
-   // The world build is a one-time server operation. Use GET so the
-   // browser does not need a CORS preflight for the public sync trigger.
-   const res=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mafivera-heist-osm?sync_world=true',{
-     method:'GET',cache:'no-store',headers:{Accept:'application/json'}
-   });
-   const out=await res.json().catch(()=>({}));
-   if(!res.ok)throw Error(out?.error||('world_sync_http_'+res.status));
-
-   // If another player is currently building the world, wait for that
-   // central sync to finish instead of treating an empty table as final.
-   if(out?.status==='syncing'){
-     const until=Date.now()+90000;
-     while(Date.now()<until){
-       await new Promise(ok=>setTimeout(ok,3000));
-       const s=await window.db.rpc('mtrw_heist_world_sync_status');
-       if(s.error)break;
-       d=s.data||{};
-       if(Number(d.field_count)>0||d.status==='ready')break;
+   // Prefer the server-side one-time builder.
+   let serverError=null;
+   try{
+     const res=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/functions/v1/mafivera-heist-osm?sync_world=true',{
+       method:'GET',cache:'no-store',headers:{Accept:'application/json'}
+     });
+     const out=await res.json().catch(()=>({}));
+     if(res.ok && (Number(out?.field_count)>0 || out?.status==='ready')){
+       await loadCentralHeistFields();
+       return;
      }
-   }
+     if(out?.status==='syncing'){
+       const until=Date.now()+90000;
+       while(Date.now()<until){
+         await new Promise(ok=>setTimeout(ok,3000));
+         const s=await window.db.rpc('mtrw_heist_world_sync_status');
+         if(s.error)break;
+         const sd=s.data||{};
+         if(Number(sd.field_count)>0||sd.status==='ready'){
+           await loadCentralHeistFields();
+           return;
+         }
+       }
+     }
+     serverError=out?.error||('world_sync_http_'+res.status);
+   }catch(e){serverError=e}
 
+   // If the Supabase Edge runtime cannot reach Overpass, build the same
+   // one-time world from the player's browser and persist it centrally.
+   await buildCentralHeistWorldFromBrowser();
    await loadCentralHeistFields();
  }catch(e){
    console.warn('MAFIVERA Heist-Welt-Sync:',e);
