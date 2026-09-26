@@ -22,10 +22,10 @@ async function getState(zone){
   let r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
   if(r.error)throw r.error;
   if(r.data?.eligible===false){
-    // A freshly rendered OSM tile can briefly arrive before the sync call.
-    // Register that exact playable tile once, then read its state again.
-    const sync=await window.db.rpc('mtrw_sync_heist_fields',{p_zones:[zone]});
-    if(sync.error)throw sync.error;
+    // Register the exact tapped field independently. The bulk map sync is
+    // deliberately not required for opening a Heist.
+    const reg=await window.db.rpc('mtrw_register_heist_field',{p_zone_key:zone});
+    if(reg.error)throw reg.error;
     r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
     if(r.error)throw r.error;
   }
