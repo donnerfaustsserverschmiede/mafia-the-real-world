@@ -145,6 +145,31 @@ async function syncServer(){
  finally{syncBusy=false}
 }
 
+async function preloadRegisteredFields(){
+ if(!map||!window.db)return false;
+ try{
+   const b=map.getBounds(),world=window.__mtrwWorld||{};
+   const r=await window.db.from('mtrw_heist_fields').select('zone_key,target_count');
+   if(r.error)throw r.error;
+   const rows=Array.isArray(r.data)?r.data:[];
+   const visible={};
+   for(const row of rows){
+     const k=String(row?.zone_key||'');
+     const w=world[k]; if(!w)continue;
+     const lat=Number(w.center_lat),lng=Number(w.center_lng);
+     if(Number.isFinite(lat)&&Number.isFinite(lng)&&b.contains([lat,lng])) visible[k]=Math.max(1,Number(row.target_count)||1);
+   }
+   allCounts.clear();
+   for(const[k,n]of Object.entries(visible))allCounts.set(k,n);
+   redraw();
+   window.__mtrwHeistScanStatus=rows.length?'server-ready':'waiting';
+   return rows.length>0;
+ }catch(e){
+   console.warn('MAFIVERA Heist-Schnellstart:',e);
+   return false;
+ }
+}
+
 async function refresh(force=false){
  if(!map)return;
  const b=map.getBounds(),south=b.getSouth(),west=b.getWest(),north=b.getNorth(),east=b.getEast(),step=.05;
@@ -163,6 +188,7 @@ async function refresh(force=false){
        const q=cell(p[0],p[1]),k=tileKey(q.r,q.c);counts[k]=(counts[k]||0)+1;
      }
      cache.set(key,counts);
+     try{localStorage.setItem('mtrw_heist_cache_v2',JSON.stringify({at:Date.now(),key,counts}))}catch(_){}
    }
    allCounts.clear();
    const world=window.__mtrwWorld||{};
@@ -192,7 +218,24 @@ function boot(){
  // The map exists before world_territories has finished loading. Do not
  // filter OSM targets against an empty world and accidentally render nothing.
  const startWhenWorldReady=()=>{
-   if(Object.keys(window.__mtrwWorld||{}).length){refresh(true);return true}
+   if(Object.keys(window.__mtrwWorld||{}).length){
+     // Draw known Heist fields immediately from the last local scan and
+     // server registration, then refresh OSM in the background.
+     try{
+       const raw=localStorage.getItem('mtrw_heist_cache_v2');
+       const saved=raw?JSON.parse(raw):null;
+       if(saved?.counts && Date.now()-Number(saved.at||0)<24*60*60*1000){
+         allCounts.clear();
+         const world=window.__mtrwWorld||{};
+         for(const[k,v]of Object.entries(saved.counts)){
+           if(world[k] && Number(v)>0)allCounts.set(k,Number(v));
+         }
+         redraw();
+       }
+     }catch(_){}
+     preloadRegisteredFields().finally(()=>refresh(true));
+     return true;
+   }
    return false;
  };
  if(!startWhenWorldReady()){
