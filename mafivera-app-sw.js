@@ -9,7 +9,7 @@ self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const u=new URL(event.request.url);
  if(u.hostname.includes('tile.openstreetmap.org')){
-   event.respondWith(caches.open(CACHE).then(async c=>{const hit=await c.match(event.request);try{const r=await fetch(event.request);if(r.ok)c.put(event.request,r.clone());return r}catch(_){return hit||new Response('',{status:503})}}));return;
+   event.respondWith(caches.open(CACHE).then(async c=>{const hit=await c.match(event.request);try{const r=await fetch(event.request);if(r.ok||r.type==='opaque')c.put(event.request,r.clone());return r}catch(_){return hit||new Response('',{status:503})}}));return;
  }
  if(u.origin===location.origin){
    event.respondWith(caches.open(CACHE).then(async c=>{try{const r=await fetch(event.request,{cache:'no-store'});if(r.ok)c.put(event.request,r.clone());return r}catch(_){return (await c.match(event.request))||new Response('',{status:503})}}));return;
