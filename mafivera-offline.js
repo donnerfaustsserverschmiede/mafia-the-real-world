@@ -2,7 +2,7 @@
 (()=>{'use strict';
 if(window.__mtrwOfflineCore)return;
 const KEY='mtrw_offline_v1',DB='mtrw-offline-db',STORE='state';
-let state=null,ready=false,syncing=false,networkReachable=navigator.onLine!==false,probeBusy=false;
+let state=null,ready=false,syncing=false,networkReachable=navigator.onLine!==false;
 const mutating=new Set([
  'mafivera_claim','mafivera_build','mafivera_upgrade','mafivera_station','mafivera_recall',
  'mafivera_demolish','mafivera_leave_territory','mafivera_sell_products',
@@ -12,19 +12,8 @@ const clone=x=>x==null?x:JSON.parse(JSON.stringify(x));
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function read(){try{const d=await idb(),t=d.transaction(STORE,'readonly').objectStore(STORE);return await new Promise((res,rej)=>{const r=t.get('state');r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)})}catch(_){return null}}
 async function write(v){state=v;try{const d=await idb(),t=d.transaction(STORE,'readwrite').objectStore(STORE);t.put(v,'state')}catch(_){}}
-function offline(){return !!window.__mtrwOfflineForced||networkReachable===false}
-function networkError(e){const s=String(e?.message||e||'');return networkReachable===false||/failed to fetch|network|offline|load failed|fetch/i.test(s)}
-async function probeNetwork(){
- if(probeBusy||window.__mtrwOfflineForced)return false;
- probeBusy=true;
- try{
-   const r=await fetch('https://ufqdntsxgqcxtszufbtv.supabase.co/auth/v1/health',{method:'GET',cache:'no-store'});
-   networkReachable=!!r.ok;
- }catch(_){networkReachable=false}
- finally{probeBusy=false}
- if(networkReachable){notice(false,'');await flush()}else if(state?.profile)guard();
- return networkReachable;
-}
+function offline(){return navigator.onLine===false}
+function networkError(e){const s=String(e?.message||e||'');return navigator.onLine===false||/failed to fetch|network|offline|load failed|fetch/i.test(s)}
 function notice(on,msg){document.documentElement.classList.toggle('mtrw-offline',on);let x=document.getElementById('mtrwOfflineStatus');if(!x){x=document.createElement('div');x.id='mtrwOfflineStatus';x.innerHTML='<span id="mtrwOfflineDot">●</span><span id="mtrwOfflineText"></span>';document.body.appendChild(x);const st=document.createElement('style');st.textContent='#mtrwOfflineStatus{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:2147483647;padding:7px 12px;border:1px solid #7b6230;border-radius:999px;background:#10151deF;color:#f2c14e;font:900 11px/14px system-ui,sans-serif;box-shadow:0 4px 16px #0009;display:none;pointer-events:none}#mtrwOfflineDot{margin-right:6px}.mtrw-offline #mtrwOfflineStatus{display:block}.mtrw-offline .mtrw-online-only{filter:grayscale(1);opacity:.4;pointer-events:none!important}';document.head.appendChild(st)}x.querySelector('#mtrwOfflineText').textContent=msg||'OFFLINE-MODUS · Fortschritt wird lokal gespeichert';}
 function snapshot(profile,world){if(!profile?.id)return;state=state||{profile:null,world:{},queue:[],updated_at:0};state.profile=clone(profile);state.world=clone(world||{});state.updated_at=Date.now();write(state)}
 async function ensure(){if(ready)return state;state=await read()||{profile:null,world:{},queue:[],updated_at:0};ready=true;return state}
@@ -81,7 +70,7 @@ async function handle(name,args){await ensure();if(name==='mtrw_family_create'||
 async function flush(){if(syncing||offline()||!state?.queue?.length||!window.db)return false;syncing=true;notice(false,'');try{for(const q of [...state.queue]){const r=await window.db.rpc(q.name,q.args);if(r.error)throw r.error;state.queue=state.queue.filter(x=>x.id!==q.id);await write(state)}const boot=await window.db.rpc('mafivera_bootstrap');if(!boot.error&&boot.data?.profile)state.profile=clone(boot.data.profile);try{const q=await window.db.from('world_territories').select('*');if(!q.error)state.world=Object.fromEntries((q.data||[]).map(x=>[x.zone_key,x]))}catch(_){}await write(state);window.dispatchEvent(new CustomEvent('mtrw:offline-synced'));return true}catch(e){return false}finally{syncing=false}}
 function guard(){if(!offline())return;notice(true,'OFFLINE-MODUS · Fortschritt wird lokal gespeichert');document.addEventListener('click',e=>{if(!offline())return;const t=e.target.closest?.('button,[role="button"],a');if(!t)return;const s=(t.textContent||'').trim();if(/Familie|Sozial|Freunde|Heist|Global Chat|Privatnachricht/i.test(s)){e.preventDefault();e.stopImmediatePropagation();const x=document.getElementById('toast');if(x){x.textContent='Diese Online-Funktion ist offline nicht verfügbar.';x.className='toast show error';setTimeout(()=>x.className='toast',2400)}}},true)}
 window.__mtrwOfflineCore={ensure,snapshot,handle,flush,isOffline:offline,networkError,mutating,localBootstrap,notice,remember,renderProduction};
-window.addEventListener('online',()=>{window.__mtrwOfflineForced=false;networkReachable=true;notice(false,'');flush();probeNetwork()});
-window.addEventListener('offline',()=>{probeNetwork()});
-(async()=>{await ensure();if(state?.profile)guard();await probeNetwork();setInterval(()=>{probeNetwork()},10000)})();
+window.addEventListener('online',()=>{networkReachable=true;notice(false,'');flush()});
+window.addEventListener('offline',()=>{networkReachable=false;if(state?.profile)guard()});
+(async()=>{await ensure();networkReachable=navigator.onLine!==false;if(state?.profile)guard()})();
 })();
