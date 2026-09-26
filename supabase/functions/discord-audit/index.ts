@@ -43,8 +43,7 @@ function purpose(v: any): string {
 }
 
 async function resolvePlayer(ctx: any, id: string | null, data: any): Promise<string> {
-  if (data?.mafia_name || data?.username || data?.display_name || data?.name) return nameOf(data);
-  if (!id) return 'System';
+  if (!id) return 'SYSTEM';
   try {
     const { data: p } = await ctx.supabaseAdmin
       .from('profiles')
@@ -57,14 +56,16 @@ async function resolvePlayer(ctx: any, id: string | null, data: any): Promise<st
   }
 }
 
-async function humanText(event: any, ctx: any): Promise<string> {
+async function humanText(event: any, ctx: any): Promise<string | null> {
   const oldD = event.old_data ?? {};
   const newD = event.new_data ?? {};
   const data = Object.keys(newD).length ? newD : oldD;
-  const actorId = event.actor_user_id || data.user_id || data.owner_id || null;
-  const actor = await resolvePlayer(ctx, actorId, data);
   const table = String(event.table_name ?? '');
   const op = String(event.operation ?? 'UNKNOWN');
+
+  // Always identify the real player by UUID. Never use family name as player name.
+  const actorId = event.actor_user_id || event.subject_user_id || data.user_id || data.owner_id || null;
+  const actor = await resolvePlayer(ctx, actorId, data);
   let eventText = '';
 
   if (table === 'mtrw_marches') {
@@ -85,57 +86,71 @@ async function humanText(event: any, ctx: any): Promise<string> {
   } else if (table === 'profiles' && op === 'INSERT') {
     eventText = 'hat sich registriert';
   } else if (table === 'profiles' && op === 'UPDATE') {
-    const labels: Record<string,string> = {money:'Geld',reputation:'Reputation',level:'Level',xp:'XP',material:'Material',product:'Ware',influence:'Einfluss',hitmen:'Schläger',weapon_parts:'Waffenteile'};
-    const changedKey = Object.keys(labels).find(key => oldD[key] !== undefined && newD[key] !== undefined && oldD[key] !== newD[key]);
-    eventText = changedKey
-      ? `${labels[changedKey]} wurde von ${num(oldD[changedKey])} auf ${num(newD[changedKey])} geändert`
-      : 'hat sein Profil geändert';
+    // Ignore technical heartbeat/location writes. Only report actual gameplay/profile changes.
+    const labels: Record<string,string> = {
+      money:'Geld', reputation:'Reputation', level:'Level', xp:'XP',
+      material:'Material', product:'Ware', influence:'Einfluss',
+      hitmen:'Schläger', weapon_parts:'Waffenteile', username:'Spielername',
+      preferred_language:'Sprache'
+    };
+    const changes = Object.keys(labels)
+      .filter(key => oldD[key] !== undefined && newD[key] !== undefined && oldD[key] !== newD[key])
+      .map(key => `${labels[key]}: ${num(oldD[key])} → ${num(newD[key])}`);
+    if (!changes.length) return null;
+    eventText = `Profil geändert – ${changes.join(', ')}`;
+  } else if (table === 'player_presence' || table === 'mtrw_raid_runtime') {
+    // Technical heartbeat/runtime records are kept in the database audit log,
+    // but they do not create Discord spam.
+    return null;
   } else if (table === 'mtrw_production_jobs') {
     const recipe = data.recipe_key || data.drug_type || 'Produktion';
     const quantity = data.quantity ?? data.amount ?? null;
-    eventText = op === 'INSERT'
-      ? (quantity != null ? `Produktion gestartet – ${num(quantity)}x ${recipe}` : `Produktion gestartet – ${recipe}`)
-      : data.action_type === 'production_ready' || data.status === 'ready'
-        ? (quantity != null ? `Produktion fertig – ${num(quantity)}x ${recipe}` : `Produktion fertig – ${recipe}`)
-        : `Produktion aktualisiert – ${recipe}${quantity != null ? ' – ' + num(quantity) + 'x' : ''}`;
+    if (op === 'INSERT') {
+      eventText = quantity != null
+        ? `Produktion gestartet – ${num(quantity)}x ${recipe}`
+        : `Produktion gestartet – ${recipe}`;
+    } else if (op === 'UPDATE' && data.status === 'completed' && oldD.status !== 'completed') {
+      eventText = quantity != null
+        ? `Produktion fertig – ${num(quantity)}x ${recipe}`
+        : `Produktion fertig – ${recipe}`;
+    } else {
+      return null;
+    }
   } else if (table === 'dealer_sale') {
     eventText = `Verkauf beim Dealer – ${num(data.quantity)}x ${data.item} für ${num(data.total)} $`;
   } else if (table === 'market_sale') {
     eventText = `Verkauf – ${num(data.quantity)}x ${data.item} für ${num(data.total)} $`;
   } else if (table === 'mtrw_notifications') {
-    if (String(data.kind || '') === 'production_ready' || String(data.action_type || '') === 'production_ready') {
-      const action = data.action_data || {};
-      const jobId = action.job_id || data.source_id;
-      let produced = action.recipe_key || action.drug_type || 'unbekannt';
-      let quantity: any = action.quantity;
-      if (jobId) {
-        try {
-          const { data: job } = await ctx.supabaseAdmin
-            .from('mtrw_production_jobs')
-            .select('quantity,recipe_key,drug_type')
-            .eq('id', jobId)
-            .maybeSingle();
-          if (job) {
-            produced = job.recipe_key || job.drug_type || produced;
-            quantity = job.quantity ?? quantity;
-          }
-        } catch {}
-      }
-      eventText = quantity != null
-        ? 'Produktion fertig – ' + num(quantity) + 'x ' + produced
-        : 'Produktion fertig – ' + produced;
-    } else {
-      const title = String(data.title || 'Benachrichtigung');
-      const message = String(data.message || '').trim();
-      eventText = message ? title + ': ' + message : title;
+    // Notifications are not gameplay events. Only accept a fresh production-ready
+    // notification whose referenced job really belongs to the same player and is completed.
+    if (op !== 'INSERT' || String(data.kind || '') !== 'production_ready') return null;
+    const action = data.action_data || {};
+    const jobId = action.job_id || data.source_id;
+    if (!jobId) return null;
+    try {
+      const { data: job } = await ctx.supabaseAdmin
+        .from('mtrw_production_jobs')
+        .select('user_id,quantity,recipe_key,drug_type,status,collected_at')
+        .eq('id', jobId)
+        .maybeSingle();
+      if (!job || job.user_id !== data.user_id || job.status !== 'completed' || job.collected_at != null) return null;
+      const produced = job.recipe_key || job.drug_type || action.recipe_key || action.drug_type || 'unbekannt';
+      eventText = `Produktion fertig – ${num(job.quantity ?? action.quantity)}x ${produced}`;
+    } catch {
+      return null;
     }
-  } else if (table === 'mtrw_raid_runtime') {
-    eventText = 'Razzia-Aktivität wurde aktualisiert';
   } else if (table === 'auth' && op === 'LOGIN') {
     eventText = 'hat sich eingeloggt';
   } else {
-    const action = op === 'INSERT' ? 'angelegt' : op === 'UPDATE' ? 'geändert' : 'gelöscht';
-    eventText = `${table || 'Datensatz'} wurde ${action}`;
+    const known: Record<string,string> = {
+      'mtrw_drug_inventory': 'Inventar geändert',
+      'mtrw_weapon_inventory': 'Waffeninventar geändert',
+      'mtrw_friendships': op === 'INSERT' ? 'Freundschaft hinzugefügt' : 'Freundschaft geändert',
+      'mtrw_family_members': op === 'INSERT' ? 'Familienmitglied hinzugefügt' : 'Familienmitglied geändert',
+      'mtrw_alliances': op === 'INSERT' ? 'Allianz geändert' : 'Allianz geändert'
+    };
+    if (known[table]) eventText = known[table];
+    else eventText = `${table || 'Datensatz'} wurde ${op === 'INSERT' ? 'angelegt' : op === 'UPDATE' ? 'geändert' : 'gelöscht'}`;
   }
 
   const isSystem = !actorId;
@@ -147,7 +162,6 @@ async function humanText(event: any, ctx: any): Promise<string> {
 
   return `**Name:** ${displayName}\n**ID:** ${displayId}\n**Ereignis:** ${eventText}\n**Datum:** ${date}\n**Uhrzeit:** ${time} Uhr`.slice(0, 1900);
 }
-
 async function sendDiscord(token: string, content: string) {
   const response = await fetch(`${DISCORD_API}/channels/${AUDIT_CHANNEL_ID}/messages`, {
     method: 'POST',
@@ -169,7 +183,17 @@ export default {
     let body: any; try { body = await req.json(); } catch { return Response.json({error:'invalid_json'},{status:400}); }
     const event = body?.record ?? body?.event ?? body;
     if (!event?.id || !event?.operation || !event?.table_name) return Response.json({error:'invalid_audit_event'},{status:400});
-    const result = await sendDiscord(botToken, await humanText(event, ctx));
+    const message = await humanText(event, ctx);
+    if (!message) {
+      await ctx.supabaseAdmin.from('mtrw_audit_events').update({
+        discord_sent: true,
+        discord_sent_at: new Date().toISOString(),
+        discord_error: null,
+        metadata: { ...(event.metadata || {}), discord_skipped: true }
+      }).eq('id', event.id);
+      return Response.json({ok:true,skipped:true},{status:200});
+    }
+    const result = await sendDiscord(botToken, message);
     if (result.ok) await ctx.supabaseAdmin.from('mtrw_audit_events').update({discord_sent:true,discord_sent_at:new Date().toISOString(),discord_error:null}).eq('id',event.id);
     else await ctx.supabaseAdmin.from('mtrw_audit_events').update({discord_error:result.error ?? 'discord_send_failed'}).eq('id',event.id);
     return Response.json(result,{status:result.ok ? 200 : 502});
