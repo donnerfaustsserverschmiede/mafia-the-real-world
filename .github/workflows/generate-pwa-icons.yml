@@ -22,14 +22,8 @@ jobs:
           python-version: "3.x"
       - name: Generate 192px and 512px PNG icons
         run: |
-          python -m pip install --disable-pip-version-check pillow
-          python - <<'PY'
-          from PIL import Image
-          src = Image.open("assets/mafivera-logo.webp").convert("RGBA")
-          for size, name in [(192, "assets/mafivera-icon-192.png"), (512, "assets/mafivera-icon-512.png")]:
-              img = src.resize((size, size), Image.Resampling.LANCZOS)
-              img.save(name, "PNG", optimize=True)
-          PY
+          magick assets/mafivera-logo.webp -resize 192x192 -strip assets/mafivera-icon-192.png
+          magick assets/mafivera-logo.webp -resize 512x512 -strip assets/mafivera-icon-512.png
       - name: Commit generated icons
         run: |
           git config user.name "github-actions[bot]"
