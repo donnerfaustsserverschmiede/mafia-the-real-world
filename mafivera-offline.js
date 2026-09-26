@@ -49,10 +49,27 @@ function localResult(name,a){
  if(name==='mtrw_sell_weapon_to_dealer'){const n=Math.max(1,Number(a.p_quantity||1));p.money=Number(p.money||0)+n*500;saveProfile(p);queue(name,a);return {success:true,sold:n,earned:n*500,money:p.money}}
  throw Error('OFFLINE_UNSUPPORTED');
 }
+function renderProduction(){
+ const s=state||{},p=s.profile||{},jobs=(s.jobs||[]).filter(j=>j.status==='running'),w=s.world||{};
+ const lab=Object.values(w).filter(x=>x?.owner_id===p.id&&x?.building_type==='lab').sort((a,b)=>Number(b.building_level||0)-Number(a.building_level||0))[0];
+ const fac=Object.values(w).filter(x=>x?.owner_id===p.id&&x?.building_type==='weapon_factory').sort((a,b)=>Number(b.building_level||0)-Number(a.building_level||0))[0];
+ const drugs={cocaine:['Kokain',25,15000],weed:['Cannabis',10,10000],meth:['Methamphetamin',40,20000],heroin:['Heroin',60,30000]};
+ const weapons={weapon_melee:['Hieb- und Stichwaffen',10,30000],weapon_handgun:['Handfeuerwaffen',25,60000],weapon_smg:['Maschinenpistolen',50,120000],weapon_longarm:['Langwaffen',100,240000]};
+ const drawer=document.getElementById('drawer'),title=document.getElementById('drawerTitle'),body=document.getElementById('drawerBody');if(!drawer||!title||!body)return;
+ title.textContent='Produktion';
+ const opts=(obj)=>Object.entries(obj).map(([k,v])=>'<option value="'+k+'">'+v[0]+' · '+v[1]+' Material/Waffenteile</option>').join('');
+ const jobsHtml=jobs.map(j=>'<div class="task-card"><div><b>⚙️ '+(drugs[j.drug_type]?.[0]||weapons[j.drug_type]?.[0]||j.drug_type)+' · '+Number(j.quantity||0)+' Stück</b><small>Fertig: '+new Date(j.finish_at).toLocaleTimeString('de-DE')+'</small></div><button class="mini danger" data-offline-cancel="'+j.id+'">✖ Abbrechen</button></div>').join('')||'<div class="hint">Keine laufende Produktion.</div>';
+ body.innerHTML='<div class="hint">📵 Offline-Modus · Produktionen werden lokal gespeichert und beim nächsten Onlinegang synchronisiert.</div><div class="production-card"><h3>⚗️ Drogenproduktion</h3><p class="hint">Chemielabor Stufe '+Number(lab?.building_level||0)+'</p><select id="offDrug">'+opts(drugs)+'</select><input id="offDrugQty" type="number" min="1" value="1"><button class="action primary" id="offDrugStart">⚗️ Produktion starten</button></div><div class="production-card"><h3>🏭 Waffenproduktion</h3><p class="hint">Waffenfabrik Stufe '+Number(fac?.building_level||0)+'</p><select id="offWeapon">'+opts(weapons)+'</select><input id="offWeaponQty" type="number" min="1" value="1"><button class="action primary" id="offWeaponStart">🏭 Produktion starten</button></div><h4>Aktive Produktionen</h4><div class="list">'+jobsHtml+'</div>';
+ drawer.classList.remove('hidden');
+ const start=(sel,qty)=>{const n=Math.max(1,Math.floor(Number(qty.value)||1));handle('mtrw_start_production',{p_drug_type:sel.value,p_quantity:n}).then(()=>{renderProduction();window.dispatchEvent(new CustomEvent('mtrw:offline-updated'))}).catch(e=>alert(e.message||e))};
+ document.getElementById('offDrugStart').onclick=()=>start(document.getElementById('offDrug'),document.getElementById('offDrugQty'));
+ document.getElementById('offWeaponStart').onclick=()=>start(document.getElementById('offWeapon'),document.getElementById('offWeaponQty'));
+ body.querySelectorAll('[data-offline-cancel]').forEach(b=>b.onclick=()=>handle('mtrw_cancel_production',{p_job_id:b.dataset.offlineCancel}).then(renderProduction));
+}
 async function handle(name,args){await ensure();if(name==='mtrw_family_create'||name.startsWith('mtrw_family_')||name.startsWith('mtrw_social_')||name.includes('heist'))throw Error('Diese Funktion ist offline nicht verfügbar.');return localResult(name,args)}
 async function flush(){if(syncing||offline()||!state?.queue?.length||!window.db)return false;syncing=true;notice(false,'');try{for(const q of [...state.queue]){const r=await window.db.rpc(q.name,q.args);if(r.error)throw r.error;state.queue=state.queue.filter(x=>x.id!==q.id);await write(state)}const boot=await window.db.rpc('mafivera_bootstrap');if(!boot.error&&boot.data?.profile)state.profile=clone(boot.data.profile);try{const q=await window.db.from('world_territories').select('*');if(!q.error)state.world=Object.fromEntries((q.data||[]).map(x=>[x.zone_key,x]))}catch(_){}await write(state);window.dispatchEvent(new CustomEvent('mtrw:offline-synced'));return true}catch(e){return false}finally{syncing=false}}
 function guard(){if(!offline())return;notice(true,'OFFLINE-MODUS · Fortschritt wird lokal gespeichert');document.addEventListener('click',e=>{const t=e.target.closest?.('button,[role="button"],a');if(!t)return;const s=(t.textContent||'').trim();if(/Familie|Sozial|Freunde|Heist|Global Chat|Privatnachricht/i.test(s)){e.preventDefault();e.stopImmediatePropagation();const x=document.getElementById('toast');if(x){x.textContent='Diese Online-Funktion ist offline nicht verfügbar.';x.className='toast show error';setTimeout(()=>x.className='toast',2400)}}},true)}
-window.__mtrwOfflineCore={ensure,snapshot,handle,flush,isOffline:offline,networkError,mutating,localBootstrap,notice,remember};
+window.__mtrwOfflineCore={ensure,snapshot,handle,flush,isOffline:offline,networkError,mutating,localBootstrap,notice,remember,renderProduction};
 window.addEventListener('online',()=>{window.__mtrwOfflineForced=false;notice(false,'');flush()});
 window.addEventListener('offline',()=>{guard()});
 (async()=>{await ensure();if(state?.profile)guard();setInterval(()=>{if(offline())guard();else flush()},10000)})();
