@@ -8,13 +8,29 @@
   "scope": "./",
   "id": "./",
   "display": "standalone",
-  "display_override": ["window-controls-overlay","standalone"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
   "background_color": "#05080d",
   "theme_color": "#05080d",
   "orientation": "portrait-primary",
   "icons": [
-    {"src":"./assets/mafivera-icon-192.svg","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},
-    {"src":"./assets/mafivera-icon-512.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}
+    {
+      "src": "./assets/mafivera-logo.webp?v=MAFIVERA-APPICON-20260926-02",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/mafivera-logo.webp?v=MAFIVERA-APPICON-20260926-02",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
   ],
-  "categories": ["games","entertainment"]
+  "categories": [
+    "games",
+    "entertainment"
+  ]
 }
