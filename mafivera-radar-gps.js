@@ -13,6 +13,7 @@ function draw(lat,lng){
   if(!map||!window.L||!valid(lat,lng))return;
   const p=[Number(lat),Number(lng)];
   window.__mtrwProfile={...(window.__mtrwProfile||{}),gps_lat:p[0],gps_lng:p[1]};
+  window.dispatchEvent(new CustomEvent('mtrw:gps-updated',{detail:{lat:p[0],lng:p[1]}}));
   let radar=window.__mtrwRadarCircle;
   if(!radar||!map.hasLayer(radar)){
     radar=L.circle(p,{radius:RADIUS,color:'#45e06f',weight:2,fillColor:'#45e06f',fillOpacity:.06,interactive:false,bubblingMouseEvents:false}).addTo(map);
