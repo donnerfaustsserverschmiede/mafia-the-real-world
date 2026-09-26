@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.game-logs]
 verify_jwt = true
+
+[functions.discord-audit]
+verify_jwt = false
