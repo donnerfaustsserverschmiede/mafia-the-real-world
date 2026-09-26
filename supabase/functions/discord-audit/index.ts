@@ -61,47 +61,63 @@ async function humanText(event: any, ctx: any): Promise<string> {
   const oldD = event.old_data ?? {};
   const newD = event.new_data ?? {};
   const data = Object.keys(newD).length ? newD : oldD;
-  const actor = await resolvePlayer(ctx, event.actor_user_id || data.user_id || data.owner_id || null, data);
+  const actorId = event.actor_user_id || data.user_id || data.owner_id || null;
+  const actor = await resolvePlayer(ctx, actorId, data);
   const table = String(event.table_name ?? '');
   const op = String(event.operation ?? 'UNKNOWN');
-  let text = '';
+  let eventText = '';
 
   if (table === 'mtrw_marches') {
     const count = num(data.troop_count ?? data.requested_troops);
     const target = zone(data.target_zone_key);
     const p = purpose(data.purpose);
-    if (op === 'INSERT') text = `⚔️ **${actor} hat ${count} Schläger ${p || 'losgeschickt'} nach ${target} geschickt.**`;
-    else if (op === 'UPDATE' && data.status) text = `⚔️ **${actor}: Marsch nach ${target} ist jetzt „${data.status}“.**`;
+    eventText = op === 'INSERT'
+      ? `hat ${count} Schläger ${p || 'losgeschickt'} nach ${target} geschickt`
+      : `Marsch nach ${target} ist jetzt „${data.status ?? op}“`;
   } else if (table === 'mtrw_heist_attacks') {
-    text = `💥 **${actor} hat ${num(data.requested_troops)} Schläger zu Heist ${zone(data.heist_id)} geschickt.**`;
+    eventText = `hat ${num(data.requested_troops)} Schläger zu Heist ${zone(data.heist_id)} geschickt`;
   } else if (table === 'mtrw_heist_participants') {
-    text = `💥 **${actor} nimmt mit ${num(data.troops_sent)} Schlägern an Heist ${zone(data.heist_id)} teil.**`;
+    eventText = `nimmt mit ${num(data.troops_sent)} Schlägern an Heist ${zone(data.heist_id)} teil`;
   } else if (table === 'mtrw_heists') {
-    if (op === 'INSERT') text = `💀 **Heist ${zone(data.zone_key)} wurde gestartet (Stufe ${data.level ?? '?'}).**`;
-    else if (data.status === 'resolved' || data.result) text = `💀 **Heist ${zone(data.zone_key)} wurde beendet: ${data.result || data.status}.**`;
-    else if (data.status) text = `💀 **Heist ${zone(data.zone_key)} ist jetzt „${data.status}“.**`;
-  } else if (table === 'profiles') {
-    if (op === 'INSERT') text = `🟢 **${actor} hat sich registriert.**`;
-    else {
-      const labels: Record<string,string> = {money:'Geld',reputation:'Reputation',level:'Level',xp:'XP',material:'Material',product:'Ware',influence:'Einfluss',hitmen:'Schläger',weapon_parts:'Waffenteile'};
-      const changedKey = Object.keys(labels).find(key => oldD[key] !== undefined && newD[key] !== undefined && oldD[key] !== newD[key]);
-      if (changedKey) {
-        text = `📊 **${actor}: ${labels[changedKey]} wurde von ${num(oldD[changedKey])} auf ${num(newD[changedKey])} geändert.**`;
-      } else {
-        const changed = Object.keys(newD).find(key => oldD[key] !== newD[key] && !['updated_at','last_seen_at'].includes(key));
-        text = changed ? `📝 **${actor}: ${changed} wurde geändert.**` : `📝 **${actor} hat sein Profil geändert.**`;
-      }
-    }
+    eventText = op === 'INSERT'
+      ? `Heist ${zone(data.zone_key)} wurde gestartet (Stufe ${data.level ?? '?'})`
+      : `Heist ${zone(data.zone_key)} wurde aktualisiert: ${data.result || data.status || op}`;
+  } else if (table === 'profiles' && op === 'INSERT') {
+    eventText = 'hat sich registriert';
+  } else if (table === 'profiles' && op === 'UPDATE') {
+    const labels: Record<string,string> = {money:'Geld',reputation:'Reputation',level:'Level',xp:'XP',material:'Material',product:'Ware',influence:'Einfluss',hitmen:'Schläger',weapon_parts:'Waffenteile'};
+    const changedKey = Object.keys(labels).find(key => oldD[key] !== undefined && newD[key] !== undefined && oldD[key] !== newD[key]);
+    eventText = changedKey
+      ? `${labels[changedKey]} wurde von ${num(oldD[changedKey])} auf ${num(newD[changedKey])} geändert`
+      : 'hat sein Profil geändert';
+  } else if (table === 'mtrw_production_jobs') {
+    const recipe = data.recipe_key || data.drug_type || 'Produktion';
+    eventText = op === 'INSERT'
+      ? `hat die Produktion „${recipe}“ gestartet`
+      : data.action_type === 'production_ready' || data.status === 'ready'
+        ? `Produktion „${recipe}“ ist fertig und kann abgeholt werden`
+        : `Produktion „${recipe}“ wurde aktualisiert`;
   } else if (table === 'mtrw_notifications') {
-    text = data.message ? `📨 **${actor}: ${String(data.title || 'Benachrichtigung')} – ${String(data.message)}**` : `📨 **${actor} hat eine Benachrichtigung erhalten.**`;
+    const title = String(data.title || 'Benachrichtigung');
+    const message = String(data.message || '').trim();
+    eventText = message ? `${title}: ${message}` : title;
   } else if (table === 'mtrw_raid_runtime') {
-    text = `🚨 **${actor}: Razzia-Aktivität wurde aktualisiert.**`;
+    eventText = 'Razzia-Aktivität wurde aktualisiert';
+  } else if (table === 'auth' && op === 'LOGIN') {
+    eventText = 'hat sich eingeloggt';
   } else {
     const action = op === 'INSERT' ? 'angelegt' : op === 'UPDATE' ? 'geändert' : 'gelöscht';
-    text = `📝 **${actor} hat ${table || 'einen Datensatz'} ${action}.**`;
+    eventText = `${table || 'Datensatz'} wurde ${action}`;
   }
 
-  return (text || `📝 **${actor}: ${table || 'Spielereignis'} wurde aktualisiert.**`).slice(0, 1900);
+  const isSystem = !actorId;
+  const displayName = isSystem ? 'SYSTEM' : actor;
+  const displayId = isSystem ? 'SYSTEM' : String(actorId);
+  const eventTime = new Date(event.occurred_at || Date.now());
+  const date = eventTime.toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin' });
+  const time = eventTime.toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin' });
+
+  return `**Name:** ${displayName}\n**ID:** ${displayId}\n**Ereignis:** ${eventText}\n**Datum:** ${date}\n**Uhrzeit:** ${time} Uhr`.slice(0, 1900);
 }
 
 async function sendDiscord(token: string, content: string) {
@@ -115,7 +131,10 @@ async function sendDiscord(token: string, content: string) {
 }
 
 export default {
-  fetch: withSupabase({auth:'secret'}, async (req, ctx) => {
+  fetch: withSupabase({auth:'none'}, async (req, ctx) => {
+    const suppliedSecret = req.headers.get('x-mafivera-audit-secret') || '';
+    const { data: storedSecret, error: secretError } = await ctx.supabaseAdmin.rpc('mtrw_get_discord_audit_webhook_secret');
+    if (secretError || !storedSecret || suppliedSecret !== storedSecret) return Response.json({error:'unauthorized'},{status:401});
     if (req.method !== 'POST') return Response.json({error:'method_not_allowed'},{status:405});
     const botToken = Deno.env.get('DISCORD_BOT_TOKEN');
     if (!botToken) return Response.json({error:'DISCORD_BOT_TOKEN_not_configured'},{status:503});
