@@ -18,7 +18,20 @@ function css(){if(document.getElementById('mtrwHeistCoreCSS'))return;const s=doc
 function dialog(){let d=document.getElementById('mtrwHeistDialog');if(d)return d;d=document.createElement('div');d.id='mtrwHeistDialog';d.className='mtrw-heist-dialog';document.body.appendChild(d);return d}
 function fmt(sec){sec=Math.max(0,Math.floor(Number(sec)||0));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return h?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'):String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
 function toast(t,e=false){const x=document.getElementById('toast');if(!x)return;x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',3000)}
-async function getState(zone){const r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});if(r.error)throw r.error;return r.data}
+async function getState(zone){
+  let r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
+  if(r.error)throw r.error;
+  if(r.data?.eligible===false){
+    // A freshly rendered OSM tile can briefly arrive before the sync call.
+    // Register that exact playable tile once, then read its state again.
+    const sync=await window.db.rpc('mtrw_sync_heist_fields',{p_zones:[zone]});
+    if(sync.error)throw sync.error;
+    r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
+    if(r.error)throw r.error;
+  }
+  if(r.data?.eligible===false)throw Object.assign(new Error('heist_field_not_registered'),{code:'heist_field_not_registered'});
+  return r.data
+}
 function close(){clearInterval(timer);timer=null;currentZone=null;currentState=null;const d=document.getElementById('mtrwHeistDialog');if(d)d.remove()}
 function sectorLabel(zone){const p=String(zone||'').replace(/^z_/,'').split('_');return p.length>=2?`Sektor ${p[0]}, ${p[1]}`:`Sektor ${zone}`}
 function render(state,count){currentState=state;const d=dialog(),zone=currentZone;const skulls=state?.active?'💀'.repeat(Number(state.level)||1):'💀';let body='';
@@ -29,5 +42,20 @@ const start=d.querySelector('#heistStart');if(start)start.onclick=async()=>{star
 const attack=d.querySelector('#heistAttack');if(attack)attack.onclick=async()=>{const n=Number(prompt('Wie viele Schläger sollen zum Heist geschickt werden?','100'));if(!Number.isInteger(n)||n<1)return;attack.disabled=true;try{const r=await window.db.rpc('mtrw_heist_attack',{p_heist_id:state.id,p_hitmen:n});if(r.error)throw r.error;toast(r.data?.completed?'💰 HEIST ERFOLGREICH! Belohnungen verteilt.':`🥊 ${Number(r.data?.damage||0).toLocaleString('de-DE')} Schaden verursacht.`);render(await getState(zone),count)}catch(e){const msg=String(e?.message||'');toast(msg==='not_enough_hitmen'?'Nicht genügend Schläger.':msg==='heist_expired'?'Der Heist ist abgelaufen.':msg||'Heist-Angriff fehlgeschlagen.',true);attack.disabled=false}};
 clearInterval(timer);if(state?.active||state?.cooldown){timer=setInterval(async()=>{try{const next=await getState(zone);if(document.getElementById('mtrwHeistDialog'))render(next,count)}catch(_){}},1000)}
 }
-window.mtrwOpenHeistField=async function(zone,count){if(!window.db)return;currentZone=zone;css();const d=dialog();d.innerHTML='<div class="mtrw-heist-card"><div class="head"><div><h2>💀 HEIST</h2><div class="sector">'+sectorLabel(zone)+'</div></div><button class="close" id="heistClose">×</button></div><div class="box">Heist-Daten werden geladen…</div></div>';d.querySelector('#heistClose').onclick=close;try{const state=await getState(zone);if(currentZone===zone)render(state,count)}catch(e){toast('Heist-Daten konnten nicht geladen werden.',true);close()}};
+window.mtrwOpenHeistField=async function(zone,count){
+  if(!window.db)return;
+  currentZone=zone;css();const d=dialog();
+  d.innerHTML='<div class="mtrw-heist-card"><div class="head"><div><h2>💀 HEIST</h2><div class="sector">'+sectorLabel(zone)+'</div></div><button class="close" id="heistClose">×</button></div><div class="box">Heist-Daten werden geladen…</div></div>';
+  d.querySelector('#heistClose').onclick=close;
+  try{
+    const state=await getState(zone);
+    if(currentZone===zone)render(state,count);
+  }catch(e){
+    const code=String(e?.code||e?.message||'').replace(/^Error:\s*/i,'');
+    const msg=code==='heist_field_not_registered'
+      ?'Dieses Heistfeld ist serverseitig noch nicht registriert. Bitte einmal neu laden.'
+      :'Heist-Daten konnten nicht geladen werden.';
+    toast(msg,true);close();
+  }
+};
 })();
