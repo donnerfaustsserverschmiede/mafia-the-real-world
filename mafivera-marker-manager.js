@@ -21,6 +21,7 @@ function style(){
   const s=document.createElement('style');
   s.id='mtrwResourceMarkerCSS';
   s.textContent=`
+.building-marker,.mtrw-stable-building-marker{display:none!important;visibility:hidden!important;pointer-events:none!important}
 .mtrw-resource-marker{
   background:transparent!important;
   border:0!important;
