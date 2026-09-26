@@ -92,11 +92,16 @@ async function humanText(event: any, ctx: any): Promise<string> {
       : 'hat sein Profil geändert';
   } else if (table === 'mtrw_production_jobs') {
     const recipe = data.recipe_key || data.drug_type || 'Produktion';
+    const quantity = data.quantity ?? data.amount ?? null;
     eventText = op === 'INSERT'
-      ? `hat die Produktion „${recipe}“ gestartet`
+      ? (quantity != null ? `Produktion gestartet – ${num(quantity)}x ${recipe}` : `Produktion gestartet – ${recipe}`)
       : data.action_type === 'production_ready' || data.status === 'ready'
-        ? `Produktion „${recipe}“ ist fertig und kann abgeholt werden`
-        : `Produktion „${recipe}“ wurde aktualisiert`;
+        ? (quantity != null ? `Produktion fertig – ${num(quantity)}x ${recipe}` : `Produktion fertig – ${recipe}`)
+        : `Produktion aktualisiert – ${recipe}${quantity != null ? ' – ' + num(quantity) + 'x' : ''}`;
+  } else if (table === 'dealer_sale') {
+    eventText = `Verkauf beim Dealer – ${num(data.quantity)}x ${data.item} für ${num(data.total)} $`;
+  } else if (table === 'market_sale') {
+    eventText = `Verkauf – ${num(data.quantity)}x ${data.item} für ${num(data.total)} $`;
   } else if (table === 'mtrw_notifications') {
     if (String(data.kind || '') === 'production_ready' || String(data.action_type || '') === 'production_ready') {
       const action = data.action_data || {};
