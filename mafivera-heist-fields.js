@@ -11,7 +11,7 @@ window.__mtrwHeistFieldEngine=true;
 const GLAT=.0018,GLNG=.0025;
 const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
 const cache=new Map(),allCounts=new Map(),rendered=new Map(),tileLayers=new Map();
-let map=null,overlay=null,skullLayer=null,lastQueryKey='',busy=false,pending=false,syncBusy=false;
+let map=null,overlay=null,skullLayer=null,lastQueryKey='',busy=false,pending=false,syncBusy=false,fieldPane=null,skullPane=null;
 
 window.__mtrwHeistZones=new Set();
 window.__mtrwHeistScanStatus='waiting';
@@ -99,9 +99,10 @@ function addTile(k,count){
  const oldRect=tileLayers.get(k),oldSkull=tileLayers.get(k+'#skull');
  if(oldRect){try{overlay.removeLayer(oldRect)}catch(_){}}
  if(oldSkull){try{skullLayer.removeLayer(oldSkull)}catch(_){}}
- const rect=L.rectangle(tileBounds(r,c),{color:col.border,weight:1,fillColor:col.fill,fillOpacity:col.opacity,interactive:true,className:'mtrw-heist-field'}).addTo(overlay);
+ const rect=L.rectangle(tileBounds(r,c),{pane:'mtrwHeistFieldPane',bubblingMouseEvents:false,color:col.border,weight:2,fillColor:col.fill,fillOpacity:Math.max(.68,col.opacity),interactive:true,className:'mtrw-heist-field'}).addTo(overlay);
  const[lat,lng]=center(r,c);
- const marker=L.marker([lat,lng],{interactive:false,zIndexOffset:1100,icon:L.divIcon({className:'mtrw-heist-skull',html:'<span>💀</span>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(skullLayer);
+ const level=count>=8?3:count>=4?2:1;
+ const marker=L.marker([lat,lng],{pane:'mtrwHeistSkullPane',interactive:false,zIndexOffset:1100,icon:L.divIcon({className:'mtrw-heist-skull',html:'<span title="Heist-Stufe '+level+'">'+'💀'.repeat(level)+'</span>',iconSize:[Math.min(92,38+level*18),38],iconAnchor:[Math.min(46,19+level*9),19]})}).addTo(skullLayer);
  tileLayers.set(k,rect);tileLayers.set(k+'#skull',marker);rendered.set(k,count);rect.on('click',()=>window.mtrwOpenHeistField?.(k,count));
 }
 
@@ -166,7 +167,10 @@ async function refresh(force=false){
 
 function boot(){
  map=window.__mtrwMap;if(!map||typeof L==='undefined')return;
- css();overlay=L.layerGroup().addTo(map);skullLayer=L.layerGroup().addTo(map);
+ css();
+ fieldPane=map.getPane('mtrwHeistFieldPane')||map.createPane('mtrwHeistFieldPane');fieldPane.style.zIndex='465';fieldPane.style.pointerEvents='auto';
+ skullPane=map.getPane('mtrwHeistSkullPane')||map.createPane('mtrwHeistSkullPane');skullPane.style.zIndex='690';skullPane.style.pointerEvents='none';
+ overlay=L.layerGroup().addTo(map);skullLayer=L.layerGroup().addTo(map);
  const legend=document.createElement('div');legend.className='mtrw-heist-legend';
  legend.innerHTML='💀 Heist-Ziel · Event-Feld · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:#ddd;text-decoration:none">© OpenStreetMap</a>';
  const host=document.querySelector('.mf-map');if(host&&!host.querySelector('.mtrw-heist-legend'))host.appendChild(legend);
