@@ -47,7 +47,7 @@ async function query(north,south,east,west){
  let lastErr=null;
  for(const endpoint of OVERPASS){
    try{
-     const res=await fetch(endpoint,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'}});
+     const res=await fetch(endpoint+'?data='+encodeURIComponent(q),{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
      if(!res.ok)throw Error('Overpass HTTP '+res.status);
      const data=await res.json();
      return data.elements||[];
@@ -138,7 +138,7 @@ function boot(){
  const legend=document.createElement('div');legend.className='mtrw-heist-legend';
  legend.innerHTML='💀 Heist-Ziel · Event-Feld · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:#ddd;text-decoration:none">© OpenStreetMap</a>';
  const host=document.querySelector('.mf-map');if(host&&!host.querySelector('.mtrw-heist-legend'))host.appendChild(legend);
- refresh(true);setTimeout(()=>refresh(true),3000);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
+ refresh(true);setTimeout(()=>refresh(true),3000);setTimeout(()=>refresh(true),10000);map.on('moveend',()=>refresh(false));map.on('zoomend',()=>refresh(false));clearInterval(window.__mtrwHeistRefreshTimer);window.__mtrwHeistRefreshTimer=setInterval(()=>refresh(true),120000);
  window.mtrwRefreshHeistFields=()=>refresh(true);
 }
 const wait=setInterval(()=>{if(window.__mtrwMap){clearInterval(wait);boot()}},250);setTimeout(()=>clearInterval(wait),30000);
