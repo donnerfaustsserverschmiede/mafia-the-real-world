@@ -139,6 +139,7 @@ function bindSocial(){
   }
 }
 async function social(){return renderSocial('friends')}
+window.mtrwOpenFamily=family;window.mtrwOpenBusiness=business;window.mtrwOpenHitmen=hitmen;window.mtrwOpenSocial=social;
 async function hitmen(){await refresh();drawer('Schläger',`<div class="hero"><span class="hero-icon">👤</span><div><b>${fmt(profile.hitmen)} freie Schläger</b><p>Rekrutierungszentren produzieren automatisch weiter.</p></div></div><div class="statgrid"><div><b>${fmt(profile.recruitment_centers)}</b><small>Zentren</small></div><div><b>${fmt(profile.garrison)}</b><small>Stationiert</small></div><div><b>${fmt(profile.max_hitmen)}</b><small>Kapazität</small></div></div>`)}
 async function acceptInvite(code){try{await rpc('mtrw_accept_invite',{p_code:code});localStorage.removeItem('mtrw_invite');toast('Freundschaft hergestellt.')}catch(e){toast(e.message,true)}}
 async function consumeInvite(){const u=new URL(location.href),code=u.searchParams.get('invite')||localStorage.getItem('mtrw_invite');if(!code)return;if(u.searchParams.has('invite'))localStorage.setItem('mtrw_invite',code);await acceptInvite(code)}
