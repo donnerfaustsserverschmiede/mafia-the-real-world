@@ -91,7 +91,7 @@ async function production(){
   const root=$('drawerBody');if(!root)return;
   root.querySelectorAll('h4')[0]?.nextElementSibling?.replaceChildren(...(()=>{const d=document.createElement('div');d.innerHTML=current;return [...d.childNodes]})());
   root.querySelectorAll('h4')[1]?.nextElementSibling?.replaceChildren(...(()=>{const d=document.createElement('div');d.innerHTML=currentW;return [...d.childNodes]})());
-  if(ds)ds.disabled=!lready;ifws){};
+  if(ds)ds.disabled=!lready;if(ws)ws.disabled=!fready;
  }catch(e){console.warn('MAFIVERA production refresh:',e)}
 }async function productionState(){return null}
 async function business(){return production()}
