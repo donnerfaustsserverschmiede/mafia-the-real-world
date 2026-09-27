@@ -19,23 +19,42 @@ async function probeInternet(){
  probeBusy=true;
  let reachable=false;
  try{
-   const stamp=Date.now();
-   const endpoints=[
-     'https://www.gstatic.com/generate_204?mtrw='+stamp,
-     'https://www.google.com/generate_204?mtrw='+stamp,
-     'https://connectivitycheck.gstatic.com/generate_204?mtrw='+stamp,
-     'https://cloudflare.com/cdn-cgi/trace?mtrw='+stamp,
-     'https://www.apple.com/library/test/success.html?mtrw='+stamp
-   ];
-   for(const url of endpoints){
+   if(window.db?.auth?.getUser){
+     const controller=new AbortController();
+     const timer=setTimeout(()=>controller.abort(),3000);
      try{
-       const controller=new AbortController();
-       const timer=setTimeout(()=>controller.abort(),2500);
-       await fetch(url,{method:'GET',mode:'no-cors',cache:'no-store',signal:controller.signal});
+       const r=await Promise.race([
+         window.db.auth.getUser(),
+         new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error('connectivity_timeout'),{code:'connectivity_timeout'})),3000))
+       ]);
        clearTimeout(timer);
-       reachable=true;
-       break;
-     }catch(_){}
+       // Any response from Supabase (including an auth error) proves that Internet/Supabase is reachable.
+       reachable=!!r || true;
+     }catch(e){
+       clearTimeout(timer);
+       const msg=String(e?.message||e||'').toLowerCase();
+       const code=String(e?.code||'').toLowerCase();
+       // Only classify explicit transport failures as offline.
+       reachable=!/failed to fetch|network|load failed|connection|timeout|timed out|abort|offline/i.test(msg+code);
+     }
+   }
+   if(!reachable){
+     const stamp=Date.now();
+     const endpoints=[
+       'https://www.gstatic.com/generate_204?mtrw='+stamp,
+       'https://connectivitycheck.gstatic.com/generate_204?mtrw='+stamp,
+       'https://cloudflare.com/cdn-cgi/trace?mtrw='+stamp
+     ];
+     for(const url of endpoints){
+       try{
+         const controller=new AbortController();
+         const timer=setTimeout(()=>controller.abort(),2500);
+         await fetch(url,{method:'GET',mode:'no-cors',cache:'no-store',signal:controller.signal});
+         clearTimeout(timer);
+         reachable=true;
+         break;
+       }catch(_){}
+     }
    }
  }catch(_){}
  finally{probeBusy=false}
