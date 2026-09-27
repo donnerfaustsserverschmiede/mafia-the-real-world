@@ -18,23 +18,30 @@ function css(){if(document.getElementById('mtrwHeistCoreCSS'))return;const s=doc
 function dialog(){let d=document.getElementById('mtrwHeistDialog');if(d)return d;d=document.createElement('div');d.id='mtrwHeistDialog';d.className='mtrw-heist-dialog';document.body.appendChild(d);return d}
 function fmt(sec){sec=Math.max(0,Math.floor(Number(sec)||0));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return h?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'):String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
 function toast(t,e=false){const x=document.getElementById('toast');if(!x)return;x.textContent=t;x.className='toast show '+(e?'error':'');clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='toast',3000)}
+async function rpcTimeout(name,args,ms=7000){
+  if(!window.db)throw new Error('database_unavailable');
+  const work=window.db.rpc(name,args);
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error('heist_request_timeout'),{code:'heist_request_timeout'})),ms));
+  return Promise.race([work,timeout]);
+}
 async function getState(zone){
+  if(window.__mtrwOfflineCore?.isOffline?.())throw Object.assign(new Error('heist_offline'),{code:'heist_offline'});
   let last=null;
-  for(let attempt=0;attempt<3;attempt++){
+  for(let attempt=0;attempt<2;attempt++){
     try{
-      let r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
+      let r=await rpcTimeout('mtrw_heist_field_state',{p_zone_key:zone});
       if(r.error)throw r.error;
       if(r.data?.eligible===false){
-        const reg=await window.db.rpc('mtrw_register_heist_field',{p_zone_key:zone});
+        const reg=await rpcTimeout('mtrw_register_heist_field',{p_zone_key:zone});
         if(reg.error)throw reg.error;
-        r=await window.db.rpc('mtrw_heist_field_state',{p_zone_key:zone});
+        r=await rpcTimeout('mtrw_heist_field_state',{p_zone_key:zone});
         if(r.error)throw r.error;
       }
       if(r.data?.eligible===false)throw Object.assign(new Error('heist_field_not_registered'),{code:'heist_field_not_registered'});
       return r.data;
     }catch(e){
       last=e;
-      if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+      if(attempt<1)await new Promise(resolve=>setTimeout(resolve,350));
     }
   }
   throw last||new Error('heist_state_unavailable');
@@ -46,7 +53,7 @@ if(state?.active){const pct=Math.max(0,Math.min(100,Number(state.current_hp)/Num
 d.innerHTML=`<div class="mtrw-heist-card"><div class="head"><div><h2>💀 HEIST</h2><div class="sector">${sectorLabel(zone)}</div></div><button class="close" id="heistClose">×</button></div>${body}<button class="action secondary" id="heistBack">Schließen</button></div>`;
 d.querySelector('#heistClose').onclick=close;d.querySelector('#heistBack').onclick=close;
 
-const attack=d.querySelector('#heistAttack');if(attack)attack.onclick=async()=>{const n=Number(prompt('Wie viele Schläger sollen zum Heist geschickt werden?','100'));if(!Number.isInteger(n)||n<1)return;attack.disabled=true;try{const r=await window.db.rpc('mtrw_heist_march',{p_heist_id:state.id,p_hitmen:n});if(r.error)throw r.error;toast(`🥊 ${n.toLocaleString('de-DE')} Schläger marschieren zum Heist. Ankunft in ${fmt(r.data?.travel_seconds)}.`);render(await getState(zone),count)}catch(e){const msg=String(e?.message||'');toast(msg==='not_enough_hitmen'?'Nicht genügend Schläger.':msg==='heist_too_far'?'Du bist zu weit entfernt. Der Heist liegt außerhalb deines Radarkreises.':msg==='location_required'?'Dein aktueller Standort ist noch nicht verfügbar.':msg==='heist_expired'?'Der Heist ist abgelaufen.':msg||'Heist-Marsch konnte nicht gestartet werden.',true);attack.disabled=false}};
+const attack=d.querySelector('#heistAttack');if(attack)attack.onclick=async()=>{if(window.__mtrwOfflineCore?.isOffline?.()){toast('Heist ist offline nicht verfügbar.',true);return}const n=Number(prompt('Wie viele Schläger sollen zum Heist geschickt werden?','100'));if(!Number.isInteger(n)||n<1)return;attack.disabled=true;try{const r=await window.db.rpc('mtrw_heist_march',{p_heist_id:state.id,p_hitmen:n});if(r.error)throw r.error;toast(`🥊 ${n.toLocaleString('de-DE')} Schläger marschieren zum Heist. Ankunft in ${fmt(r.data?.travel_seconds)}.`);render(await getState(zone),count)}catch(e){const msg=String(e?.message||'');toast(msg==='not_enough_hitmen'?'Nicht genügend Schläger.':msg==='heist_too_far'?'Du bist zu weit entfernt. Der Heist liegt außerhalb deines Radarkreises.':msg==='location_required'?'Dein aktueller Standort ist noch nicht verfügbar.':msg==='heist_expired'?'Der Heist ist abgelaufen.':msg||'Heist-Marsch konnte nicht gestartet werden.',true);attack.disabled=false}};
 clearInterval(timer);if(state?.eligible){timer=setInterval(async()=>{try{const next=await getState(zone);if(document.getElementById('mtrwHeistDialog'))render(next,count)}catch(_){}},1000)}
 }
 window.mtrwOpenHeistField=async function(zone,count){
@@ -61,6 +68,10 @@ window.mtrwOpenHeistField=async function(zone,count){
     const code=String(e?.code||e?.message||'').replace(/^Error:\s*/i,'');
     const msg=code==='heist_field_not_registered'
       ?'Dieses Heistfeld ist serverseitig noch nicht registriert. Bitte einmal neu laden.'
+      :code==='heist_offline'
+      ?'Heists sind offline nicht verfügbar. Bitte stelle eine Internetverbindung her.'
+      :code==='heist_request_timeout'
+      ?'Heist-Daten konnten nicht rechtzeitig geladen werden. Bitte erneut versuchen.'
       :'Heist-Daten konnten nicht geladen werden.';
     toast(msg,true);close();
   }
