@@ -1,9 +1,11 @@
 -- MAFIVERA family leadership / membership integrity
-update public.mtrw_family_members
+update public.mtrw_family_members fm
 set role='Mitglied'
-where family_id='ff930b58-4164-485a-afa5-76c80b5db817'
-  and user_id='335ee27d-a31a-4216-bedb-4ff92e442d32'
-  and role='Anführer';
+where fm.role='Anführer'
+  and exists (
+    select 1 from public.mtrw_families f
+    where f.id=fm.family_id and f.owner_id<>fm.user_id
+  );
 
 create unique index if not exists mtrw_one_family_don
 on public.mtrw_family_members(family_id) where role='Anführer';
