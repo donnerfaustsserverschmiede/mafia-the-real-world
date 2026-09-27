@@ -1,6 +1,6 @@
 /* MAFIVERA — instant menu preview/cache, modeled after the inventory opening path. */
 (()=>{'use strict';
-const PREFIX='mtrw_menu_instant_v1_';
+const PREFIX='mtrw_menu_instant_v2_';
 const MENUS={
  family:{title:'Familie',fallback:()=>'<div class="hero"><span class="hero-icon">♜</span><div><b>Familie</b><p>Deine Familie, Mitglieder und Ränge.</p></div></div><div class="statgrid"><div><b>'+Number(window.__mtrwProfile?.level||0).toLocaleString('de-DE')+'</b><small>Spielerlevel</small></div><div><b>'+Number(window.__mtrwProfile?.reputation||0).toLocaleString('de-DE')+'</b><small>Reputation</small></div><div><b>'+Number(window.__mtrwProfile?.money||0).toLocaleString('de-DE')+' $</b><small>Geld</small></div></div>'},
  business:{title:'Produktion',fallback:()=>'<div class="production-card"><h3>⚗️ Drogenproduktion</h3><div class="hint">Drogen auswählen, Menge festlegen und Produktion starten.</div><div class="list"><div class="row"><span>Material</span><b>'+Number(window.__mtrwProfile?.material||0).toLocaleString('de-DE')+'</b></div></div></div><div class="production-card"><h3>🏭 Waffenproduktion</h3><div class="hint">Waffenproduktion mit Waffenteilen über die Waffenfabrik.</div><div class="list"><div class="row"><span>Waffenteile</span><b>'+Number(window.__mtrwProfile?.weapon_parts||0).toLocaleString('de-DE')+'</b></div></div></div>'},
