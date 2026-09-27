@@ -113,7 +113,101 @@ function cachedFamilyView(){
 async function preloadFamilyCache(){
  try{if(!uid||!db)return;const q=await db.from('mtrw_family_members').select('family_id,role,family_points,user_id,last_donation_at').eq('user_id',uid).maybeSingle();if(q.error||!q.data)return;const f=await db.from('mtrw_families').select('*').eq('id',q.data.family_id).single();if(f.error)return;const m=await db.from('mtrw_family_members').select('role,family_points,user_id,last_donation_at').eq('family_id',f.data.id).order('joined_at',{ascending:true});if(m.error)return;const ids=(m.data||[]).map(x=>x.user_id),pp=ids.length?await db.from('profiles').select('id,username,mafia_name').in('id',ids):{data:[]};const names={};(pp.data||[]).forEach(p=>names[p.id]=p.username||p.mafia_name||'Spieler');localStorage.setItem('mtrw_family_cache_'+uid,JSON.stringify({family:f.data,members:m.data||[],names,updated_at:Date.now()}))}catch(_){}
 }
-async function family(){const cached=cachedFamilyView();if(!cached){const hasHQ=Object.values(world).some(x=>x?.owner_id===uid&&x?.building_type==='headquarters');drawer('Familie',`<div class="hero"><span class="hero-icon">♜</span><div><b>Familienübersicht</b><p>Familie, Mitglieder, Ränge und Familienpunkte.</p></div></div><div class="statgrid"><div><b>👥</b><small>Mitglieder</small></div><div><b>♜</b><small>Familienpunkte</small></div><div><b>🏆</b><small>Siege</small></div></div><div class="list"><button class="action" data-action="family-list">👥 Familien suchen</button>${hasHQ?'<button class="action primary" data-action="create-family">♜ Familie gründen</button>':''}</div>`);}try{const q=await db.from('mtrw_family_members').select('family_id,role,family_points,last_donation_at').eq('user_id',uid).maybeSingle();if(q.error)throw q.error;if(!q.data){const hasHQ=Object.values(world).some(x=>x?.owner_id===uid&&x?.building_type==='headquarters');return drawer('Familie',`<div class="hero"><span class="hero-icon">♜</span><div><b>Noch keine Familie</b><p>${hasHQ?'Du kannst jetzt deine eigene Familie gründen oder einer bestehenden beitreten.':'Für die Gründung einer eigenen Familie benötigst du zuerst ein Hauptquartier.'}</p></div></div>${hasHQ?'<button class="action primary" data-action="create-family">♜ Familie gründen</button>':'<div class="hint">🏛️ Baue zuerst dein Hauptquartier. Es ist das Zentrum deiner Schläger und Voraussetzung für die Gründung einer eigenen Familie.</div>'}<button class="action" data-action="family-list">👥 Familien suchen</button>`)}const f=await db.from('mtrw_families').select('*').eq('id',q.data.family_id).single();if(f.error)throw f.error;const m=await db.from('mtrw_family_members').select('role,family_points,user_id,last_donation_at').eq('family_id',f.data.id).order('joined_at',{ascending:true});if(m.error)throw m.error;const ids=(m.data||[]).map(x=>x.user_id);const pp=ids.length?await db.from('profiles').select('id,username,mafia_name').in('id',ids):{data:[]};const names={};(pp.data||[]).forEach(p=>names[p.id]=p.username||p.mafia_name||'Spieler');const mafiaRole=r=>({Anführer:'Don',Vize:'Underboss',Ältester:'Consigliere',Mitglied:'Soldat'}[r]||'Soldat');const canPromote=q.data.role==='Anführer'||q.data.user_id===f.data.owner_id;const rows=(m.data||[]).map(x=>{const self=x.user_id===uid;const next=x.role==='Mitglied'?'Ältester':x.role==='Ältester'?'Vize':x.role==='Vize'?'Anführer':null;return `<div class="row family-member-row"><span><b>${esc(names[x.user_id]||x.user_id.slice(0,8))}</b><small>♜ ${esc(mafiaRole(x.role))} · ${fmt(x.family_points||0)} Punkte</small></span>${canPromote&&!self&&next?`<button class="mini" data-action="family-promote" data-zone="${esc(f.data.id+'|'+x.user_id+'|'+next)}">⬆️ Befördern</button>`:''}</div>`}).join('');const berlinToday=new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const lastDonation=q.data.last_donation_at?new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(q.data.last_donation_at)):'';const donatedToday=!!lastDonation&&lastDonation===berlinToday;localStorage.setItem('mtrw_family_cache_'+uid,JSON.stringify({family:f.data,members:m.data||[],names}));drawer('Familie',`<div class="hero"><span class="hero-icon">♜</span><div><b>${esc(f.data.name)} [${esc(f.data.tag)}]</b><p>Level ${f.data.level} · ${fmt(f.data.points)} Punkte · ${fmt(f.data.treasury)} $ Kasse</p></div></div><div class="statgrid"><div><b>${m.data?.length||0}</b><small>Mitglieder</small></div><div><b>${f.data.member_cap}</b><small>Kapazität</small></div><div><b>${f.data.wins}</b><small>Siege</small></div></div><div class="hint">Familienränge: <b>Don</b> · <b>Underboss</b> · <b>Consigliere</b> · <b>Soldat</b></div><button class="action" data-action="donate-family" ${donatedToday?'disabled':''}>${donatedToday?'✅ Tagesbeitrag bereits geleistet':'💰 Tagesbeitrag 100 $ → 100 Familienpunkte'}</button><div class="list">${rows}</div>`)}catch(e){toast(e.message,true)}}async function socialProfile(p,back='friends'){
+async function family(){
+  const cacheKey='mtrw_family_cache_'+uid;
+  const roleName={Anführer:'Don',Vize:'Underboss',Ältester:'Consigliere',Mitglied:'Soldat'};
+  const render=(f,m,names,me,view='dashboard',pending=null)=>{
+    const sorted=[...(m||[])].sort((x,y)=>{
+      const order={Anführer:0,Vize:1,Ältester:2,Mitglied:3};
+      const d=(order[x.role]??9)-(order[y.role]??9);
+      return d||String(names[x.user_id]||x.user_id).localeCompare(String(names[y.user_id]||y.user_id),'de',{sensitivity:'base'});
+    });
+    const isDon=me?.role==='Anführer';
+    const count=sorted.length;
+    const nav=['dashboard','members'].map(k=>'<button class="mini '+(view===k?'active':'')+'" data-action="family-tab" data-zone="'+k+'">'+(k==='dashboard'?'Übersicht':'Mitglieder')+'</button>').join('');
+    let body='';
+    if(view==='members'){
+      body='<div class="hint">Nur der Don kann Mitglieder rauswerfen oder Ränge ändern. Ein zweiter Don ist technisch ausgeschlossen.</div><div class="list">';
+      for(const mbr of sorted){
+        const self=mbr.user_id===uid;
+        const next=mbr.role==='Mitglied'?'Ältester':mbr.role==='Ältester'?'Vize':mbr.role==='Vize'?'Anführer':null;
+        const kick=isDon&&!self?'<button class="mini danger" data-action="family-kick" data-zone="'+esc(mbr.user_id)+'">🚪 Rauswerfen</button>':'';
+        const promote=isDon&&!self&&next?'<button class="mini" data-action="family-promote" data-zone="'+esc(f.data.id+'|'+mbr.user_id+'|'+next)+'">'+(next==='Anführer'?'👑 Don vorschlagen':'⬆️ Befördern')+'</button>':'';
+        const leave=self?'<button class="mini danger" data-action="family-leave" data-zone="">🚪 Familie verlassen</button>':'';
+        body+='<div class="row family-member-row"><span><b>👤 '+esc(names[mbr.user_id]||mbr.user_id.slice(0,8))+'</b><small>♜ '+esc(roleName[mbr.role]||mbr.role)+' · '+fmt(mbr.family_points||0)+' Punkte</small></span><span class="family-rank-actions">'+promote+kick+leave+'</span></div>';
+      }
+      if(isDon&&pending){
+        const targetName=esc(names[pending.to_user_id]||pending.to_user_id?.slice(0,8)||'Spieler');
+        body+='<div class="production-card"><h3>👑 Don-Übergabe ausstehend</h3><p>Die Familie soll an <b>'+targetName+'</b> übergeben werden.</p><button class="action primary" data-action="family-confirm-don" data-zone="'+esc(f.data.id)+'">✅ Don-Übergabe bestätigen</button><button class="action" data-action="family-cancel-don" data-zone="'+esc(pending.id)+'">Abbrechen</button></div>';
+      }
+      body+='</div>';
+    }else{
+      const last=me?.last_donation_at?new Date(me.last_donation_at):null;
+      const berlinToday=new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      const donatedToday=!!last&&new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(last)===berlinToday;
+      const leaveText=isDon&&count>1?'👑 Don kann die Familie erst verlassen, wenn er der einzige verbleibende Spieler ist.':'🚪 Familie verlassen';
+      body='<div class="statgrid"><div><b>'+count+'</b><small>Mitglieder</small></div><div><b>'+fmt(f.data.member_cap)+'</b><small>Kapazität</small></div><div><b>'+fmt(f.data.wins)+'</b><small>Siege</small></div></div>'+
+        '<div class="hint">Familienränge: <b>Don</b> · <b>Underboss</b> · <b>Consigliere</b> · <b>Soldat</b></div>'+
+        '<div class="production-card"><h3>💰 Tagesbeitrag</h3><button class="action '+(donatedToday?'':'primary')+'" data-action="donate-family" '+(donatedToday?'disabled':'')+'>'+(donatedToday?'✅ Tagesbeitrag bereits geleistet':'💰 100 $ spenden → 100 Familienpunkte')+'</button></div>'+
+        '<div class="production-card"><h3>👑 Deine Rolle</h3><p><b>'+esc(roleName[me?.role]||me?.role||'Mitglied')+'</b></p>'+
+        '<button class="action '+(isDon&&count>1?'':'danger')+'" data-action="family-leave" '+(isDon&&count>1?'disabled':'')+'>'+leaveText+'</button></div>';
+      if(isDon&&pending){
+        const targetName=esc(names[pending.to_user_id]||pending.to_user_id?.slice(0,8)||'Spieler');
+        body+='<div class="production-card"><h3>👑 Don-Übergabe ausstehend</h3><p>Ziel: <b>'+targetName+'</b></p><button class="action primary" data-action="family-confirm-don" data-zone="'+esc(f.data.id)+'">✅ Übergabe bestätigen</button></div>';
+      }
+    }
+    drawer('♜ '+esc(f.data.name)+' ['+esc(f.data.tag)+']','<div class="hero"><span class="hero-icon">♜</span><div><b>'+esc(f.data.name)+'</b><p>Level '+fmt(f.data.level)+' · '+fmt(f.data.points)+' Punkte · '+money(f.data.treasury||0)+' Kasse</p></div></div><div class="tabs family-tabs">'+nav+'</div>'+body);
+  };
+  try{
+    let cached=null;
+    try{cached=JSON.parse(localStorage.getItem(cacheKey)||'null')}catch(_){}
+    if(cached?.family){
+      const me=(cached.members||[]).find(x=>x.user_id===uid)||{};
+      render(cached.family,cached.members||[],cached.names||{},me,'dashboard',null);
+    }else{
+      drawer('Familie','<div class="hero"><span class="hero-icon">♜</span><div><b>Familienübersicht</b><p>Familie, Mitglieder und Ränge.</p></div></div><div class="tabs family-tabs"><button class="mini active">Übersicht</button><button class="mini">Mitglieder</button></div>');
+    }
+    const q=await db.from('mtrw_family_members').select('family_id,role,family_points,last_donation_at,donated_total').eq('user_id',uid).maybeSingle();
+    if(q.error)throw q.error;
+    if(!q.data){
+      const hq=await db.from('world_territories').select('zone_key').eq('owner_id',uid).eq('building_type','headquarters').limit(1);
+      const hasHQ=!hq.error&&(hq.data||[]).length>0;
+      drawer('Familie','<div class="hero"><span class="hero-icon">♜</span><div><b>Noch keine Familie</b><p>Gründe deine eigene Familie oder tritt einer bestehenden bei.</p></div></div>'+(hasHQ?'<button class="action primary" data-action="create-family">♜ Familie gründen</button>':'<div class="hint">Für die Gründung einer eigenen Familie wird ein Hauptquartier benötigt.</div>')+'<button class="action" data-action="family-list">👥 Familien suchen</button>');
+      return;
+    }
+    const f=await db.from('mtrw_families').select('*').eq('id',q.data.family_id).single();if(f.error)throw f.error;
+    const m=await db.from('mtrw_family_members').select('role,family_points,user_id,last_donation_at,donated_total').eq('family_id',f.data.id).order('joined_at',{ascending:true});if(m.error)throw m.error;
+    const ids=(m.data||[]).map(x=>x.user_id);
+    const pp=ids.length?await db.from('profiles').select('id,username,mafia_name').in('id',ids):{data:[]};
+    const names={};(pp.data||[]).forEach(p=>names[p.id]=p.username||p.mafia_name||'Spieler');
+    const pend=await db.from('mtrw_family_leadership_transfers').select('id,to_user_id,from_user_id,created_at').eq('family_id',f.data.id).eq('status','pending').maybeSingle();
+    const pending=pend.error?null:pend.data;
+    localStorage.setItem(cacheKey,JSON.stringify({family:f.data,members:m.data||[],names,updated_at:Date.now()}));
+    render(f.data,m.data||[],names,q.data,'dashboard',pending);
+    document.querySelectorAll('#drawerBody [data-action="family-tab"]').forEach(b=>b.onclick=()=>{
+      const v=b.dataset.zone||'dashboard';render(f.data,m.data||[],names,q.data,v,pending);
+      if(v==='members')bindFamilyActions();
+    });
+    bindFamilyActions();
+  }catch(e){toast(e.message||'Familie konnte nicht geladen werden.',true)}
+  function bindFamilyActions(){
+    document.querySelectorAll('#drawerBody [data-action]').forEach(b=>{
+      if(b.dataset.familyBound)return;
+      b.dataset.familyBound='1';
+      b.onclick=async()=>{
+        const a=b.dataset.action,z=b.dataset.zone||'';
+        try{
+          if(a==='family-tab'){return family()}
+          if(a==='family-kick'){if(!confirm('Dieses Mitglied wirklich aus der Familie entfernen?'))return;await rpc('mtrw_family_remove_member',{p_family_id:JSON.parse(localStorage.getItem(cacheKey)||'{}').family?.id,p_user_id:z});toast('Mitglied wurde aus der Familie entfernt.');return family()}
+          if(a==='family-leave'){if(!confirm('Familie wirklich verlassen?'))return;await rpc('mtrw_family_leave',{});toast('Du hast die Familie verlassen.');return family()}
+          if(a==='family-confirm-don'){await rpc('mtrw_family_confirm_leadership_transfer',{p_family_id:z});toast('👑 Don-Übergabe bestätigt.');return family()}
+          if(a==='family-cancel-don'){await db.from('mtrw_family_leadership_transfers').update({status:'cancelled'}).eq('id',z);toast('Don-Übergabe abgebrochen.');return family()}
+        }catch(e){toast(String(e?.message||'Familienaktion fehlgeschlagen').replace(/^Error:\s*/i,''),true)}
+      };
+    });
+  }
+}
+async function socialProfile(p,back='friends'){
   const s=await rpc('mtrw_social_snapshot');
   const friends=s.friends||[],incoming=s.friend_requests_received||[],outgoing=s.friend_requests_sent||[];
   const isFriend=friends.some(x=>x.id===p.id);
