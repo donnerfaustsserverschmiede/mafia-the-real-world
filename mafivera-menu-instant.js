@@ -14,7 +14,22 @@ function bindCached(){const body=document.getElementById('drawerBody');if(!body)
 function preview(k){const body=document.getElementById('drawerBody'),title=document.getElementById('drawerTitle'),drawer=document.getElementById('drawer');if(!body||!title||!drawer)return false;const c=read(k);title.textContent=MENUS[k].title;body.dataset.mtrwInstantPreview='1';body.innerHTML=c?.html||MENUS[k].fallback;drawer.classList.remove('hidden');bindCached();return true}
 function install(){const body=document.getElementById('drawerBody');if(!body){setTimeout(install,50);return}
  const observer=new MutationObserver(()=>{if(body.dataset.mtrwInstantPreview==='1'){body.dataset.mtrwInstantPreview='0';return}const t=(document.getElementById('drawerTitle')?.textContent||'').trim();if(MENUS&&Object.values(MENUS).some(m=>m.title===t))write(t,body.innerHTML)});observer.observe(body,{childList:true,subtree:true});
- document.querySelectorAll('.bottom-btn').forEach(btn=>{btn.addEventListener('click',()=>{const k=btn.dataset.panel;if(MENUS[k])preview(k)},true)});
+ let lastPanel='',lastOpen=0;
+ const openFromEvent=(ev)=>{
+   const el=ev.target?.closest?.('.bottom-btn');
+   if(!el)return;
+   const k=el.dataset.panel;
+   if(!MENUS[k])return;
+   const now=Date.now();
+   if(k===lastPanel&&now-lastOpen<450)return;
+   lastPanel=k;lastOpen=now;
+   preview(k);
+ };
+ // Delegated handlers: the navigation buttons are created dynamically by app(), so
+ // binding directly during script startup misses them. Pointerdown opens the drawer
+ // before the later async nav() work can block the visible menu.
+ document.addEventListener('pointerdown',openFromEvent,true);
+ document.addEventListener('click',openFromEvent,true);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })();
