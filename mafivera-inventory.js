@@ -36,7 +36,7 @@ async function loadInventory(){
     throw e;
   }
 }
-function showInventory(data){if(!panel)return;panel.innerHTML=`<div class="mtrw-inv-head"><div><b>🎒 Inventar</b></div><button id="mtrwInvClose">×</button></div><div class="mtrw-inv-total"><span>💊 Inventar gesamt</span><b>${fmt(data.total)}</b></div><div class="mtrw-inv-grid">${data.items.map(i=>`<div class="mtrw-inv-item"><span class="mtrw-inv-icon">${i.icon}</span><div><b>${esc(i.name)}</b><small>${i.kind==='weapon'?'Waffe':'Droge'} im Inventar</small></div><strong>${fmt(i.quantity)}</strong></div>`).join('')||'<div class="mtrw-inv-empty">Dein Inventar ist leer.</div>'}</div>`;panel.classList.add('show');$('mtrwInvClose').onclick=()=>panel.classList.remove('show')}
+function showInventory(data){if(!panel)return;const count=document.getElementById('mtrwInventoryCount');if(count)count.textContent=fmt(data?.total||0);panel.innerHTML=`<div class="mtrw-inv-head"><div><b>🎒 Inventar</b></div><button id="mtrwInvClose">×</button></div><div class="mtrw-inv-total"><span>💊 Inventar gesamt</span><b>${fmt(data.total)}</b></div><div class="mtrw-inv-grid">${data.items.map(i=>`<div class="mtrw-inv-item"><span class="mtrw-inv-icon">${i.icon}</span><div><b>${esc(i.name)}</b><small>${i.kind==='weapon'?'Waffe':'Droge'} im Inventar</small></div><strong>${fmt(i.quantity)}</strong></div>`).join('')||'<div class="mtrw-inv-empty">Dein Inventar ist leer.</div>'}</div>`;panel.classList.add('show');$('mtrwInvClose').onclick=()=>panel.classList.remove('show')}
 window.addEventListener('mtrw:offline-synced',async()=>{try{const d=await loadInventory();if(panel?.classList.contains('show')&&d)showInventory(d)}catch(_){}});
 async function openInventory(){
   try{
