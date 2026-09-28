@@ -299,7 +299,12 @@ async function socialProfile(p,back='friends'){
   drawer('Spielerprofil',`<div class="player-profile"><div class="player-avatar">👤</div><div><h2>${esc(p.username||'Spieler')}</h2><small>${esc(p.mafia_name||'Keine Familie')}</small></div></div><div class="statgrid"><div><b>${fmt(p.level||0)}</b><small>Level</small></div><div><b>${fmt(p.reputation||0)}</b><small>Reputation</small></div><div><b>${fmt(p.xp||0)}</b><small>XP</small></div></div><div class="list">${action}<button class="action" data-social="back" data-tab="${back}">← Zurück</button></div>`);
   bindSocial();
 }
-function cachedRankView(){try{const raw=localStorage.getItem('mtrw_rank_cache');if(!raw)return null;const rows=JSON.parse(raw);if(!Array.isArray(rows)||!rows.length)return null;return rows.map((p,i)=>`<button style="color:#fff" class="rankrow social-player" data-social="profile" data-back="rank" data-id="${esc(p.id)}" data-user="${esc(p.username||'Spieler')}" data-level="${p.level||0}" data-rep="${p.reputation||0}" data-mafia="${esc(p.mafia_name||'')}" data-xp="${p.xp||0}"><b>${i+1}</b><span><strong>${esc(p.username||'Spieler')}</strong><small>Level ${fmt(p.level)}</small></span><em>${fmt(p.reputation)} ⭐</em><i>›</i></button>`).join('')}catch(_){return null}}
+function cachedRankView(){try{const raw=localStorage.getItem('mtrw_rank_cache');if(!raw)return null;const rows=JSON.parse(raw);if(!Array.isArray(rows)||!rows.length)return null;return rows.map((p,i)=>`<button class="rankrow social-player mtrw-rank-card ${p.id===uid?'mtrw-rank-me':''}" data-social="profile" data-back="rank" data-id="${esc(p.id)}" data-user="${esc(p.username||'Spieler')}" data-level="${p.level||0}" data-rep="${p.reputation||0}" data-mafia="${esc(p.mafia_name||'')}" data-xp="${p.xp||0}">
+  <span class="mtrw-rank-pos ${i<3?'top':''}">${i===0?'👑':i===1?'🥈':i===2?'🥉':i+1}</span>
+  <span class="mtrw-rank-main"><strong>${esc(p.username||'Spieler')}</strong><small>Level ${fmt(p.level)} · ${fmt(p.xp||0)} XP</small></span>
+  <span class="mtrw-rank-score"><b>${fmt(p.reputation)}</b><small>⭐ Ruf</small></span>
+  <i class="mtrw-rank-arrow">›</i>
+</button>`).join('')}catch(_){return null}}
 async function preloadRankCache(){try{const q=await db.from('profiles').select('id,username,mafia_name,reputation,level,xp').order('reputation',{ascending:false}).limit(50);if(!q.error)localStorage.setItem('mtrw_rank_cache',JSON.stringify(q.data||[]))}catch(_){}
 }
 async function renderSocial(tab='friends',prefix=''){
