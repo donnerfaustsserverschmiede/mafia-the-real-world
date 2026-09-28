@@ -147,7 +147,31 @@ body{background:var(--mtrw-mafia-bg)!important}
   background:#030509dd!important;
   color:#8b929b!important;
 }
-</style><style id="mtrw-mafia-atmosphere">/* MAFIVERA — darker mafia atmosphere; map tiles only, gameplay/UI untouched */.mf-map .leaflet-tile-pane{filter:brightness(.72) contrast(1.12) saturate(.72)!important}.mf-map .leaflet-overlay-pane{filter:brightness(.92) contrast(1.05)!important}</style></head><body><section id="authScreen" class="auth-screen"><div class="auth-card"><div class="auth-logo"><img src="./assets/mafivera-logo.webp" alt="MAFIVERA"></div><h1 id="authTitle">Willkommen zurück</h1><p id="authSubtitle" class="subtitle">Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.</p><div class="version">V2 · STABILIZED TEST BUILD · 17.09.2026</div><form id="authForm"><div class="field"><label>E-Mail-Adresse</label><input id="email" type="email" autocomplete="email" required></div><div class="field"><label>Passwort</label><div class="password-wrap"><input id="password" type="password" autocomplete="current-password" required><button id="passwordToggle" class="password-toggle" type="button">👁️</button></div></div><div id="usernameField" class="field hidden"><label>Nutzername</label><input id="username" type="text" maxlength="24"></div><div id="legalConsent" class="legal-consent hidden"><label><input id="legalConsentCheck" type="checkbox"><span>Ich habe die <b>Nutzungsbedingungen / Spielregeln</b> und die <b>Datenschutzerklärung</b> gelesen, verstanden und akzeptiere sie für die Nutzung von MAFIVERA. Ich bestätige außerdem, dass meine Angaben bei der Registrierung wahrheitsgemäß sind.</span></label></div><button id="submitButton" class="primary" type="submit">🔐 Anmelden</button></form><button id="modeButton" class="secondary" type="button">📝 Registrieren</button><button id="forgotButton" class="link" type="button">Passwort vergessen?</button><div id="authMessage" class="message"></div><div class="dev-note">V2 · ÖFFENTLICHE TESTPHASE</div><div class="foot">MAFIVERA · THE REAL WORLD</div></div></section><section id="gameRoot" class="game-root"></section><script src="./mafivera-content-warning.js?v=MAFIVERA-STARTUP-SPLASH-SHARP-20260926-02"></script><script src="./mafivera-legal.js?v=20260919-drug-times-30s"></script><script src="./mafivera-legal-pre.js?v=20260919-drug-times-30s"></script><script src="./mafivera-auto-update.js?v=MAFIVERA-AUTO-6-1-1-20260925-02"></script><script src="./mafivera-offline.js?v=MAFIVERA-OFFLINE-CAPTURE-20260927-02"></script><script src="./mafivera-interaction-repair.js?v=MAFIVERA-INTERACTION-REPAIR-20260927-01"></script><script>
+</style><style id="mtrw-mafia-atmosphere">/* MAFIVERA — darker mafia atmosphere; map tiles only, gameplay/UI untouched */.mf-map .leaflet-tile-pane{filter:brightness(.72) contrast(1.12) saturate(.72)!important}.mf-map .leaflet-overlay-pane{filter:brightness(.92) contrast(1.05)!important}</style><style id="mtrw-menu-chrome-isolation-v2">
+/* MAFIVERA MENU CHROME ISOLATION */
+@media(max-width:900px){
+  body:has(#drawer:not(.hidden)) #mtrwMailbox,
+  body:has(#drawer:not(.hidden)) #mtrwInventoryButton,
+  body:has(#drawer:not(.hidden)) #mtrwBuildingsBtn,
+  body:has(#drawer:not(.hidden)) #mtrwAdminButton,
+  body:has(.mf-drawer:not(.hidden)) #mtrwMailbox,
+  body:has(.mf-drawer:not(.hidden)) #mtrwInventoryButton,
+  body:has(.mf-drawer:not(.hidden)) #mtrwBuildingsBtn,
+  body:has(.mf-drawer:not(.hidden)) #mtrwAdminButton,
+  body:has(#mtrwInventoryPanel.show) #mtrwMailbox,
+  body:has(#mtrwInventoryPanel.show) #mtrwBuildingsBtn,
+  body:has(#mtrwInventoryPanel.show) #mtrwAdminButton,
+  body:has(#mtrwBuildingsOverlay) #mtrwMailbox,
+  body:has(#mtrwBuildingsOverlay) #mtrwInventoryButton,
+  body:has(#mtrwBuildingsOverlay) #mtrwAdminButton,
+  body:has(#mtrwAdminOverlay:not(.hidden)) #mtrwMailbox,
+  body:has(#mtrwAdminOverlay:not(.hidden)) #mtrwInventoryButton,
+  body:has(#mtrwAdminOverlay:not(.hidden)) #mtrwBuildingsBtn{
+    display:none!important;
+    pointer-events:none!important;
+  }
+}
+</style></head><body><section id="authScreen" class="auth-screen"><div class="auth-card"><div class="auth-logo"><img src="./assets/mafivera-logo.webp" alt="MAFIVERA"></div><h1 id="authTitle">Willkommen zurück</h1><p id="authSubtitle" class="subtitle">Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.</p><div class="version">V2 · STABILIZED TEST BUILD · 17.09.2026</div><form id="authForm"><div class="field"><label>E-Mail-Adresse</label><input id="email" type="email" autocomplete="email" required></div><div class="field"><label>Passwort</label><div class="password-wrap"><input id="password" type="password" autocomplete="current-password" required><button id="passwordToggle" class="password-toggle" type="button">👁️</button></div></div><div id="usernameField" class="field hidden"><label>Nutzername</label><input id="username" type="text" maxlength="24"></div><div id="legalConsent" class="legal-consent hidden"><label><input id="legalConsentCheck" type="checkbox"><span>Ich habe die <b>Nutzungsbedingungen / Spielregeln</b> und die <b>Datenschutzerklärung</b> gelesen, verstanden und akzeptiere sie für die Nutzung von MAFIVERA. Ich bestätige außerdem, dass meine Angaben bei der Registrierung wahrheitsgemäß sind.</span></label></div><button id="submitButton" class="primary" type="submit">🔐 Anmelden</button></form><button id="modeButton" class="secondary" type="button">📝 Registrieren</button><button id="forgotButton" class="link" type="button">Passwort vergessen?</button><div id="authMessage" class="message"></div><div class="dev-note">V2 · ÖFFENTLICHE TESTPHASE</div><div class="foot">MAFIVERA · THE REAL WORLD</div></div></section><section id="gameRoot" class="game-root"></section><script src="./mafivera-content-warning.js?v=MAFIVERA-STARTUP-SPLASH-SHARP-20260926-02"></script><script src="./mafivera-legal.js?v=20260919-drug-times-30s"></script><script src="./mafivera-legal-pre.js?v=20260919-drug-times-30s"></script><script src="./mafivera-auto-update.js?v=MAFIVERA-AUTO-6-1-1-20260925-02"></script><script src="./mafivera-offline.js?v=MAFIVERA-OFFLINE-CAPTURE-20260927-02"></script><script src="./mafivera-interaction-repair.js?v=MAFIVERA-INTERACTION-REPAIR-20260927-01"></script><script>
 /* PWA registration is handled once by the install boot above. */
 </script><script>window.__mtrwPreLegalAccepted=true;
 /* MAFIVERA STARTUP PRELOAD: download all game modules while the 10-second warning is visible.
