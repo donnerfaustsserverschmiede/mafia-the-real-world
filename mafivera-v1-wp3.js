@@ -17,21 +17,67 @@ function makeCell(r,c){const [lat,lng]=center(r,c);return{zone_key:zkey(r,c),r,c
 function cellBounds(r,c){return[[r*GLAT,c*GLNG],[(r+1)*GLAT,(c+1)*GLNG]]}
 function relationColor(rel){return rel==='family'?'#a855f7':rel==='ally'?'#22c55e':rel==='friend'?'#f59e0b':'#ef4444'}
 function renderGrid(){if(!map)return;grid.forEach(x=>x.remove());grid=[];markers?.clearLayers();const bc=globalCell(map.getCenter().lat,map.getCenter().lng);const visible=[];for(let r=bc.r-R;r<=bc.r+R;r++)for(let c=bc.c-R;c<=bc.c+R;c++)visible.push(makeCell(r,c));for(const q of visible){const r=q.r,c=q.c,isHeist=!!window.__mtrwHeistZones?.has(q.zone_key);if(isHeist)continue;const t=world[q.zone_key],own=t?.owner_id===uid,foreign=!!t?.owner_id&&!own,rel=t?.owner_id?(territoryRelations[t.owner_id]||'stranger'):null,col=own?'#2f91ff':foreign?relationColor(rel):'#66717f',resources=t?.resources?.length?t.resources:q.resources;const rect=L.rectangle(cellBounds(r,c),{color:own?'#2f91ff':col,weight:(own||foreign)?2:1,fillColor:own?'#2f91ff':foreign?col:'transparent',fillOpacity:(own||foreign)?0.28:0,interactive:true,bubblingMouseEvents:false});rect.__mtrwZone=q.zone_key;rect.on('click',()=>territory(q.zone_key));rect.addTo(map);grid.push(rect);/* Resource markers are rendered exclusively by mafivera-marker-manager.js. */;window.__mtrwGridRects=grid;}}
-async function loadWorld(){if(window.__mtrwOfflineCore?.isOffline()){const s=await window.__mtrwOfflineCore.ensure();world=s?.world||{};owners={};territoryRelations={};window.__mtrwWorld=world;renderGrid();return}world={};owners={};territoryRelations={};const all=[];const PAGE=1000;for(let from=0;;from+=PAGE){const q=await db.from('world_territories').select('*').range(from,from+PAGE-1);if(q.error){toast(q.error.message,true);return}const rows=q.data||[];all.push(...rows);if(rows.length<PAGE)break}const ids=[];all.forEach(t=>{world[t.zone_key]=t;if(t.owner_id)ids.push(t.owner_id)});window.__mtrwWorld=world;window.__mtrwOfflineCore?.snapshot(profile,world);const unique=[...new Set(ids)];for(let from=0;from<unique.length;from+=PAGE){const chunk=unique.slice(from,from+PAGE);const p=await db.from('profiles').select('id,username,mafia_name').in('id',chunk);if(p.error){toast(p.error.message,true);return}(p.data||[]).forEach(x=>owners[x.id]=x.username||x.mafia_name||x.id);try{const rr=await db.rpc('mtrw_user_relations',{p_user_ids:chunk});if(!rr.error)(rr.data||[]).forEach(x=>territoryRelations[x.user_id]=x.relation)}catch(_){} }renderGrid()}function initMap(){
+async function loadWorld(){
+  const cacheKey='mtrw_world_visible_'+uid;
+  const loadCached=()=>{
+    try{
+      const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
+      if(cached?.world&&typeof cached.world==='object'&&Object.keys(cached.world).length){
+        world=cached.world;owners=cached.owners||{};territoryRelations=cached.territoryRelations||{};
+        window.__mtrwWorld=world;renderGrid();return true;
+      }
+    }catch(_){}
+    return false;
+  };
+  if(window.__mtrwOfflineCore?.isOffline()){
+    const s=await window.__mtrwOfflineCore.ensure();world=s?.world||{};owners={};territoryRelations={};window.__mtrwWorld=world;renderGrid();return
+  }
+  loadCached();
+  const all=[];const PAGE=1000;
+  for(let from=0;;from+=PAGE){
+    const q=await db.from('world_territories').select('*').range(from,from+PAGE-1);
+    if(q.error){if(!loadCached())toast(q.error.message,true);return}
+    const rows=q.data||[];all.push(...rows);if(rows.length<PAGE)break
+  }
+  world={};owners={};territoryRelations={};
+  all.forEach(t=>{world[t.zone_key]=t});
+  window.__mtrwWorld=world;window.__mtrwOfflineCore?.snapshot(profile,world);
+  const ids=all.map(t=>t.owner_id).filter(Boolean),unique=[...new Set(ids)];
+  for(let from=0;from<unique.length;from+=PAGE){
+    const chunk=unique.slice(from,from+PAGE);
+    const p=await db.from('profiles').select('id,username,mafia_name').in('id',chunk);
+    if(p.error){toast(p.error.message,true);return}
+    (p.data||[]).forEach(x=>owners[x.id]=x.username||x.mafia_name||x.id);
+    try{const rr=await db.rpc('mtrw_user_relations',{p_user_ids:chunk});if(!rr.error)(rr.data||[]).forEach(x=>territoryRelations[x.user_id]=x.relation)}catch(_){}
+  }
+  try{
+    const centerCell=globalCell(map?.getCenter()?.lat??Number(profile.gps_lat)||51.1657,map?.getCenter()?.lng??Number(profile.gps_lng)||10.4515);
+    const visible={};
+    for(let r=centerCell.r-R;r<=centerCell.r+R;r++)for(let c=centerCell.c-R;c<=centerCell.c+R;c++){const k=zkey(r,c);if(world[k])visible[k]=world[k]}
+    localStorage.setItem(cacheKey,JSON.stringify({world:visible,owners,territoryRelations,updated_at:Date.now()}));
+  }catch(_){}
+  renderGrid()
+}function initMap(){
  if(map)return;
  const pos=Number.isFinite(Number(profile.gps_lat))&&Number.isFinite(Number(profile.gps_lng))?[Number(profile.gps_lat),Number(profile.gps_lng)]:[51.1657,10.4515];
  const el=$('mfMap');if(!el)throw Error('Kartencontainer fehlt');
  map=L.map(el,{zoomControl:false,preferCanvas:true,worldCopyJump:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false,zoomSnap:1,zoomDelta:1}).setView(pos,15);
  window.__mtrwMap=map;
- let tileErrors=0,usingFallback=false;
- const makeTiles=(url)=>L.tileLayer(url,{subdomains:'abc',maxZoom:19,attribution:'© OpenStreetMap contributors',updateWhenIdle:false,keepBuffer:3,crossOrigin:true});
- let tiles=makeTiles('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+ let tileErrors=0,tileSource=0;
+ const tileSources=[
+  {url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OpenStreetMap contributors'},
+  {url:'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',attr:'© OpenStreetMap contributors'},
+  {url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',attr:'© OpenStreetMap contributors © CARTO'}
+ ];
+ const makeTiles=(src)=>L.tileLayer(src.url,{subdomains:'abc',maxZoom:19,attribution:src.attr,updateWhenIdle:false,keepBuffer:3,crossOrigin:true});
+ let tiles=makeTiles(tileSources[0]);
  tiles.on('tileerror',()=>{
    tileErrors++;
-   if(tileErrors>=3&&!usingFallback){
-     usingFallback=true;
+   if(tileErrors>=3&&tileSource<tileSources.length-1){
+     tileSource++;
+     tileErrors=0;
      try{map.removeLayer(tiles)}catch(_){}
-     tiles=makeTiles('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png');
+     tiles=makeTiles(tileSources[tileSource]);
      tiles.addTo(map);
    }
  });
