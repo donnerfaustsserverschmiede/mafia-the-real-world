@@ -6,7 +6,7 @@
   "dir": "ltr",
   "start_url": "./?mtrw_app=1",
   "scope": "./",
-  "id": "./",
+  "id": "./?mtrw_app=1",
   "display": "standalone",
   "display_override": [
     "standalone"
@@ -17,15 +17,21 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "./assets/mafivera-logo.webp?v=MAFIVERA-APP-ICON-20260927-01",
-      "sizes": "512x512",
-      "type": "image/webp",
+      "src": "./assets/mafivera-icon-192.svg?v=20260928-01",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "./assets/mafivera-logo.webp?v=MAFIVERA-APP-ICON-20260927-01",
+      "src": "./assets/mafivera-icon-512.svg?v=20260928-01",
       "sizes": "512x512",
-      "type": "image/webp",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/mafivera-icon-512.svg?v=20260928-01",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
