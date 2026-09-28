@@ -292,10 +292,6 @@ document.addEventListener('pointerup',e=>{
   e.preventDefault();e.stopImmediatePropagation();
   familyAction('tab',b.dataset.value||'').catch(err=>window.__mtrwFamilyToast?.(err.message||'Familienansicht konnte nicht gewechselt werden.',true));
 },true);
-document.addEventListener('click',e=>{
-  const b=e.target.closest('.bottom-btn[data-panel="family"]');
-  if(!b)return;
-  e.preventDefault();e.stopImmediatePropagation();
-  renderFamily().catch(err=>window.__mtrwFamilyToast?.(err.message||'Familie konnte nicht geladen werden.',true));
-},true);
+window.__mtrwFamilyV2Open=()=>renderFamily().catch(err=>window.__mtrwFamilyToast?.(err.message||'Familie konnte nicht geladen werden.',true));
+window.__mtrwFamilyV2Ready=true;
 })();
