@@ -51,7 +51,7 @@ async function loadWorld(){
     try{const rr=await db.rpc('mtrw_user_relations',{p_user_ids:chunk});if(!rr.error)(rr.data||[]).forEach(x=>territoryRelations[x.user_id]=x.relation)}catch(_){}
   }
   try{
-    const centerCell=globalCell(map?.getCenter()?.lat??Number(profile.gps_lat)||51.1657,map?.getCenter()?.lng??Number(profile.gps_lng)||10.4515);
+    const centerPoint=map?.getCenter?.();const centerLat=Number.isFinite(Number(centerPoint?.lat))?Number(centerPoint.lat):(Number.isFinite(Number(profile.gps_lat))?Number(profile.gps_lat):51.1657);const centerLng=Number.isFinite(Number(centerPoint?.lng))?Number(centerPoint.lng):(Number.isFinite(Number(profile.gps_lng))?Number(profile.gps_lng):10.4515);const centerCell=globalCell(centerLat,centerLng);
     const visible={};
     for(let r=centerCell.r-R;r<=centerCell.r+R;r++)for(let c=centerCell.c-R;c<=centerCell.c+R;c++){const k=zkey(r,c);if(world[k])visible[k]=world[k]}
     localStorage.setItem(cacheKey,JSON.stringify({world:visible,owners,territoryRelations,updated_at:Date.now()}));
@@ -136,9 +136,9 @@ async function production(){
  <div id="productionDrugInfo" class="hint"></div><button class="action primary" data-action="start-drug-production" ${lr?'':'disabled'}>⚗️ Drogenproduktion starten</button>
  <h4>Aktive Drogenproduktionen</h4><div class="list"><div class="hint">Aktuelle Produktionen werden im Hintergrund aktualisiert.</div></div></div>
  <div class="production-card"><h3>🏭 Waffenproduktion</h3><div class="hint">${weaponReady?'Waffenfabrik Stufe '+Math.max(1,factoryLevel)+' · '+(Math.max(1,factoryLevel)*5)+'% Produktionsbonus.':'Eine fertige Waffenfabrik wird benötigt.'}</div>
- <div class="production-field"><label for="productionWeapon">1. Waffe auswählen</label><select id="productionWeapon" ${weaponReady?'':'disabled'}><option value="" disabled selected>Bitte Waffe auswählen …</option>${weaponOptions}</select></div>
- <div class="production-field"><label for="productionWeaponQty">2. Menge</label><input id="productionWeaponQty" type="number" min="1" value="1" inputmode="numeric" ${weaponReady?'':'disabled'}></div>
- <div id="productionWeaponInfo" class="hint"></div><button class="action primary" data-action="start-weapon-production" ${weaponReady?'':'disabled'}>🏭 Waffenproduktion starten</button>
+ <div class="production-field"><label for="productionWeapon">1. Waffe auswählen</label><select id="productionWeapon"><option value="" disabled selected>Bitte Waffe auswählen …</option>${weaponOptions.replace(/ disabled/g,'')}</select></div>
+ <div class="production-field"><label for="productionWeaponQty">2. Menge</label><input id="productionWeaponQty" type="number" min="1" value="1" inputmode="numeric"></div>
+ <div id="productionWeaponInfo" class="hint"></div><button class="action primary" data-action="start-weapon-production">🏭 Waffenproduktion starten</button>
  <h4>Aktive Waffenproduktionen</h4><div class="list"><div class="hint">Aktuelle Produktionen werden im Hintergrund aktualisiert.</div></div></div>`;
  drawer('Produktion',immediate);
  const bindCalc=()=>{
