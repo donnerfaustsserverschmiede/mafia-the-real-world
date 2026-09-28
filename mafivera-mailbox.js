@@ -25,7 +25,7 @@ async function markRead(n){
     return true;
   }catch(e){console.warn('MAFIVERA Mailbox read:',e);return false}
 }
-async function action(n,fn){try{await fn();await rpc('mtrw_notification_resolve',{p_id:n.id});await load()}catch(e){alert(e.message||'Aktion fehlgeschlagen')}}
+async function action(n,fn){try{await markRead(n);await fn();await rpc('mtrw_notification_resolve',{p_id:n.id});await load()}catch(e){alert(e.message||'Aktion fehlgeschlagen')}}
 function render(n){const d=n.action_data||{};let body=esc(n.message);let actions='';const masterNotice=n.source_type==='announcement'?'<div class="mtrw-from-master">👑 VON MASTER</div>':'';
 if(n.action_type==='trade_offer'&&d.trade_id){actions='<div class="mtrw-actions"><button class="ok" data-ok>✓ Annehmen</button><button class="no" data-no>✕ Ablehnen</button></div>'}
 else if(n.action_type==='friend_request'){actions='<div class="mtrw-actions"><button data-friend>👥 Freundesmenü öffnen</button></div>'}
