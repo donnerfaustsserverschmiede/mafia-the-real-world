@@ -1,5 +1,5 @@
 /* MAFIVERA PWA service worker — offline-capable shell and cached map tiles */
-const VERSION='7.1.3-pwa-install-02';
+const VERSION='7.1.4-family-menu-hotfix-01';
 const CACHE='mafivera-offline-'+VERSION;
 const CORE=['./','./index.html','./manifest.webmanifest','./assets/mafivera-icon-192.svg','./assets/mafivera-icon-512.svg','./mafivera-offline.js'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE).catch(()=>{})).then(()=>self.skipWaiting())));
