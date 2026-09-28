@@ -153,8 +153,11 @@ async function renderFamily(){
     return;
   }
 
-  const f=await db.from('mtrw_families').select('*').eq('id',q.data.family_id).single();
+  const f=await db.from('mtrw_families').select('*').eq('id',q.data.family_id).maybeSingle();
   if(f.error)throw f.error;
+  // A temporary/RLS response must never crash the whole family menu.
+  // Keep the known family id and safe defaults so the drawer can still open.
+  const family=f.data||{id:q.data.family_id,name:'Familie',tag:'MAF',level:1,points:Number(q.data.family_points||0),member_cap:10,treasury:0,wins:0,losses:0,description:'Zusammenhalt, Ehre, Familie'};
   const members=await db.from('mtrw_family_members')
     .select('user_id,role,family_points,donated_total,last_donation_at')
     .eq('family_id',q.data.family_id);
@@ -201,7 +204,7 @@ async function renderFamily(){
     body=`<div class="hint">Jede Spende bringt 100 Familienpunkte. Die Verbesserungen werden aus diesen Familienpunkten bezahlt. Ausbau ist nur durch Don oder Underboss möglich.</div>
     <div class="list">${defs.map(d=>{
       const level=upgrades[d[0]]||0,next=level+1,cost=2000*next;
-      const familyPoints=Number(f.data.points||0);
+      const familyPoints=Number(family.points||0);
       return `<div class="row"><span>${d[2]} <b>${d[1]} · Stufe ${level}/20</b><small>${d[3]} · nächste Stufe ${level>=20?'MAX':fmt(cost)+' Familienpunkte'}</small></span>
       ${leadership&&level<20?`<button class="mini" data-family-action="upgrade" data-value="${d[0]}" ${familyPoints<cost?'disabled':''}>Ausbauen</button>`:'<small>'+((level>=20)?'MAX':(q.data.role==='Vize'?'Nur Don oder Underboss':'Nur Don oder Underboss'))+'</small>'}</div>`;
     }).join('')}</div>`;
@@ -224,32 +227,32 @@ async function renderFamily(){
   }else if(view==='manage'){
     body=`<div class="list">
       <div class="row"><span>👑 Deine Rolle</span><b>${esc(q.data.role)}</b></div>
-      <div class="row"><span>👥 Mitglieder</span><b>${fmt(members.data?.length||0)}/${fmt(f.data.member_cap)}</b></div>
-      <div class="row"><span>💰 Familienkasse</span><b>${money(f.data.treasury)}</b></div>
-      <div class="row"><span>🏆 Siege</span><b>${fmt(f.data.wins)}</b></div>
-      <div class="row"><span>☠️ Niederlagen</span><b>${fmt(f.data.losses)}</b></div>
+      <div class="row"><span>👥 Mitglieder</span><b>${fmt(members.data?.length||0)}/${fmt(family.member_cap)}</b></div>
+      <div class="row"><span>💰 Familienkasse</span><b>${money(family.treasury)}</b></div>
+      <div class="row"><span>🏆 Siege</span><b>${fmt(family.wins)}</b></div>
+      <div class="row"><span>☠️ Niederlagen</span><b>${fmt(family.losses)}</b></div>
     </div>`;
   }else{
     body=`<div class="statgrid">
       <div><b>${fmt(members.data?.length||0)}</b><small>Mitglieder</small></div>
-      <div><b>${fmt(f.data.member_cap)}</b><small>Kapazität</small></div>
-      <div><b>${fmt(f.data.wins)}</b><small>Siege</small></div>
+      <div><b>${fmt(family.member_cap)}</b><small>Kapazität</small></div>
+      <div><b>${fmt(family.wins)}</b><small>Siege</small></div>
     </div>
-    <div class="hint">${esc(f.data.description||'Zusammenhalt, Ehre, Familie')}</div>
+    <div class="hint">${esc(family.description||'Zusammenhalt, Ehre, Familie')}</div>
     <div class="production-card"><h3>💰 Tagesbeitrag</h3>
       <p>Jedes Mitglied kann <b>genau einmal pro Kalendertag</b> 100 $ spenden. Die 100 $ werden direkt in <b>100 Familienpunkte</b> umgewandelt.</p>
       ${donatedToday?'<button class="action" disabled>✅ Heute bereits gespendet</button>':'<button class="action primary" data-family-action="donate">💰 100 $ spenden</button>'}
       <small>${donatedToday?'Die nächste Spende ist morgen möglich.':'Das Geld geht nicht in eine Familienkasse. Es wird vollständig in Familienpunkte umgewandelt.'}</small>
     </div>
     <div class="statgrid">
-      <div><b>${fmt(f.data.points)}</b><small>Familienpunkte</small></div>
-      <div><b>${fmt(f.data.points)}</b><small>Familienpunkte</small></div>
+      <div><b>${fmt(family.points)}</b><small>Familienpunkte</small></div>
+      <div><b>${fmt(family.points)}</b><small>Familienpunkte</small></div>
       <div><b>${money(q.data.donated_total||0)}</b><small>Deine Spenden</small></div>
     </div>`;
   }
 
-  drawer('♜ '+f.data.name+' ['+f.data.tag+']',
-    `<div class="hero"><span class="hero-icon">♜</span><div><b>${esc(f.data.name)}</b><p>Familienlevel ${fmt(f.data.level)} · ${fmt(f.data.points)} Punkte</p></div></div>
+  drawer('♜ '+family.name+' ['+family.tag+']',
+    `<div class="hero"><span class="hero-icon">♜</span><div><b>${esc(family.name)}</b><p>Familienlevel ${fmt(family.level)} · ${fmt(family.points)} Punkte</p></div></div>
     <div class="tabs family-tabs">${nav}</div>${body}`);
   bind();
   const search=document.getElementById('allianceSearch');
