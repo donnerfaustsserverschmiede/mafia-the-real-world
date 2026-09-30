@@ -25,7 +25,8 @@ function remainingText(ms){
 }
 async function collect(){try{return await rpc('mtrw_collect_production')}catch(e){return null}}
 async function getState(){
- await collect();
+ try{await collect()}catch(e){}
+
  const boot=await rpc('mafivera_bootstrap'),p=boot?.profile||{};
  const q=await db.from('mtrw_production_jobs').select('id,drug_type,quantity,material_cost,resource_cost_type,started_at,finish_at,status').eq('user_id',p.id).eq('status','running').order('finish_at',{ascending:true});
  if(q.error)throw q.error;
@@ -80,6 +81,7 @@ async function render(){
  }catch(e){window.mtrwToast?.(e.message||'Produktion konnte nicht geladen werden.',true)}
 }
 function install(){
+ window.mtrwRefreshProduction=render;
  const handler=e=>{const t=e.target.closest?.('[data-market="production"],[data-market="production-v2"]');if(t){e.preventDefault();e.stopImmediatePropagation();render()}};
  document.addEventListener('click',handler,true);
  window.mtrwOpenProduction=render;
