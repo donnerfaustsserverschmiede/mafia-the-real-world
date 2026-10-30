@@ -179,38 +179,15 @@ body{background:var(--mtrw-mafia-bg)!important}
 window.__mtrwPreloadGame=window.__mtrwPreloadGame||function(build){
   try{
     if(window.__mtrwGamePreloadStarted)return window.__mtrwGamePreloadStarted;
+    /* REBUILD MODE: only authentication, core map runtime, GPS and the new resource layer remain active. */
     const base=[
       './mafivera-language.js?v='+build,
-      './mafivera-map-controls.js?v=MAFIVERA-RELATION-OVERLAY-20260927-01'+build,
-      './mafivera-dealer-v2.js?v=MAFIVERA-DEALER-OFFLINE-20260926-01',
-      './mafivera-discord-nav.js?v='+build,
-      './mafivera-inventory.js?v=MAFIVERA-INVENTORY-FAST-20260927-04',
-      './mafivera-radar-gps.js?v=MAFIVERA-GLOBAL-HEIST-GPS-20260926-01',
-      './mafivera-v1-wp3.js?v=MAFIVERA-MAP-WEAPONS-20260927-03',
-      './mafivera-map-density-fix.js?v=MAFIVERA-MAP-DENSITY-20260927-02',
-      './mafivera-hud-cleanup.js?v=MAFIVERA-HUD-20260919-01'
+      './mafivera-radar-gps.js?v=MAFIVERA-REBUILD-GPS-01',
+      './mafivera-v1-wp3.js?v=MAFIVERA-REBUILD-MAP-CORE-01',
+      './mafivera-resource-map.js?v=MAFIVERA-RESOURCE-REBUILD-01'
     ];
-    const optional=[
-      './mafivera-presence.js?v=MAFIVERA-PRESENCE-20260922-02',
-      './mafivera-mailbox.js?v=MAFIVERA-MAILBOX-READ-FIX-20260928-01',
-      './mafivera-weapon-dealer.js?v=MAFIVERA-WEAPON-OFFLINE-20260926-01',
-      './mafivera-march-system.js?v=MAFIVERA-MARCH-NET-FIX-20260922-01',
-      './mafivera-territory-bars.js?v=20260918-points1',
-      './mafivera-marker-manager.js?v=MAFIVERA-STABLE-MARKERS-20260926-02',
-      './mafivera-heist-fields.js?v=MAFIVERA-MAP-2S-20260926-01',
-      './mafivera-heist-core.js?v=MAFIVERA-HEIST-ONLINE-GUARD-20260927-01',
-      './mafivera-settings.js?v=MAFIVERA-DESCRIPTIONS-20260925-01',
-      './mafivera-legal-menu.js?v='+build,
-      './mafivera-territory-controls.js?v=MAFIVERA-HEIST-PROTECT-20260926-03'+build,
-      './mafivera-buildings.js?v=MAFIVERA-BUILDINGS-INSTANT-CLOSE-20260928-01',
-      './mafivera-admin.js?v=MAFIVERA-RAID-6-1-20260925-01',
-      './mafivera-admin-announcements.js?v=MAFIVERA-ANNOUNCEMENT-MASTER-20260926-02',
-      './mafivera-loot.js?v=MAFIVERA-LOOT-SPAWN-FIX-20260926-01',
-      './mafivera-raids.js?v=MAFIVERA-RAID-20260925-01',
-      './mafivera-live-players.js?v=MAFIVERA-LIVE-RELATIONS-20260922-03',
-      './mafivera-anticheat.js?v='+build
-    ];
-    const urls=[...base,...optional];
+    /* Disabled during the map-first rebuild; source files are preserved. */
+    const optional=[];    const urls=[...base,...optional];
     window.__mtrwGamePreloadStarted=Promise.all(urls.map(function(url){
       return fetch(url,{cache:'force-cache',credentials:'same-origin'}).catch(function(){return null});
     }));
