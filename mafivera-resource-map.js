@@ -93,10 +93,10 @@ function render(){
   const x=center.x-topLeft.x,y=center.y-topLeft.y;
   ctx.save();ctx.translate(x,y);ctx.rotate(-p.rotation);ctx.scale(rx,ry);
   const g=ctx.createRadialGradient(0,0,0,0,0,1);
-  const alpha=.42+(p.peak/100)*.24;
+  const alpha=.24+(p.peak/100)*.16;
   g.addColorStop(0,'rgba('+hexRgb(res.color)+','+alpha+')');
-  g.addColorStop(.34,'rgba('+hexRgb(res.color)+','+(alpha*.78)+')');
-  g.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(alpha*.34)+')');
+  g.addColorStop(.34,'rgba('+hexRgb(res.color)+','+(alpha*.72)+')');
+  g.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(alpha*.28)+')');
   g.addColorStop(1,'rgba('+hexRgb(res.color)+',0)');
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,1,0,Math.PI*2);ctx.fill();ctx.restore();
  }
@@ -139,32 +139,32 @@ const style=document.createElement('style');style.id='mafivera-resource-legend-s
 .mf-map .mafivera-resource-legend{
  all:initial!important;position:absolute!important;display:block!important;z-index:1200!important;
  top:12px!important;right:12px!important;left:auto!important;bottom:auto!important;
- width:148px!important;min-width:148px!important;max-width:148px!important;
+ width:126px!important;min-width:126px!important;max-width:126px!important;
  height:auto!important;max-height:calc(100% - 24px)!important;overflow:hidden!important;
- box-sizing:border-box!important;padding:9px 10px!important;margin:0!important;
+ box-sizing:border-box!important;padding:7px 8px!important;margin:0!important;
  background:rgba(8,14,21,.94)!important;border:1px solid rgba(255,255,255,.22)!important;
  border-radius:11px!important;box-shadow:0 5px 18px #0008!important;color:#f5f7fa!important;
- font:12px/1.25 system-ui,sans-serif!important;pointer-events:none!important;
+ font:11px/1.25 system-ui,sans-serif!important;pointer-events:none!important;
  backdrop-filter:blur(8px)!important;transform:none!important;text-align:left!important;
 }
 .mf-map .mafivera-resource-legend *{box-sizing:border-box!important}
 .mf-map .mafivera-resource-legend .mafivera-legend-title{
- display:block!important;margin:0 0 7px!important;padding:0!important;
- color:#d9e1ea!important;font:800 10px/1.2 system-ui,sans-serif!important;
+ display:block!important;margin:0 0 5px!important;padding:0!important;
+ color:#d9e1ea!important;font:800 9px/1.2 system-ui,sans-serif!important;
  letter-spacing:.12em!important;white-space:nowrap!important
 }
 .mf-map .mafivera-resource-legend .mafivera-legend-row{
- display:flex!important;position:static!important;align-items:center!important;gap:7px!important;
+ display:flex!important;position:static!important;align-items:center!important;gap:6px!important;
  width:100%!important;height:auto!important;min-height:0!important;margin:0!important;
- padding:4px 0!important;background:transparent!important;border:0!important;
- color:#f4f6f8!important;font:12px/1.2 system-ui,sans-serif!important;
+ padding:3px 0!important;background:transparent!important;border:0!important;
+ color:#f4f6f8!important;font:11px/1.2 system-ui,sans-serif!important;
  white-space:nowrap!important;transform:none!important
 }
 .mf-map .mafivera-resource-legend .mafivera-legend-dot{
- display:inline-block!important;position:static!important;width:9px!important;height:9px!important;
- min-width:9px!important;max-width:9px!important;min-height:9px!important;
+ display:inline-block!important;position:static!important;width:8px!important;height:8px!important;
+ min-width:8px!important;max-width:8px!important;min-height:8px!important;
  border-radius:50%!important;background:var(--resource-color)!important;
- box-shadow:0 0 8px var(--resource-color)!important;flex:0 0 9px!important
+ box-shadow:0 0 8px var(--resource-color)!important;flex:0 0 8px!important
 }
 .mafivera-resource-popup .leaflet-popup-content-wrapper{width:250px!important;max-width:calc(100vw - 40px)!important;background:#111923!important;color:#f3f4f6!important;border-radius:10px!important}
 .mafivera-resource-popup .leaflet-popup-content{width:220px!important;max-width:calc(100vw - 64px)!important;margin:10px 12px!important;font:13px/1.35 system-ui,sans-serif!important;color:#f3f4f6!important}
