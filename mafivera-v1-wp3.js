@@ -110,15 +110,17 @@ async function refreshNearbyPlayers(){
    found.add(p.id);
    const ll=[plat,plng];
    if(!nearbyPlayerMarkers[p.id]){
-    const icon=L.divIcon({className:'mtrw-nearby-player-icon',html:'<span></span>',iconSize:[20,20],iconAnchor:[10,10]});
-    const marker=L.marker(ll,{icon,title:p.username||'Spieler',keyboard:true,zIndexOffset:800}).addTo(map);
-    marker.bindTooltip(esc(p.username||p.mafia_name||'Spieler'),{permanent:true,direction:'top',offset:[0,-9],className:'mtrw-nearby-player-name',opacity:1});
+    const playerLabel=String(p.username||p.mafia_name||'Spieler').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const icon=L.divIcon({className:'mtrw-nearby-player-icon',html:'<span style="position:relative;display:block;width:20px;height:20px"><span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 0 0 3px #ef444455,0 1px 8px #000b;box-sizing:border-box"></span><span style="position:absolute;left:50%;bottom:23px;transform:translateX(-50%);padding:3px 7px;border-radius:6px;background:rgba(12,17,24,.94);border:1px solid #ef4444;color:#fff;font:600 11px/1.2 system-ui,sans-serif;white-space:nowrap;box-shadow:0 2px 8px #0009;pointer-events:none">'+playerLabel+'</span></span>',iconSize:[20,20],iconAnchor:[10,10]});
+    const marker=L.marker(ll,{icon,title:p.username||p.mafia_name||'Spieler',keyboard:true,zIndexOffset:800}).addTo(map);
     marker.on('click',()=>openNearbyPlayer(p));
     nearbyPlayerMarkers[p.id]=marker;
    }else{
     const marker=nearbyPlayerMarkers[p.id];
     marker.setLatLng(ll);
-    marker.setTooltipContent(esc(p.username||p.mafia_name||'Spieler'));
+    const playerLabel=String(p.username||p.mafia_name||'Spieler').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const icon=L.divIcon({className:'mtrw-nearby-player-icon',html:'<span style="position:relative;display:block;width:20px;height:20px"><span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 0 0 3px #ef444455,0 1px 8px #000b;box-sizing:border-box"></span><span style="position:absolute;left:50%;bottom:23px;transform:translateX(-50%);padding:3px 7px;border-radius:6px;background:rgba(12,17,24,.94);border:1px solid #ef4444;color:#fff;font:600 11px/1.2 system-ui,sans-serif;white-space:nowrap;box-shadow:0 2px 8px #0009;pointer-events:none">'+playerLabel+'</span></span>',iconSize:[20,20],iconAnchor:[10,10]});
+    marker.setIcon(icon);
     marker.off('click');
     marker.on('click',()=>openNearbyPlayer(p));
    }
