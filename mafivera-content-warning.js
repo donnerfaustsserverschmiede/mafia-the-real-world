@@ -7,7 +7,6 @@ function showWarning(){
  if(warningPromise)return warningPromise;
  if(document.getElementById(WARNING_ID))return Promise.resolve();
  warningPromise=new Promise(resolve=>{
- return new Promise(resolve=>{
   const overlay=document.createElement('section');overlay.id=WARNING_ID;overlay.setAttribute('role','alertdialog');overlay.setAttribute('aria-modal','true');
   overlay.innerHTML='<div class="mtrw-splash"><div class="mtrw-splash-bg"></div><div class="mtrw-splash-vignette"></div><div class="mtrw-splash-brand">DONNERFAUST<br><span>INTERACTIVE</span></div><div class="mtrw-splash-sub">MAFIVERA · THE REAL WORLD</div></div>';
   const style=document.createElement('style');style.id='mtrw-content-warning-style';style.textContent=`
