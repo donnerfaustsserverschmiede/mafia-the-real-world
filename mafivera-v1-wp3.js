@@ -88,11 +88,11 @@ function distanceMeters(aLat,aLng,bLat,bLng){
 }
 function openNearbyPlayer(p){
  const safe={id:p.id,username:p.username||'Spieler',mafia_name:p.mafia_name||'',level:Number(p.level||0),reputation:Number(p.reputation||0),xp:Number(p.xp||0)};
- const familyButton=!safe.mafia_name?'<button class="action" disabled title="Familieneinladungen werden mit dem Familien-Einladungssystem freigeschaltet">♜ Zur Familie einladen · noch nicht verfügbar</button>':'';
- drawer('Spieler',`<div class="player-profile"><div class="player-avatar">👤</div><div><h2>${esc(safe.username)}</h2><small>${esc(safe.mafia_name||'Familienlos')}</small></div></div><div class="list"><button class="action primary" data-nearby-action="profile">👤 Profil ansehen</button><button class="action" data-nearby-action="friend">🤝 Freund hinzufügen</button>${familyButton}</div>`);
+ drawer('Spieler',`<div class="player-profile"><div class="player-avatar">👤</div><div><h2>${esc(safe.username)}</h2><small>${esc(safe.mafia_name||'Familienlos')}</small></div></div><div class="list"><button class="action primary" data-nearby-action="profile">👤 Profil ansehen</button><button class="action" data-nearby-action="friend">🤝 Als Freund hinzufügen</button><button class="action" data-nearby-action="family">♜ Zur Familie einladen</button></div><small class="muted">Freundschafts- und Familieneinladungen werden in einem späteren Update aktiviert.</small>`);
  const body=$('drawerBody');
  body?.querySelector('[data-nearby-action="profile"]')?.addEventListener('click',()=>socialProfile(safe,'map'));
- body?.querySelector('[data-nearby-action="friend"]')?.addEventListener('click',async()=>{try{await rpc('mtrw_send_friend_invite',{p_user_id:safe.id});toast('Freundschaftsanfrage gesendet.');close()}catch(e){toast(e.message||'Anfrage fehlgeschlagen.',true)}});
+ body?.querySelector('[data-nearby-action="friend"]')?.addEventListener('click',()=>toast('Freundschaftsanfragen werden später freigeschaltet.'));
+ body?.querySelector('[data-nearby-action="family"]')?.addEventListener('click',()=>toast('Familieneinladungen werden später freigeschaltet.'));
 }
 async function refreshNearbyPlayers(){
  if(nearbyRefreshBusy||!db||!uid||!window.__mtrwPlayerLocation)return;
