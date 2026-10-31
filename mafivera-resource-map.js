@@ -61,7 +61,7 @@ function scan(lat,lng){
  }
  return RESOURCES.map(r=>({id:r.id,label:r.label,color:r.color,concentration:found[r.id]||0}));
 }
-let map=null,canvas=null,ctx=null,drawnKey='';
+let map=null,canvas=null,ctx=null,legend=null,drawnKey='';
 function render(){
  if(!map||!canvas||!ctx)return;
  const zoom=map.getZoom(),size=map.getSize();
@@ -96,12 +96,18 @@ function popup(lat,lng){
  const rows=values.map(v=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:18px;padding:5px 0;border-bottom:1px solid #ffffff18"><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+v.color+';margin-right:8px"></i>'+v.label+'</span><b style="font-variant-numeric:tabular-nums">'+v.concentration+'%</b></div>').join('');
  L.popup({maxWidth:280}).setLatLng([lat,lng]).setContent('<section style="min-width:210px;color:#f3f4f6;background:#111923;padding:5px 7px;border-radius:9px"><strong style="display:block;margin-bottom:7px">Ressourcen-Scan</strong>'+rows+'</section>').openOn(map);
 }
+function buildLegend(){
+ if(legend)return;
+ legend=document.createElement('aside');legend.className='mafivera-resource-legend';
+ legend.innerHTML='<div class="mafivera-legend-title">RESSOURCEN</div>'+RESOURCES.map(r=>'<div class="mafivera-legend-row"><span class="mafivera-legend-dot" style="--resource-color:'+r.color+'"></span><span>'+r.label+'</span></div>').join('');
+ map.getContainer().appendChild(legend);
+}
 function init(){
  if(map||!window.__mtrwMap||!window.L)return false;
- map=window.__mtrwMap;canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:390';ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return false;map.getContainer().appendChild(canvas);
+ map=window.__mtrwMap;map.getContainer().style.background='#101820';canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:450';ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return false;map.getContainer().appendChild(canvas);
  map.on('moveend zoomend resize',()=>{drawnKey='';render()});
  map.on('click',e=>popup(e.latlng.lat,e.latlng.lng));
- render();
+ buildLegend();render();
  window.mtrwRefreshResourceMap=()=>{drawnKey='';render()};
  window.MAFIVERA_RESOURCE_MAP=Object.freeze({
   version:2,resources:RESOURCES.map(x=>({...x})),scan,
@@ -112,4 +118,13 @@ function init(){
 }
 let tries=0;
 const wait=setInterval(()=>{if(init()||++tries>=120)clearInterval(wait)},250);
+<style id="mafivera-resource-legend-style">
+.mf-map,.leaflet-container{background:#101820!important}
+.mf-map .leaflet-tile-pane,.mf-map .leaflet-shadow-pane,.mf-map .leaflet-marker-pane,.mf-map .leaflet-tooltip-pane{display:none!important}
+.mafivera-resource-heatmap{z-index:450!important}
+.mafivera-resource-legend{position:absolute;z-index:650;top:14px;right:14px;min-width:150px;padding:12px 14px;background:rgba(10,16,23,.94);border:1px solid rgba(255,255,255,.16);border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#f4f6f8;font:12px/1.35 system-ui,sans-serif;pointer-events:none;backdrop-filter:blur(8px)}
+.mafivera-legend-title{font-size:11px;font-weight:800;letter-spacing:.13em;color:#cbd5df;margin-bottom:8px}
+.mafivera-legend-row{display:flex;align-items:center;gap:9px;padding:4px 0;white-space:nowrap}
+.mafivera-legend-dot{width:10px;height:10px;border-radius:50%;background:var(--resource-color);box-shadow:0 0 9px var(--resource-color);flex:0 0 10px}
+</style>
 })();
