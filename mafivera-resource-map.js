@@ -31,9 +31,19 @@ function makePatch(r,c,res){
  if(rand(key,'spawn')>res.chance)return null;
  const lat=(r+rand(key,'lat'))*BUCKET_LAT;
  const lng=(c+rand(key,'lng'))*BUCKET_LNG;
- const radius=430+rand(key,'radius')*620;
- const peak=Math.round(48+rand(key,'peak')*52);
- return {id:key,resource:res.id,lat,lng,radius,peak};
+ const radius=260+Math.pow(rand(key,'radius'),1.45)*1450;
+ const peak=Math.round(58+rand(key,'peak')*42);
+ const count=7+Math.floor(rand(key,'vertices')*5);
+ const rotation=rand(key,'rotation')*Math.PI*2;
+ const vertices=[];
+ for(let i=0;i<count;i++){
+  const angle=rotation+(Math.PI*2*i/count);
+  const wobble=.68+rand(key,'edge-'+i)*.58;
+  const d=radius*wobble;
+  const north=Math.sin(angle)*d, east=Math.cos(angle)*d;
+  vertices.push({lat:lat+north/111320,lng:lng+east/(111320*Math.max(.15,Math.cos(lat*Math.PI/180)))});
+ }
+ return {id:key,resource:res.id,lat,lng,radius,peak,vertices};
 }
 function patchesIn(bounds){
  const sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
@@ -75,22 +85,21 @@ function render(){
  L.DomUtil.setPosition(canvas,topLeft);
  ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,size.x,size.y);
  if(zoom<11)return;
- ctx.globalCompositeOperation='screen';
- for(const p of patchesIn(bounds)){
+ const patches=patchesIn(bounds).sort((a,b)=>a.peak-b.peak);
+ for(const p of patches){
   const res=RESOURCES.find(x=>x.id===p.resource);
-  const layerPoint=map.latLngToLayerPoint([p.lat,p.lng]);
-  const x=layerPoint.x-topLeft.x,y=layerPoint.y-topLeft.y;
-  const edge=map.latLngToLayerPoint([p.lat+p.radius/111320,p.lng]);
-  const radius=Math.max(2,Math.abs(layerPoint.y-edge.y));
-  const strength=p.peak/100;
-  const gradient=ctx.createRadialGradient(x,y,0,x,y,radius);
-  gradient.addColorStop(0,'rgba('+hexRgb(res.color)+','+(0.66+strength*.30)+')');
-  gradient.addColorStop(.28,'rgba('+hexRgb(res.color)+','+(0.48+strength*.32)+')');
-  gradient.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(0.20+strength*.20)+')');
-  gradient.addColorStop(1,'rgba('+hexRgb(res.color)+',0)');
-  ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+  const points=p.vertices.map(v=>{const q=map.latLngToLayerPoint([v.lat,v.lng]);return {x:q.x-topLeft.x,y:q.y-topLeft.y}});
+  if(points.length<3)continue;
+  ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
+  for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);
+  ctx.closePath();
+  ctx.fillStyle='rgba('+hexRgb(res.color)+','+(0.34+p.peak/100*.20)+')';
+  ctx.strokeStyle='rgba('+hexRgb(res.color)+',0.94)';
+  ctx.lineWidth=Math.max(1,Math.min(2.4,zoom/8));
+  ctx.shadowColor='rgba('+hexRgb(res.color)+',0.28)';
+  ctx.shadowBlur=zoom>=14?5:2;
+  ctx.fill();ctx.stroke();ctx.shadowBlur=0;
  }
- ctx.globalCompositeOperation='source-over';
 }
 function hexRgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255].join(',')}
 function popup(lat,lng){
@@ -104,7 +113,7 @@ function popup(lat,lng){
 function buildLegend(){
  if(legend)return;
  legend=document.createElement('aside');legend.className='mafivera-resource-legend';
- legend.innerHTML='<div class="mafivera-legend-title">RESSOURCEN</div>'+RESOURCES.map(r=>'<div class="mafivera-legend-row"><span class="mafivera-legend-dot" style="--resource-color:'+r.color+'"></span><span>'+r.label+'</span></div>').join('');
+ legend.innerHTML='<div class="mafivera-legend-title">ROHSTOFFE</div>'+RESOURCES.map(r=>'<div class="mafivera-legend-row"><span class="mafivera-legend-dot" style="--resource-color:'+r.color+'"></span><span>'+r.label+'</span></div>').join('');
  map.getContainer().appendChild(legend);
 }
 function init(){
@@ -124,13 +133,39 @@ function init(){
 let tries=0;
 const wait=setInterval(()=>{if(init()||++tries>=120)clearInterval(wait)},250);
 const style=document.createElement('style');style.id='mafivera-resource-legend-style';style.textContent=`
-.mf-map,.leaflet-container{background:#101820!important}
+.mf-map,.leaflet-container{background:#18232b!important}
 .mf-map .leaflet-shadow-pane,.mf-map .leaflet-tooltip-pane{display:none!important}
 .mafivera-resource-heatmap{z-index:450!important}
-.mafivera-resource-legend{position:absolute!important;z-index:650!important;top:12px!important;left:12px!important;right:auto!important;width:136px!important;min-width:136px!important;max-width:136px!important;box-sizing:border-box!important;padding:8px 9px!important;background:rgba(10,16,23,.94)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:10px!important;box-shadow:0 6px 22px rgba(0,0,0,.4)!important;color:#f4f6f8!important;font:11px/1.25 system-ui,sans-serif!important;pointer-events:none!important;backdrop-filter:blur(8px)!important}
-.mafivera-legend-title{display:block!important;font:800 9px/1.2 system-ui,sans-serif!important;letter-spacing:.12em!important;color:#cbd5df!important;margin:0 0 7px!important;white-space:nowrap!important}
-.mafivera-legend-row{display:flex!important;align-items:center!important;gap:7px!important;padding:4px 0!important;white-space:nowrap!important;font:11px/1.2 system-ui,sans-serif!important;color:#f4f6f8!important}
-.mafivera-legend-dot{display:inline-block!important;width:9px!important;height:9px!important;min-width:9px!important;max-width:9px!important;border-radius:50%!important;background:var(--resource-color)!important;box-shadow:0 0 8px var(--resource-color)!important;flex:0 0 9px!important}
+.mf-map .mafivera-resource-legend{
+ all:initial!important;position:absolute!important;display:block!important;z-index:1200!important;
+ top:12px!important;right:12px!important;left:auto!important;bottom:auto!important;
+ width:148px!important;min-width:148px!important;max-width:148px!important;
+ height:auto!important;max-height:calc(100% - 24px)!important;overflow:hidden!important;
+ box-sizing:border-box!important;padding:9px 10px!important;margin:0!important;
+ background:rgba(8,14,21,.94)!important;border:1px solid rgba(255,255,255,.22)!important;
+ border-radius:11px!important;box-shadow:0 5px 18px #0008!important;color:#f5f7fa!important;
+ font:12px/1.25 system-ui,sans-serif!important;pointer-events:none!important;
+ backdrop-filter:blur(8px)!important;transform:none!important;text-align:left!important;
+}
+.mf-map .mafivera-resource-legend *{box-sizing:border-box!important}
+.mf-map .mafivera-resource-legend .mafivera-legend-title{
+ display:block!important;margin:0 0 7px!important;padding:0!important;
+ color:#d9e1ea!important;font:800 10px/1.2 system-ui,sans-serif!important;
+ letter-spacing:.12em!important;white-space:nowrap!important
+}
+.mf-map .mafivera-resource-legend .mafivera-legend-row{
+ display:flex!important;position:static!important;align-items:center!important;gap:7px!important;
+ width:100%!important;height:auto!important;min-height:0!important;margin:0!important;
+ padding:4px 0!important;background:transparent!important;border:0!important;
+ color:#f4f6f8!important;font:12px/1.2 system-ui,sans-serif!important;
+ white-space:nowrap!important;transform:none!important
+}
+.mf-map .mafivera-resource-legend .mafivera-legend-dot{
+ display:inline-block!important;position:static!important;width:9px!important;height:9px!important;
+ min-width:9px!important;max-width:9px!important;min-height:9px!important;
+ border-radius:50%!important;background:var(--resource-color)!important;
+ box-shadow:0 0 8px var(--resource-color)!important;flex:0 0 9px!important
+}
 .mafivera-resource-popup .leaflet-popup-content-wrapper{width:250px!important;max-width:calc(100vw - 40px)!important;background:#111923!important;color:#f3f4f6!important;border-radius:10px!important}
 .mafivera-resource-popup .leaflet-popup-content{width:220px!important;max-width:calc(100vw - 64px)!important;margin:10px 12px!important;font:13px/1.35 system-ui,sans-serif!important;color:#f3f4f6!important}
 .mf-resource-popup-card{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;background:#111923!important;color:#f3f4f6!important;font:13px/1.35 system-ui,sans-serif!important}
@@ -140,4 +175,5 @@ const style=document.createElement('style');style.id='mafivera-resource-legend-s
 .mf-resource-popup-row i{display:inline-block!important;width:8px!important;height:8px!important;min-width:8px!important;border-radius:50%!important;background:var(--resource-color)!important}
 .mf-resource-popup-row b{font:700 13px/1.3 system-ui,sans-serif!important;color:#fff!important}
 `;
+document.head.appendChild(style);
 })();
