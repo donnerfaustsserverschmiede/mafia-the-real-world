@@ -1,11 +1,14 @@
-/* MAFIVERA STARTUP — Donnerfaust Gaming splash + fictional-content gate */
+/* MAFIVERA STARTUP — Donnerfaust Interactive splash + fictional-content gate */
 (()=>{'use strict';
-const WARNING_ID='mtrw-content-warning',SPLASH_MS=2400,DURATION_MS=10000;
+const WARNING_ID='mtrw-content-warning',SPLASH_MS=2400,DURATION_MS=10000,SESSION_KEY='mtrw-startup-warning-shown-v2';
+let warningPromise=null;
 function showWarning(){
+ if(sessionStorage.getItem(SESSION_KEY)==='1')return Promise.resolve();
+ if(warningPromise)return warningPromise;
  if(document.getElementById(WARNING_ID))return Promise.resolve();
- return new Promise(resolve=>{
+ warningPromise=new Promise(resolve=>{
   const overlay=document.createElement('section');overlay.id=WARNING_ID;overlay.setAttribute('role','alertdialog');overlay.setAttribute('aria-modal','true');
-  overlay.innerHTML='<div class="mtrw-splash"><div class="mtrw-splash-bg"></div><div class="mtrw-splash-vignette"></div><div class="mtrw-splash-brand">DONNERFAUST<br><span>GAMING</span></div><div class="mtrw-splash-sub">MAFIVERA · THE REAL WORLD</div></div>';
+  overlay.innerHTML='<div class="mtrw-splash"><div class="mtrw-splash-bg"></div><div class="mtrw-splash-vignette"></div><div class="mtrw-splash-brand">DONNERFAUST<br><span>INTERACTIVE</span></div><div class="mtrw-splash-sub">MAFIVERA · THE REAL WORLD</div></div>';
   const style=document.createElement('style');style.id='mtrw-content-warning-style';style.textContent=`
 #mtrw-content-warning{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;background:#020408;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 #mtrw-content-warning .mtrw-splash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#020408}
@@ -30,8 +33,9 @@ function showWarning(){
   const showCard=()=>{overlay.querySelector('.mtrw-splash').style.display='none';overlay.innerHTML='<div class="mtrw-warning-card"><div class="mtrw-warning-icon">⚠️</div><div class="mtrw-warning-kicker">WICHTIGER HINWEIS</div><h1>Fiktiver In-Game-Inhalt</h1><p>MAFIVERA ist ein fiktives Spiel. Alle dargestellten Handlungen, Gegenstände, Organisationen und Situationen sind ausschließlich <strong>In-Game-Inhalte</strong> und dürfen keinesfalls als Vorbild oder Anleitung für das echte Leben verstanden werden.</p><p>Das Spiel behandelt unter anderem <strong>Drogen, Waffen, Gewalt und organisierte Kriminalität</strong>. Diese Inhalte dienen ausschließlich dem Spielgeschehen und der fiktiven Darstellung.</p><p class="mtrw-warning-safety"><strong>MAFIVERA ist ein Spiel ab 18 Jahren.</strong> Spieler unter 18 Jahren werden ausdrücklich aufgefordert, dieses Spiel nicht zu spielen. Diese Inhalte sind nicht für Minderjährige bestimmt und dürfen nicht nachgeahmt werden. Für die Missachtung dieses Hinweises übernehmen wir keine Haftung.</p><p class="mtrw-warning-discord">Weitere Informationen und Hinweise findest du auf unserem Discord-Server.</p><div class="mtrw-warning-countdown" aria-live="polite">Spielstart in <strong><span id="mtrw-warning-seconds">10</span> Sekunden</strong></div>'};
   setTimeout(showCard,SPLASH_MS);
   const secondsEl=()=>overlay.querySelector('#mtrw-warning-seconds'),started=Date.now()+SPLASH_MS;
-  const timer=setInterval(()=>{const rem=Math.max(0,DURATION_MS-(Date.now()-started));const el=secondsEl();if(el)el.textContent=String(Math.ceil(rem/1000));if(rem<=0){clearInterval(timer);overlay.remove();style.remove();resolve()}},100);
+  const timer=setInterval(()=>{const rem=Math.max(0,DURATION_MS-(Date.now()-started));const el=secondsEl();if(el)el.textContent=String(Math.ceil(rem/1000));if(rem<=0){clearInterval(timer);overlay.remove();style.remove();try{sessionStorage.setItem(SESSION_KEY,'1')}catch(_){}resolve()}},100);
  });
+ return warningPromise;
 }
 window.__mtrwShowContentWarning=showWarning;
 })();
