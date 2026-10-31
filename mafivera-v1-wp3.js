@@ -114,7 +114,7 @@ async function refreshNearbyPlayers(){
    // Bei dicht beieinander stehenden Spielern werden die Namensschilder in getrennte Höhen gestaffelt.
    const labelRank=players.filter(other=>other.id!==p.id&&distanceMeters(plat,plng,Number(other.gps_lat),Number(other.gps_lng))<=80&&String(other.id)<String(p.id)).length;
    const playerLabel=String(p.username||p.mafia_name||'Spieler').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-   const labelTop=-(27+labelRank*24);
+   const labelTop=27+labelRank*24;
    const html='<div class="mtrw-np-wrap"><div class="mtrw-np-dot"></div><div class="mtrw-np-label" style="bottom:'+labelTop+'px">'+playerLabel+'</div></div>';
    const icon=L.divIcon({className:'mtrw-nearby-player-icon',html,iconSize:[20,20],iconAnchor:[10,10]});
    if(!nearbyPlayerMarkers[p.id]){
