@@ -64,29 +64,31 @@ function scan(lat,lng){
 let map=null,canvas=null,ctx=null,legend=null,drawnKey='';
 function render(){
  if(!map||!canvas||!ctx)return;
- const zoom=map.getZoom(),size=map.getSize();
- const bounds=map.getBounds();
- const key=[zoom,size.x,size.y,bounds.getSouthWest().lat.toFixed(4),bounds.getSouthWest().lng.toFixed(4),bounds.getNorthEast().lat.toFixed(4),bounds.getNorthEast().lng.toFixed(4)].join('|');
+ const zoom=map.getZoom(),size=map.getSize(),bounds=map.getBounds();
+ const topLeft=map.containerPointToLayerPoint([0,0]);
+ const key=[zoom,size.x,size.y,bounds.getSouthWest().lat.toFixed(5),bounds.getSouthWest().lng.toFixed(5),bounds.getNorthEast().lat.toFixed(5),bounds.getNorthEast().lng.toFixed(5)].join('|');
  if(key===drawnKey)return;
  drawnKey=key;
  const ratio=Math.max(1,window.devicePixelRatio||1);
  canvas.width=Math.round(size.x*ratio);canvas.height=Math.round(size.y*ratio);
  canvas.style.width=size.x+'px';canvas.style.height=size.y+'px';
+ L.DomUtil.setPosition(canvas,topLeft);
  ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,size.x,size.y);
  if(zoom<11)return;
  ctx.globalCompositeOperation='screen';
  for(const p of patchesIn(bounds)){
   const res=RESOURCES.find(x=>x.id===p.resource);
-  const point=map.latLngToContainerPoint([p.lat,p.lng]);
-  const edge=map.latLngToContainerPoint([p.lat+p.radius/111320,p.lng]);
-  const radius=Math.max(2,Math.abs(point.y-edge.y));
+  const layerPoint=map.latLngToLayerPoint([p.lat,p.lng]);
+  const x=layerPoint.x-topLeft.x,y=layerPoint.y-topLeft.y;
+  const edge=map.latLngToLayerPoint([p.lat+p.radius/111320,p.lng]);
+  const radius=Math.max(2,Math.abs(layerPoint.y-edge.y));
   const strength=p.peak/100;
-  const gradient=ctx.createRadialGradient(point.x,point.y,0,point.x,point.y,radius);
-  gradient.addColorStop(0,'rgba('+hexRgb(res.color)+','+(0.24+strength*.34)+')');
-  gradient.addColorStop(.28,'rgba('+hexRgb(res.color)+','+(0.16+strength*.2)+')');
-  gradient.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(0.055+strength*.08)+')');
+  const gradient=ctx.createRadialGradient(x,y,0,x,y,radius);
+  gradient.addColorStop(0,'rgba('+hexRgb(res.color)+','+(0.42+strength*.42)+')');
+  gradient.addColorStop(.28,'rgba('+hexRgb(res.color)+','+(0.30+strength*.30)+')');
+  gradient.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(0.12+strength*.16)+')');
   gradient.addColorStop(1,'rgba('+hexRgb(res.color)+',0)');
-  ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(point.x,point.y,radius,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
  }
  ctx.globalCompositeOperation='source-over';
 }
@@ -107,8 +109,8 @@ function buildLegend(){
 }
 function init(){
  if(map||!window.__mtrwMap||!window.L)return false;
- map=window.__mtrwMap;map.getContainer().style.background='#101820';canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:450';ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return false;map.getContainer().appendChild(canvas);
- map.on('moveend zoomend resize',()=>{drawnKey='';render()});
+ map=window.__mtrwMap;map.getContainer().style.background='#101820';canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:450';ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return false;map.getPanes().overlayPane.appendChild(canvas);
+ map.on('move moveend zoom zoomend viewreset resize',()=>{drawnKey='';render()});
  map.on('click',e=>popup(e.latlng.lat,e.latlng.lng));
  buildLegend();render();
  window.mtrwRefreshResourceMap=()=>{drawnKey='';render()};
@@ -123,9 +125,9 @@ let tries=0;
 const wait=setInterval(()=>{if(init()||++tries>=120)clearInterval(wait)},250);
 const style=document.createElement('style');style.id='mafivera-resource-legend-style';style.textContent=`
 .mf-map,.leaflet-container{background:#101820!important}
-.mf-map .leaflet-shadow-pane,.mf-map .leaflet-marker-pane,.mf-map .leaflet-tooltip-pane{display:none!important}
+.mf-map .leaflet-shadow-pane,.mf-map .leaflet-tooltip-pane{display:none!important}
 .mafivera-resource-heatmap{z-index:450!important}
-.mafivera-resource-legend{position:absolute!important;z-index:650!important;top:12px!important;right:12px!important;width:154px!important;min-width:0!important;max-width:calc(100vw - 24px)!important;box-sizing:border-box!important;padding:9px 10px!important;background:rgba(10,16,23,.94)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:10px!important;box-shadow:0 6px 22px rgba(0,0,0,.4)!important;color:#f4f6f8!important;font:12px/1.3 system-ui,sans-serif!important;pointer-events:none!important;backdrop-filter:blur(8px)!important}
+.mafivera-resource-legend{position:absolute!important;z-index:650!important;top:12px!important;left:12px!important;right:auto!important;width:154px!important;min-width:0!important;max-width:calc(100vw - 24px)!important;box-sizing:border-box!important;padding:9px 10px!important;background:rgba(10,16,23,.94)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:10px!important;box-shadow:0 6px 22px rgba(0,0,0,.4)!important;color:#f4f6f8!important;font:12px/1.3 system-ui,sans-serif!important;pointer-events:none!important;backdrop-filter:blur(8px)!important}
 .mafivera-legend-title{display:block!important;font:800 10px/1.2 system-ui,sans-serif!important;letter-spacing:.12em!important;color:#cbd5df!important;margin:0 0 7px!important;white-space:nowrap!important}
 .mafivera-legend-row{display:flex!important;align-items:center!important;gap:7px!important;padding:4px 0!important;white-space:nowrap!important;font:12px/1.25 system-ui,sans-serif!important;color:#f4f6f8!important}
 .mafivera-legend-dot{display:inline-block!important;width:9px!important;height:9px!important;min-width:9px!important;max-width:9px!important;border-radius:50%!important;background:var(--resource-color)!important;box-shadow:0 0 8px var(--resource-color)!important;flex:0 0 9px!important}
