@@ -1,8 +1,9 @@
-/* MAFIVERA — global deterministic resource overlay (map rebuild foundation)
- * Resource patches are generated from fixed world coordinates, never from the
- * player's current GPS position. Values are stable across visits and devices
- * for this seed. Server-authoritative persistence will replace the client seed
- * before production economy/building interactions are enabled.
+/* MAFIVERA — independent global resource-world system.
+ * This system owns only natural resource deposits and concentration values.
+ * It MUST NOT read or write plots, territory ownership, buildings, players,
+ * claims, or player GPS. Those are separate game systems.
+ * Deposits are generated from fixed world coordinates and a global seed;
+ * all players therefore see the same resource geography.
  */
 (()=>{'use strict';
 if(window.__MAFIVERA_RESOURCE_OVERLAY__)return;
@@ -12,14 +13,14 @@ const WORLD_SEED='MAFIVERA-GLOBAL-WORLD-V1';
 const BUCKET_LAT=.018;
 const BUCKET_LNG=.024;
 const RESOURCES=[
- {id:'cannabis',label:'Cannabis',color:'#35c96b',chance:0.34,building:'field'},
- {id:'flour',label:'Mehl',color:'#eee8d5',chance:0.28,building:'mill'},
- {id:'weapon_parts',label:'Waffenteile',color:'#929eae',chance:0.22,building:'workshop'},
- {id:'coca',label:'Koka',color:'#e5c12d',chance:0.3,building:'field'},
- {id:'meth',label:'Meth',color:'#b36be8',chance:0.2,building:'lab'},
- {id:'chemicals',label:'Chemikalien',color:'#26b9d1',chance:0.26,building:'lab'},
- {id:'tobacco',label:'Tabak',color:'#b78343',chance:0.32,building:'field'},
- {id:'metals',label:'Metalle',color:'#dc873b',chance:0.36,building:'workshop'}
+ {id:'cannabis',label:'Cannabis',color:'#35c96b',chance:0.34},
+ {id:'flour',label:'Mehl',color:'#eee8d5',chance:0.28},
+ {id:'weapon_parts',label:'Waffenteile',color:'#929eae',chance:0.22},
+ {id:'coca',label:'Koka',color:'#e5c12d',chance:0.3},
+ {id:'meth',label:'Meth',color:'#b36be8',chance:0.2},
+ {id:'chemicals',label:'Chemikalien',color:'#26b9d1',chance:0.26},
+ {id:'tobacco',label:'Tabak',color:'#b78343',chance:0.32},
+ {id:'metals',label:'Metalle',color:'#dc873b',chance:0.36}
 ];
 const clamp=n=>Math.max(0,Math.min(100,Number(n)||0));
 const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
@@ -31,19 +32,12 @@ function makePatch(r,c,res){
  if(rand(key,'spawn')>res.chance)return null;
  const lat=(r+rand(key,'lat'))*BUCKET_LAT;
  const lng=(c+rand(key,'lng'))*BUCKET_LNG;
- const radius=260+Math.pow(rand(key,'radius'),1.45)*1450;
- const peak=Math.round(58+rand(key,'peak')*42);
- const count=7+Math.floor(rand(key,'vertices')*5);
+ const radius=520+Math.pow(rand(key,'radius'),1.35)*1750;
+ const radiusX=radius*(.72+rand(key,'shape-x')*.72);
+ const radiusY=radius*(.72+rand(key,'shape-y')*.72);
+ const peak=Math.round(62+rand(key,'peak')*38);
  const rotation=rand(key,'rotation')*Math.PI*2;
- const vertices=[];
- for(let i=0;i<count;i++){
-  const angle=rotation+(Math.PI*2*i/count);
-  const wobble=.68+rand(key,'edge-'+i)*.58;
-  const d=radius*wobble;
-  const north=Math.sin(angle)*d, east=Math.cos(angle)*d;
-  vertices.push({lat:lat+north/111320,lng:lng+east/(111320*Math.max(.15,Math.cos(lat*Math.PI/180)))});
- }
- return {id:key,resource:res.id,lat,lng,radius,peak,vertices};
+ return {id:key,resource:res.id,lat,lng,radius,radiusX,radiusY,rotation,peak};
 }
 function patchesIn(bounds){
  const sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
@@ -56,9 +50,13 @@ function patchesIn(bounds){
  return out;
 }
 function concentrationAt(lat,lng,patch){
- const d=distance({lat,lng},patch);
- if(d>=patch.radius)return 0;
- const falloff=1-d/patch.radius;
+ const rad=Math.PI/180,dy=(lat-patch.lat)*111320;
+ const dx=(lng-patch.lng)*111320*Math.cos(patch.lat*rad);
+ const ca=Math.cos(patch.rotation),sa=Math.sin(patch.rotation);
+ const x=dx*ca+dy*sa,y=-dx*sa+dy*ca;
+ const d=Math.sqrt((x/patch.radiusX)**2+(y/patch.radiusY)**2);
+ if(d>=1)return 0;
+ const falloff=1-d;
  return clamp(Math.round(patch.peak*falloff*falloff));
 }
 function scan(lat,lng){
@@ -88,17 +86,19 @@ function render(){
  const patches=patchesIn(bounds).sort((a,b)=>a.peak-b.peak);
  for(const p of patches){
   const res=RESOURCES.find(x=>x.id===p.resource);
-  const points=p.vertices.map(v=>{const q=map.latLngToLayerPoint([v.lat,v.lng]);return {x:q.x-topLeft.x,y:q.y-topLeft.y}});
-  if(points.length<3)continue;
-  ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
-  for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);
-  ctx.closePath();
-  ctx.fillStyle='rgba('+hexRgb(res.color)+','+(0.34+p.peak/100*.20)+')';
-  ctx.strokeStyle='rgba('+hexRgb(res.color)+',0.94)';
-  ctx.lineWidth=Math.max(1,Math.min(2.4,zoom/8));
-  ctx.shadowColor='rgba('+hexRgb(res.color)+',0.28)';
-  ctx.shadowBlur=zoom>=14?5:2;
-  ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  const center=map.latLngToLayerPoint([p.lat,p.lng]);
+  const edgeX=map.latLngToLayerPoint([p.lat,p.lng+p.radiusX/(111320*Math.max(.15,Math.cos(p.lat*Math.PI/180)))]);
+  const edgeY=map.latLngToLayerPoint([p.lat+p.radiusY/111320,p.lng]);
+  const rx=Math.max(2,Math.abs(edgeX.x-center.x)),ry=Math.max(2,Math.abs(center.y-edgeY.y));
+  const x=center.x-topLeft.x,y=center.y-topLeft.y;
+  ctx.save();ctx.translate(x,y);ctx.rotate(-p.rotation);ctx.scale(rx,ry);
+  const g=ctx.createRadialGradient(0,0,0,0,0,1);
+  const alpha=.42+(p.peak/100)*.24;
+  g.addColorStop(0,'rgba('+hexRgb(res.color)+','+alpha+')');
+  g.addColorStop(.34,'rgba('+hexRgb(res.color)+','+(alpha*.78)+')');
+  g.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(alpha*.34)+')');
+  g.addColorStop(1,'rgba('+hexRgb(res.color)+',0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,1,0,Math.PI*2);ctx.fill();ctx.restore();
  }
 }
 function hexRgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255].join(',')}
@@ -124,8 +124,8 @@ function init(){
  buildLegend();render();
  window.mtrwRefreshResourceMap=()=>{drawnKey='';render()};
  window.MAFIVERA_RESOURCE_MAP=Object.freeze({
-  version:2,resources:RESOURCES.map(x=>({...x})),scan,
-  rules:Object.freeze({globalCoordinates:true,deterministic:true,overlappingResources:true,zeroIsTransparent:true,concentrationFromPatchCenter:true,playerPositionDoesNotSeedWorld:true,serverAuthoritative:false})
+  version:3,resources:RESOURCES.map(x=>({...x})),scan,
+  rules:Object.freeze({globalCoordinates:true,deterministic:true,overlappingResources:true,zeroIsTransparent:true,concentrationFromPatchCenter:true,playerPositionDoesNotSeedWorld:true,independentOfPlots:true,independentOfTerritoryOwnership:true,independentOfBuildings:true,independentOfPlayers:true,serverAuthoritative:false})
  });
  window.dispatchEvent(new CustomEvent('mtrw:resource-map-ready'));
  return true;
