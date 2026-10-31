@@ -134,7 +134,16 @@ function closeScanPanel(){const panel=map?.getContainer()?.querySelector('.mf-re
 function showScanPanel(){
  const panel=map.getContainer().querySelector('.mf-resource-scan-panel');
  if(panel){panel.remove();return}
- const result=scanCursorArea(),rows=result.values.map(v=>'<div class="mf-resource-scan-row"><span><i style="--resource-color:'+v.color+'"></i>'+v.label+'</span><b>'+v.concentration+'%</b></div>').join('');
+ const result=scanCursorArea(),player=window.__mtrwPlayerLocation;
+ if(!player||!Number.isFinite(Number(player.lat))||!Number.isFinite(Number(player.lng))){
+  window.dispatchEvent(new CustomEvent('mtrw:resource-scan-error',{detail:{message:'Dein Standort ist nicht verfügbar. Bitte aktiviere GPS.'}}));return;
+ }
+ const playerDistance=distance({lat:Number(player.lat),lng:Number(player.lng)},result.center);
+ const playerRadius=Number(window.__mtrwPlayerRadiusMeters)||500;
+ if(playerDistance>playerRadius){
+  window.dispatchEvent(new CustomEvent('mtrw:resource-scan-error',{detail:{message:'Scan nicht ausgeführt: Außerhalb deines 500-m-Radius benötigst du einen Helikopter oder 1 Goldmünze pro Scan.'}}));return;
+ }
+ const rows=result.values.map(v=>'<div class="mf-resource-scan-row"><span><i style="--resource-color:'+v.color+'"></i>'+v.label+'</span><b>'+v.concentration+'%</b></div>').join('');
  const el=document.createElement('section');el.className='mf-resource-scan-panel';
  el.innerHTML='<header><strong>🔎 Ressourcen-Scan</strong><button type="button" class="mf-resource-scan-close" aria-label="Schließen">×</button></header><small>Cursor-Radius ca. '+Math.round(result.radiusMeters)+' m</small><div class="mf-resource-scan-list">'+rows+'</div>';
  map.getContainer().appendChild(el);
