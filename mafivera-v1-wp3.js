@@ -3,7 +3,7 @@
 const SUPA_URL='https://ufqdntsxgqcxtszufbtv.supabase.co',SUPA_KEY='sb_publishable_PDao9J9Pz87uSotESNeGbg_GSGh5u49';
 const GLAT=.0018,GLNG=.0025,R=5,CLAIM=250;
 const BUILD={warehouse:{name:'Lager',icon:'📦',cost:800,build:60,desc:'+1.000 Material-Lagerkapazität je Stufe · Standard 5.000.'},money:{name:'Geldwäsche',icon:'💵',cost:250,build:45,desc:'Stufe 1: +5% Geld pro Minute · je weitere Stufe +5%.'},club:{name:'Clubhaus',icon:'🥃',cost:750,build:60,desc:'Stufe 1: +5% Rufpunkte pro Minute · je weitere Stufe +5%.'},lab:{name:'Chemielabor',icon:'⚗️',cost:500,build:90,desc:'Stufe 1: +5% Material pro Minute und 5% schnellere Produktion · je weitere Stufe +5%.'},market:{name:'Schwarzmarkt',icon:'🕶️',cost:900,build:90,desc:'Stufe 1: +5% auf den Dealerpreis · je weitere Stufe +5%.'},watch:{name:'Wachposten',icon:'🛡️',cost:600,build:75,desc:'+5% Verteidigungsbonus je Stufe.'},hideout:{name:'Gangversteck',icon:'🏚️',cost:1000,build:120,desc:'+5% Gebäudewirkung je Stufe · Schläger stationieren.'},recruitment:{name:'Rekrutierungszentrum',icon:'👤',cost:1000,build:120,desc:'Stufe 1: 5% schnellere Schlägerproduktion · je weitere Stufe +5%.'},headquarters:{name:'Hauptquartier',icon:'🏛️',cost:10000,build:180,desc:'Stufe 1: +5% Gebäudewirkung · je weitere Stufe +5% · maximal Stufe 20. Nur einmal.'},weapon_factory:{name:'Waffenfabrik',icon:'🏭',cost:2500,build:180,desc:'Stufe 1: +5% Waffenteile-Sammelgeschwindigkeit · je Stufe weitere +5% · nur auf Waffenteile-Feldern.'}};
-let db,uid,profile={},map,grid=[],markers,playerMarker,playerRadius,lastCell=null,world={},owners={},territoryRelations={},prodTimer,prodBusy=false,gpsWatchId=null,gpsLatest=null,gpsLastApplied=0;
+let db,uid,profile={},map,grid=[],markers,playerMarker,playerRadius,lastCell=null,world={},owners={},territoryRelations={},prodTimer,prodBusy=false,gpsWatchId=null,gpsLatest=null,gpsLastApplied=0,nearbyPlayerMarkers={},nearbyRefreshBusy=false,nearbyRefreshTimer=null;
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('de-DE'),money=n=>fmt(n)+' $',zkey=(r,c)=>`z_${r}_${c}`,parse=z=>{const m=/^z_(-?\d+)_(-?\d+)$/.exec(z||'');return m?{r:+m[1],c:+m[2]}:null},center=(r,c)=>[(r+.5)*GLAT,(c+.5)*GLNG];
 const res=(r,c)=>{const h=Math.abs(r*73856093+c*19349663)%100;return h<5?['weapon_parts']:h<45?['money']:h<80?['material']:['reputation']};
@@ -81,6 +81,49 @@ async function loadWorld(){
  renderGrid();
  setTimeout(()=>{if(map&&!document.hidden)map.invalidateSize({pan:false,animate:false})},500);
 }
+function distanceMeters(aLat,aLng,bLat,bLng){
+ const rad=v=>v*Math.PI/180,R=6371000,dLat=rad(bLat-aLat),dLng=rad(bLng-aLng);
+ const x=Math.sin(dLat/2)**2+Math.cos(rad(aLat))*Math.cos(rad(bLat))*Math.sin(dLng/2)**2;
+ return 2*R*Math.asin(Math.sqrt(x));
+}
+function openNearbyPlayer(p){
+ const safe={id:p.id,username:p.username||'Spieler',mafia_name:p.mafia_name||'',level:Number(p.level||0),reputation:Number(p.reputation||0),xp:Number(p.xp||0)};
+ const familyButton=!safe.mafia_name?'<button class="action" disabled title="Familieneinladungen werden mit dem Familien-Einladungssystem freigeschaltet">♜ Zur Familie einladen · noch nicht verfügbar</button>':'';
+ drawer('Spieler',`<div class="player-profile"><div class="player-avatar">👤</div><div><h2>${esc(safe.username)}</h2><small>${esc(safe.mafia_name||'Familienlos')}</small></div></div><div class="list"><button class="action primary" data-nearby-action="profile">👤 Profil ansehen</button><button class="action" data-nearby-action="friend">🤝 Freund hinzufügen</button>${familyButton}</div>`);
+ const body=$('drawerBody');
+ body?.querySelector('[data-nearby-action="profile"]')?.addEventListener('click',()=>socialProfile(safe,'map'));
+ body?.querySelector('[data-nearby-action="friend"]')?.addEventListener('click',async()=>{try{await rpc('mtrw_send_friend_invite',{p_user_id:safe.id});toast('Freundschaftsanfrage gesendet.');close()}catch(e){toast(e.message||'Anfrage fehlgeschlagen.',true)}});
+}
+async function refreshNearbyPlayers(){
+ if(nearbyRefreshBusy||!db||!uid||!window.__mtrwPlayerLocation)return;
+ nearbyRefreshBusy=true;
+ try{
+  const me=window.__mtrwPlayerLocation,lat=Number(me.lat),lng=Number(me.lng);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+  const latDelta=500/111320,lngDelta=500/(111320*Math.max(.15,Math.cos(lat*Math.PI/180)));
+  const q=await db.from('profiles').select('id,username,mafia_name,level,reputation,xp,gps_lat,gps_lng').neq('id',uid).gte('gps_lat',lat-latDelta).lte('gps_lat',lat+latDelta).gte('gps_lng',lng-lngDelta).lte('gps_lng',lng+lngDelta).limit(100);
+  if(q.error)throw q.error;
+  const found=new Set();
+  (q.data||[]).forEach(p=>{
+   const plat=Number(p.gps_lat),plng=Number(p.gps_lng);
+   if(!p.id||!Number.isFinite(plat)||!Number.isFinite(plng)||distanceMeters(lat,lng,plat,plng)>500)return;
+   found.add(p.id);
+   const ll=[plat,plng];
+   if(!nearbyPlayerMarkers[p.id]){
+    const icon=L.divIcon({className:'mtrw-nearby-player-icon',html:'<span></span>',iconSize:[20,20],iconAnchor:[10,10]});
+    const marker=L.marker(ll,{icon,title:p.username||'Spieler',keyboard:true,zIndexOffset:800}).addTo(map);
+    marker.on('click',()=>openNearbyPlayer(p));
+    nearbyPlayerMarkers[p.id]=marker;
+   }else{
+    nearbyPlayerMarkers[p.id].setLatLng(ll);
+    nearbyPlayerMarkers[p.id].off('click');
+    nearbyPlayerMarkers[p.id].on('click',()=>openNearbyPlayer(p));
+   }
+  });
+  Object.keys(nearbyPlayerMarkers).forEach(id=>{if(!found.has(id)){map.removeLayer(nearbyPlayerMarkers[id]);delete nearbyPlayerMarkers[id]}});
+ }catch(e){console.warn('Nearby player refresh:',e?.message||e)}
+ finally{nearbyRefreshBusy=false}
+}
 function renderPlayerLocation(lat,lng,acc){
  if(!map||!window.L)return;
  const ll=[lat,lng];
@@ -97,12 +140,13 @@ function renderPlayerLocation(lat,lng,acc){
 function updateGps(lat,lng,acc){
  profile.gps_lat=lat;profile.gps_lng=lng;profile.gps_accuracy=acc;window.__mtrwProfile=profile;window.__mtrwPlayerLocation={lat,lng,accuracy:acc};
  renderPlayerLocation(lat,lng,acc);
- window.dispatchEvent(new CustomEvent('mtrw:location-updated',{detail:{lat,lng,accuracy:acc,radius:500}}));
+ window.dispatchEvent(new CustomEvent('mtrw:location-updated',{detail:{lat,lng,accuracy:acc,radius:500}}));refreshNearbyPlayers();
  const c=globalCell(lat,lng),k=zkey(c.r,c.c);
  if(k!==lastCell){lastCell=k;if(!window.__mtrwGpsMapCentered){map?.setView([lat,lng],map.getZoom(),{animate:false});window.__mtrwGpsMapCentered=true}renderGrid();window.mtrwRefreshHeistFields?.()}
  rpc('mafivera_set_location',{p_lat:lat,p_lng:lng,p_accuracy:acc}).catch(()=>{});
 }
 function startGps(){
+ if(!nearbyRefreshTimer){refreshNearbyPlayers();nearbyRefreshTimer=setInterval(refreshNearbyPlayers,10000)}
  if(!navigator.geolocation){toast('GPS wird von diesem Gerät nicht unterstützt.',true);return}
  if(gpsWatchId!==null)return;
  gpsWatchId=navigator.geolocation.watchPosition(p=>{
@@ -396,7 +440,7 @@ function menu(){drawer('Menü',`<div class="profile-card"><div class="avatar">�
 function app(){const r=$('gameRoot');r.innerHTML='<div class="mf-app mf-map-only"><div class="mf-map-spacer mf-map-spacer-top" aria-hidden="true"></div><div class="mf-map-frame"><div id="mfMap" class="mf-map"></div></div><div class="mf-map-spacer mf-map-spacer-bottom" aria-hidden="true"></div></div>'}
 async function main(){db=window.db;if(!db)throw Error('Supabase nicht geladen');const s=await db.auth.getSession();if(!s.data.session)throw Error('Keine Sitzung');uid=s.data.session.user.id;/* MAP-ONLY MODE: do not bootstrap legacy economy, territory ownership, family, ranks or cached world state. */app();initMap();requestAnimationFrame(()=>map?.invalidateSize({pan:false,animate:false}));setTimeout(()=>map?.invalidateSize({pan:false,animate:false}),500);startGps();}
 main().catch(e=>{console.error(e);const root=$('gameRoot');if(root)root.innerHTML='<div style="padding:30px;color:#fff;font-family:system-ui"><h2>MAFIVERA konnte nicht gestartet werden.</h2><p>'+esc(e.message||e)+'</p></div>'});
-const playerStyle=document.createElement('style');playerStyle.textContent='.mtrw-player-marker{background:transparent!important;border:0!important}.mtrw-player-marker-pulse{position:absolute;inset:0;border:2px solid #7dc7ff;border-radius:50%;background:#2995ff33;box-shadow:0 0 0 4px #2995ff22,0 0 16px #2995ff99}.mtrw-player-marker-core{position:absolute;left:9px;top:9px;width:12px;height:12px;border:3px solid #fff;border-radius:50%;background:#168cff;box-shadow:0 1px 7px #000b}';document.head.appendChild(playerStyle);
+const playerStyle=document.createElement('style');playerStyle.textContent='.mtrw-player-marker{background:transparent!important;border:0!important}.mtrw-player-marker-pulse{position:absolute;inset:0;border:2px solid #7dc7ff;border-radius:50%;background:#2995ff33;box-shadow:0 0 0 4px #2995ff22,0 0 16px #2995ff99}.mtrw-player-marker-core{position:absolute;left:9px;top:9px;width:12px;height:12px;border:3px solid #fff;border-radius:50%;background:#168cff;box-shadow:0 1px 7px #000b}';document.head.appendChild(playerStyle);const nearbyStyle=document.createElement('style');nearbyStyle.textContent='.mtrw-nearby-player-icon{background:transparent!important;border:0!important}.mtrw-nearby-player-icon span{display:block;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 0 0 3px #ef444455,0 1px 8px #000b}';document.head.appendChild(nearbyStyle);
 window.addEventListener('mtrw:heist-cells-updated',()=>{if(typeof renderGrid==='function')renderGrid()});window.addEventListener('mtrw:march-finished',async e=>{try{await loadWorld();const r=e.detail?.result;if(r?.captured)toast('⚔️ Gebiet erfolgreich erobert! Das Gebiet gehört jetzt dir.');else if(r?.success===false&&r?.defense_left!=null)toast(`⚔️ Angriff beendet · Verteidigung noch ${fmt(r.defense_left)}`,true)}catch(_){}});})();
 const mtrwSocialRankStyle=document.createElement('style');mtrwSocialRankStyle.textContent=`
 .mtrw-rank-card{position:relative!important;display:grid!important;grid-template-columns:42px minmax(0,1fr) auto 18px!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:72px!important;padding:10px 10px!important;margin:0!important;border:1px solid #283340!important;border-radius:15px!important;background:linear-gradient(135deg,#111821,#0b1016)!important;color:#fff!important;text-align:left!important;box-shadow:0 5px 16px rgba(0,0,0,.22)!important;transition:transform .15s ease,border-color .15s ease!important}.mtrw-rank-card:active{transform:scale(.985)!important}.mtrw-rank-card.mtrw-rank-me{border-color:#d6ad2d!important;box-shadow:0 0 0 1px #d6ad2d33,0 6px 20px #0005!important}.mtrw-rank-pos{display:flex!important;align-items:center!important;justify-content:center!important;width:38px!important;height:38px!important;border-radius:12px!important;background:#151d27!important;color:#9ba7b6!important;font-size:17px!important;font-weight:800!important}.mtrw-rank-pos.top{font-size:22px!important;background:#1b2028!important}.mtrw-rank-main{min-width:0!important;display:flex!important;flex-direction:column!important;gap:3px!important}.mtrw-rank-main strong{font-size:16px!important;line-height:20px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;color:#f5f7fa!important}.mtrw-rank-main small{font-size:10px!important;line-height:14px!important;color:#7f8b9b!important}.mtrw-rank-score{display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:2px!important;min-width:60px!important}.mtrw-rank-score b{font-size:15px!important;line-height:18px!important;color:#e8c34b!important}.mtrw-rank-score small{font-size:9px!important;color:#778394!important}.mtrw-rank-arrow{font-style:normal!important;font-size:24px!important;color:#8793a2!important}.social-tabs{position:sticky!important;top:0!important;z-index:25!important;background:#0a0f15f5!important;padding:4px 0 10px!important;backdrop-filter:blur(10px)!important}.social-tabs .mini{min-height:40px!important;font-size:11px!important}.social-tabs .mini.active{border-color:#d6ad2d!important;color:#f3d15b!important;background:#171a1d!important}.mf-drawer .social-block>h3{font-size:15px!important;margin:14px 2px 8px!important}.mf-drawer .social-block .list{display:flex!important;flex-direction:column!important;gap:7px!important}`;document.head.appendChild(mtrwSocialRankStyle);
