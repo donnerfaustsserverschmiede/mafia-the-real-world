@@ -118,7 +118,7 @@ function init(){
 }
 let tries=0;
 const wait=setInterval(()=>{if(init()||++tries>=120)clearInterval(wait)},250);
-<style id="mafivera-resource-legend-style">
+const style=document.createElement('style');style.id='mafivera-resource-legend-style';style.textContent=`
 .mf-map,.leaflet-container{background:#101820!important}
 .mf-map .leaflet-tile-pane,.mf-map .leaflet-shadow-pane,.mf-map .leaflet-marker-pane,.mf-map .leaflet-tooltip-pane{display:none!important}
 .mafivera-resource-heatmap{z-index:450!important}
@@ -126,5 +126,5 @@ const wait=setInterval(()=>{if(init()||++tries>=120)clearInterval(wait)},250);
 .mafivera-legend-title{font-size:11px;font-weight:800;letter-spacing:.13em;color:#cbd5df;margin-bottom:8px}
 .mafivera-legend-row{display:flex;align-items:center;gap:9px;padding:4px 0;white-space:nowrap}
 .mafivera-legend-dot{width:10px;height:10px;border-radius:50%;background:var(--resource-color);box-shadow:0 0 9px var(--resource-color);flex:0 0 10px}
-</style>
+`;document.head.appendChild(style);
 })();
