@@ -12,14 +12,14 @@ const WORLD_SEED='MAFIVERA-GLOBAL-WORLD-V1';
 const BUCKET_LAT=.018;
 const BUCKET_LNG=.024;
 const RESOURCES=[
- {id:'cannabis',label:'Cannabis',color:'#35c96b',chance:.12,building:'field'},
- {id:'flour',label:'Mehl',color:'#eee8d5',chance:.10,building:'mill'},
- {id:'weapon_parts',label:'Waffenteile',color:'#929eae',chance:.07,building:'workshop'},
- {id:'coca',label:'Koka',color:'#e5c12d',chance:.09,building:'field'},
- {id:'meth',label:'Meth',color:'#b36be8',chance:.055,building:'lab'},
- {id:'chemicals',label:'Chemikalien',color:'#26b9d1',chance:.08,building:'lab'},
- {id:'tobacco',label:'Tabak',color:'#b78343',chance:.11,building:'field'},
- {id:'metals',label:'Metalle',color:'#dc873b',chance:.13,building:'workshop'}
+ {id:'cannabis',label:'Cannabis',color:'#35c96b',chance:0.34,building:'field'},
+ {id:'flour',label:'Mehl',color:'#eee8d5',chance:0.28,building:'mill'},
+ {id:'weapon_parts',label:'Waffenteile',color:'#929eae',chance:0.22,building:'workshop'},
+ {id:'coca',label:'Koka',color:'#e5c12d',chance:0.3,building:'field'},
+ {id:'meth',label:'Meth',color:'#b36be8',chance:0.2,building:'lab'},
+ {id:'chemicals',label:'Chemikalien',color:'#26b9d1',chance:0.26,building:'lab'},
+ {id:'tobacco',label:'Tabak',color:'#b78343',chance:0.32,building:'field'},
+ {id:'metals',label:'Metalle',color:'#dc873b',chance:0.36,building:'workshop'}
 ];
 const clamp=n=>Math.max(0,Math.min(100,Number(n)||0));
 const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
@@ -31,8 +31,8 @@ function makePatch(r,c,res){
  if(rand(key,'spawn')>res.chance)return null;
  const lat=(r+rand(key,'lat'))*BUCKET_LAT;
  const lng=(c+rand(key,'lng'))*BUCKET_LNG;
- const radius=85+rand(key,'radius')*190;
- const peak=Math.round(24+rand(key,'peak')*76);
+ const radius=430+rand(key,'radius')*620;
+ const peak=Math.round(48+rand(key,'peak')*52);
  return {id:key,resource:res.id,lat,lng,radius,peak};
 }
 function patchesIn(bounds){
@@ -84,9 +84,9 @@ function render(){
   const radius=Math.max(2,Math.abs(layerPoint.y-edge.y));
   const strength=p.peak/100;
   const gradient=ctx.createRadialGradient(x,y,0,x,y,radius);
-  gradient.addColorStop(0,'rgba('+hexRgb(res.color)+','+(0.42+strength*.42)+')');
-  gradient.addColorStop(.28,'rgba('+hexRgb(res.color)+','+(0.30+strength*.30)+')');
-  gradient.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(0.12+strength*.16)+')');
+  gradient.addColorStop(0,'rgba('+hexRgb(res.color)+','+(0.66+strength*.30)+')');
+  gradient.addColorStop(.28,'rgba('+hexRgb(res.color)+','+(0.48+strength*.32)+')');
+  gradient.addColorStop(.68,'rgba('+hexRgb(res.color)+','+(0.20+strength*.20)+')');
   gradient.addColorStop(1,'rgba('+hexRgb(res.color)+',0)');
   ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
  }
@@ -127,9 +127,9 @@ const style=document.createElement('style');style.id='mafivera-resource-legend-s
 .mf-map,.leaflet-container{background:#101820!important}
 .mf-map .leaflet-shadow-pane,.mf-map .leaflet-tooltip-pane{display:none!important}
 .mafivera-resource-heatmap{z-index:450!important}
-.mafivera-resource-legend{position:absolute!important;z-index:650!important;top:12px!important;left:12px!important;right:auto!important;width:154px!important;min-width:0!important;max-width:calc(100vw - 24px)!important;box-sizing:border-box!important;padding:9px 10px!important;background:rgba(10,16,23,.94)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:10px!important;box-shadow:0 6px 22px rgba(0,0,0,.4)!important;color:#f4f6f8!important;font:12px/1.3 system-ui,sans-serif!important;pointer-events:none!important;backdrop-filter:blur(8px)!important}
-.mafivera-legend-title{display:block!important;font:800 10px/1.2 system-ui,sans-serif!important;letter-spacing:.12em!important;color:#cbd5df!important;margin:0 0 7px!important;white-space:nowrap!important}
-.mafivera-legend-row{display:flex!important;align-items:center!important;gap:7px!important;padding:4px 0!important;white-space:nowrap!important;font:12px/1.25 system-ui,sans-serif!important;color:#f4f6f8!important}
+.mafivera-resource-legend{position:absolute!important;z-index:650!important;top:12px!important;left:12px!important;right:auto!important;width:136px!important;min-width:136px!important;max-width:136px!important;box-sizing:border-box!important;padding:8px 9px!important;background:rgba(10,16,23,.94)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:10px!important;box-shadow:0 6px 22px rgba(0,0,0,.4)!important;color:#f4f6f8!important;font:11px/1.25 system-ui,sans-serif!important;pointer-events:none!important;backdrop-filter:blur(8px)!important}
+.mafivera-legend-title{display:block!important;font:800 9px/1.2 system-ui,sans-serif!important;letter-spacing:.12em!important;color:#cbd5df!important;margin:0 0 7px!important;white-space:nowrap!important}
+.mafivera-legend-row{display:flex!important;align-items:center!important;gap:7px!important;padding:4px 0!important;white-space:nowrap!important;font:11px/1.2 system-ui,sans-serif!important;color:#f4f6f8!important}
 .mafivera-legend-dot{display:inline-block!important;width:9px!important;height:9px!important;min-width:9px!important;max-width:9px!important;border-radius:50%!important;background:var(--resource-color)!important;box-shadow:0 0 8px var(--resource-color)!important;flex:0 0 9px!important}
 .mafivera-resource-popup .leaflet-popup-content-wrapper{width:250px!important;max-width:calc(100vw - 40px)!important;background:#111923!important;color:#f3f4f6!important;border-radius:10px!important}
 .mafivera-resource-popup .leaflet-popup-content{width:220px!important;max-width:calc(100vw - 64px)!important;margin:10px 12px!important;font:13px/1.35 system-ui,sans-serif!important;color:#f3f4f6!important}
