@@ -98,7 +98,7 @@ function popup(lat,lng){
 }
 function init(){
  if(map||!window.__mtrwMap||!window.L)return false;
- map=window.__mtrwMap;canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:390';ctx=canvas.getContext('2d',{alpha:true});map.getPanes().overlayPane.appendChild(canvas);
+ map=window.__mtrwMap;canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:390';ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return false;map.getContainer().appendChild(canvas);
  map.on('moveend zoomend resize',()=>{drawnKey='';render()});
  map.on('click',e=>popup(e.latlng.lat,e.latlng.lng));
  render();
