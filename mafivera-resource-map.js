@@ -102,25 +102,49 @@ function render(){
  }
 }
 function hexRgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255].join(',')}
-function popup(lat,lng){
- const values=scan(lat,lng);
- const rows=values.map(v=>'<div class="mf-resource-popup-row"><span><i style="--resource-color:'+v.color+'"></i>'+v.label+'</span><b>'+v.concentration+'%</b></div>').join('');
- L.popup({className:'mafivera-resource-popup',maxWidth:240,minWidth:210,autoPan:true})
-  .setLatLng([lat,lng])
-  .setContent('<section class="mf-resource-popup-card"><strong>Ressourcen-Scan</strong>'+rows+'</section>')
-  .openOn(map);
+function scanArea(lat,lng,radius=500){
+ const step=50,totals=Object.fromEntries(RESOURCES.map(r=>[r.id,0])),samples=0;
+ for(let north=-radius;north<=radius;north+=step){
+  for(let east=-radius;east<=radius;east+=step){
+   if(Math.hypot(north,east)>radius)continue;
+   const sampleLat=lat+north/111320;
+   const sampleLng=lng+east/(111320*Math.max(.15,Math.cos(lat*Math.PI/180)));
+   scan(sampleLat,sampleLng).forEach(v=>{totals[v.id]+=v.concentration});
+   samples++;
+  }
+ }
+ return RESOURCES.map(r=>({id:r.id,label:r.label,color:r.color,concentration:samples?Math.round(totals[r.id]/samples):0}));
+}
+function closeScanPanel(){const panel=map?.getContainer()?.querySelector('.mf-resource-scan-panel');if(panel)panel.remove()}
+function showScanPanel(){
+ const location=window.__mtrwPlayerLocation;
+ if(!location||!Number.isFinite(Number(location.lat))||!Number.isFinite(Number(location.lng))){
+  window.dispatchEvent(new CustomEvent('mtrw:resource-scan-error',{detail:{message:'Bitte zuerst GPS aktivieren.'}}));return;
+ }
+ const panel=map.getContainer().querySelector('.mf-resource-scan-panel');
+ if(panel){panel.remove();return}
+ const lat=Number(location.lat),lng=Number(location.lng),radius=Number(window.__mtrwPlayerRadiusMeters)||500;
+ const values=scanArea(lat,lng,radius);
+ const rows=values.map(v=>'<div class="mf-resource-scan-row"><span><i style="--resource-color:'+v.color+'"></i>'+v.label+'</span><b>'+v.concentration+'%</b></div>').join('');
+ const el=document.createElement('section');el.className='mf-resource-scan-panel';
+ el.innerHTML='<header><strong>🔎 Ressourcen im Umkreis</strong><button type="button" class="mf-resource-scan-close" aria-label="Schließen">×</button></header><small>Radius '+radius+' m um deinen Standort</small><div class="mf-resource-scan-list">'+rows+'</div>';
+ map.getContainer().appendChild(el);
+ el.querySelector('.mf-resource-scan-close').addEventListener('click',closeScanPanel);
 }
 function init(){
  if(map||!window.__mtrwMap||!window.L)return false;
  map=window.__mtrwMap;map.getContainer().style.background='#101820';canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:450';ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return false;map.getPanes().overlayPane.appendChild(canvas);
  map.on('move moveend zoom zoomend viewreset resize',()=>{drawnKey='';render()});
- map.on('click',e=>popup(e.latlng.lat,e.latlng.lng));
+ // Ressourcen werden ausschließlich über den GPS-Scan-Button ausgewertet.
  render();
  window.mtrwRefreshResourceMap=()=>{drawnKey='';render()};
  window.MAFIVERA_RESOURCE_MAP=Object.freeze({
-  version:3,resources:RESOURCES.map(x=>({...x})),scan,
+  version:4,resources:RESOURCES.map(x=>({...x})),scan,scanArea,
   rules:Object.freeze({globalCoordinates:true,deterministic:true,overlappingResources:true,zeroIsTransparent:true,concentrationFromPatchCenter:true,playerPositionDoesNotSeedWorld:true,independentOfPlots:true,independentOfTerritoryOwnership:true,independentOfBuildings:true,independentOfPlayers:true,serverAuthoritative:false})
  });
+ const scanButton=document.createElement('button');scanButton.type='button';scanButton.className='mf-resource-scan-button';scanButton.textContent='🔎 Scan';scanButton.addEventListener('click',showScanPanel);map.getContainer().appendChild(scanButton);
+ window.addEventListener('mtrw:location-updated',()=>{const panel=map.getContainer().querySelector('.mf-resource-scan-panel');if(panel)panel.remove()});
+ window.addEventListener('mtrw:resource-scan-error',e=>{const msg=e.detail?.message||'GPS nicht verfügbar';const old=map.getContainer().querySelector('.mf-resource-scan-error');old?.remove();const note=document.createElement('div');note.className='mf-resource-scan-error';note.textContent=msg;map.getContainer().appendChild(note);setTimeout(()=>note.remove(),2600)});
  window.dispatchEvent(new CustomEvent('mtrw:resource-map-ready'));
  return true;
 }
@@ -138,6 +162,17 @@ const style=document.createElement('style');style.id='mafivera-resource-legend-s
 .mf-resource-popup-row span{display:flex!important;align-items:center!important;gap:7px!important;font:13px/1.3 system-ui,sans-serif!important;color:#f3f4f6!important}
 .mf-resource-popup-row i{display:inline-block!important;width:8px!important;height:8px!important;min-width:8px!important;border-radius:50%!important;background:var(--resource-color)!important}
 .mf-resource-popup-row b{font:700 13px/1.3 system-ui,sans-serif!important;color:#fff!important}
+.mf-resource-scan-button{position:absolute!important;right:12px!important;bottom:86px!important;z-index:1100!important;border:1px solid #5277bd!important;border-radius:12px!important;background:#172b4b!important;color:#fff!important;padding:11px 16px!important;min-height:44px!important;font:700 14px/1 system-ui,sans-serif!important;box-shadow:0 3px 12px #0007!important}
+.mf-resource-scan-panel{position:absolute!important;top:12px!important;right:12px!important;z-index:1200!important;width:min(230px,calc(100% - 24px))!important;max-height:calc(100% - 110px)!important;overflow:auto!important;box-sizing:border-box!important;padding:12px!important;border:1px solid #40516c!important;border-radius:12px!important;background:rgba(15,23,38,.97)!important;color:#f3f6fc!important;box-shadow:0 8px 28px #0009!important;font-family:system-ui,sans-serif!important}
+.mf-resource-scan-panel header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin:0 0 5px!important}
+.mf-resource-scan-panel header strong{font:700 14px/1.25 system-ui,sans-serif!important;color:#fff!important}
+.mf-resource-scan-close{flex:0 0 28px!important;width:28px!important;height:28px!important;padding:0!important;border:0!important;border-radius:7px!important;background:#29384f!important;color:#fff!important;font:700 21px/26px system-ui,sans-serif!important}
+.mf-resource-scan-panel>small{display:block!important;margin-bottom:8px!important;color:#aebbd0!important;font:11px/1.3 system-ui,sans-serif!important}
+.mf-resource-scan-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:6px 0!important;border-top:1px solid #ffffff18!important;font:12px/1.25 system-ui,sans-serif!important;color:#f3f6fc!important}
+.mf-resource-scan-row span{display:flex!important;align-items:center!important;gap:7px!important}
+.mf-resource-scan-row i{display:inline-block!important;width:9px!important;height:9px!important;min-width:9px!important;border-radius:50%!important;background:var(--resource-color)!important}
+.mf-resource-scan-row b{font:700 12px/1.2 system-ui,sans-serif!important;color:#fff!important}
+.mf-resource-scan-error{position:absolute!important;right:12px!important;bottom:140px!important;z-index:1300!important;padding:9px 12px!important;border-radius:8px!important;background:#7f1d1d!important;color:white!important;font:12px/1.3 system-ui,sans-serif!important}
 `;
 document.head.appendChild(style);
 })();
