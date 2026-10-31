@@ -195,7 +195,7 @@ window.__mtrwPreloadGame=window.__mtrwPreloadGame||function(build){
       './mafivera-resource-map.js?v=MAFIVERA-RESOURCE-NO-LEGEND-V6-20261031'
     ];
     /* Disabled during the map-first rebuild; source files are preserved. */
-    const optional=['./mafivera-new-buildings.js?v=MAFIVERA-BUILD-SYSTEM-V2-20261031-08'];    const urls=[...base,...optional];
+    const optional=['./mafivera-new-buildings.js?v=MAFIVERA-BUILD-SYSTEM-V2-20261031-09'];    const urls=[...base,...optional];
     window.__mtrwGamePreloadStarted=Promise.all(urls.map(function(url){
       return fetch(url,{cache:'force-cache',credentials:'same-origin'}).catch(function(){return null});
     }));
