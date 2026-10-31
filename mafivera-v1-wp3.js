@@ -16,7 +16,7 @@ function globalCell(lat,lng){return{r:Math.floor(lat/GLAT),c:Math.floor(lng/GLNG
 function makeCell(r,c){const [lat,lng]=center(r,c);return{zone_key:zkey(r,c),r,c,lat,lng,resources:res(r,c)}}
 function cellBounds(r,c){return[[r*GLAT,c*GLNG],[(r+1)*GLAT,(c+1)*GLNG]]}
 function relationColor(rel){return rel==='family'?'#a855f7':rel==='ally'?'#22c55e':rel==='friend'?'#f59e0b':'#ef4444'}
-function renderGrid(){if(!map)return;grid.forEach(x=>x.remove());grid=[];markers?.clearLayers();const bc=globalCell(map.getCenter().lat,map.getCenter().lng);const visible=[];for(let r=bc.r-R;r<=bc.r+R;r++)for(let c=bc.c-R;c<=bc.c+R;c++)visible.push(makeCell(r,c));for(const q of visible){const r=q.r,c=q.c,isHeist=!!window.__mtrwHeistZones?.has(q.zone_key);if(isHeist)continue;const t=world[q.zone_key],own=t?.owner_id===uid,foreign=!!t?.owner_id&&!own,rel=t?.owner_id?(territoryRelations[t.owner_id]||'stranger'):null,col=own?'#2f91ff':foreign?relationColor(rel):'#66717f',resources=t?.resources?.length?t.resources:q.resources;const rect=L.rectangle(cellBounds(r,c),{color:own?'#2f91ff':col,weight:(own||foreign)?2:1,fillColor:own?'#2f91ff':foreign?col:'transparent',fillOpacity:(own||foreign)?0.28:0,interactive:true,bubblingMouseEvents:false});rect.__mtrwZone=q.zone_key;rect.on('click',()=>territory(q.zone_key));rect.addTo(map);grid.push(rect);/* Resource markers are rendered exclusively by mafivera-marker-manager.js. */;window.__mtrwGridRects=grid;}}
+function renderGrid(){if(!map)return;grid.forEach(x=>x.remove());grid=[];markers?.clearLayers();window.__mtrwGridRects=grid;}
 async function loadWorld(){
   const cacheKey='mtrw_world_visible_'+uid;
   const loadCached=()=>{
@@ -63,28 +63,10 @@ async function loadWorld(){
  const el=$('mfMap');if(!el)throw Error('Kartencontainer fehlt');
  map=L.map(el,{zoomControl:false,preferCanvas:true,worldCopyJump:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false,zoomSnap:1,zoomDelta:1}).setView(pos,15);
  window.__mtrwMap=map;
- let tileErrors=0,tileSource=0;
- const tileSources=[
-  {url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OpenStreetMap contributors'},
-  {url:'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',attr:'© OpenStreetMap contributors'},
-  {url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',attr:'© OpenStreetMap contributors © CARTO'}
- ];
- const makeTiles=(src)=>L.tileLayer(src.url,{subdomains:'abc',maxZoom:19,attribution:src.attr,updateWhenIdle:false,keepBuffer:3,crossOrigin:true});
- let tiles=makeTiles(tileSources[0]);
- tiles.on('tileerror',()=>{
-   tileErrors++;
-   if(tileErrors>=3&&tileSource<tileSources.length-1){
-     tileSource++;
-     tileErrors=0;
-     try{map.removeLayer(tiles)}catch(_){}
-     tiles=makeTiles(tileSources[tileSource]);
-     tiles.addTo(map);
-   }
- });
- tiles.addTo(map);
- L.control.zoom({position:'topright'}).addTo(map);
- markers=L.layerGroup().addTo(map);
- playerMarker=L.marker(pos,{icon:L.divIcon({className:'player-marker',html:'',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map);
+ /* Pure resource canvas: no map tiles, imagery, legacy markers or building overlays. */
+ L.control.zoom({position:'bottomright'}).addTo(map);
+ markers=L.layerGroup();
+ playerMarker=null;
  map.on('moveend',()=>{renderGrid();window.mtrwSyncHeistMarkers?.()});
  map.on('zoomend',()=>{renderGrid();window.mtrwSyncHeistMarkers?.()});
  const resize=()=>{if(!map)return;requestAnimationFrame(()=>map.invalidateSize({pan:false,animate:false}))};
@@ -375,7 +357,7 @@ async function acceptInvite(code){try{await rpc('mtrw_accept_invite',{p_code:cod
 async function consumeInvite(){const u=new URL(location.href),code=u.searchParams.get('invite')||localStorage.getItem('mtrw_invite');if(!code)return;if(u.searchParams.has('invite'))localStorage.setItem('mtrw_invite',code);await acceptInvite(code)}
 function menu(){drawer('Menü',`<div class="profile-card"><div class="avatar">👤</div><h2>${esc(profile.username||'Spieler')}</h2><p>${esc(profile.mafia_name||'MAFIVERA-Spieler')}</p><div class="statgrid"><div><b>${fmt(profile.level)}</b><small>Level</small></div><div><b>${fmt(profile.reputation)}</b><small>Ruf</small></div><div><b>${fmt(profile.territories)}</b><small>Gebiete</small></div></div><button class="action" data-action="settings">⚙️ Einstellungen</button><button class="action" data-action="logout">🚪 Abmelden</button></div>`)}
 function app(){const r=$('gameRoot');r.innerHTML=`<div class="mf-app"><div id="mfMap" class="mf-map"></div><div class="mf-hud" style="grid-template-columns:repeat(6,minmax(0,1fr))"><button id="menuBtn" class="mf-menu">☰</button><div class="mf-stat money"><small>GELD</small><b id="hudMoney">0</b><em>MAFIA-KASSE</em></div><div class="mf-stat material"><small>MATERIAL</small><b id="hudMaterial">0</b><em id="hudMaterialCap">/10000</em></div><div class="mf-stat weapon-parts"><small>WAFFENTEILE</small><b id="hudWeaponParts">0</b><em id="hudWeaponPartsCap">/10000</em></div><div class="mf-stat drugs"><small>DROGEN</small><b id="hudDrugs">0</b><em>IM LAGER</em></div><div class="mf-stat hitmen"><small>SCHLÄGER</small><b id="hudHitmen">0</b><em>PRODUKTION</em></div><div class="mf-stat level"><small>LEVEL</small><b id="hudLevel">0</b><em>SPIELERSTUFE</em></div></div><div class="mf-event">⚡ MAFIVERA · DEIN IMPERIUM</div><div class="mf-legend"><div><i class="sw blue"></i>Dein Gebiet</div><div><i class="sw purple"></i>Eigene Familie</div><div><i class="sw green"></i>Verbündete Familie</div><div><i class="sw orange"></i>Freund</div><div><i class="sw red"></i>Fremder Spieler</div><div><i class="sw gray"></i>Freies Feld</div></div><div class="mf-bottom"><button class="bottom-btn active" data-panel="map"><span>🗺️</span><small>KARTE</small></button><button class="bottom-btn" data-panel="family"><span>♜</span><small>FAMILIE</small></button><button class="bottom-btn" data-panel="business"><span>🏢</span><small>GESCHÄFTE</small></button><button class="bottom-btn" data-panel="hitmen"><span>👤</span><small>SCHLÄGER</small></button><button class="bottom-btn" data-panel="social"><span>♧</span><small>SOZIAL</small></button></div><div id="drawer" class="mf-drawer hidden"><div class="drawer-head"><div><small>MAFIVERA</small><h2 id="drawerTitle"></h2></div><button class="close-btn" id="drawerClose">×</button></div><div id="drawerBody"></div></div><div id="toast" class="toast"></div></div>`;let lastNavPanel='',lastNavAt=0;const handleNav=(b,ev)=>{const now=Date.now(),panel=b.dataset.panel;if(panel===lastNavPanel&&now-lastNavAt<500)return;lastNavPanel=panel;lastNavAt=now;if(ev?.type==='pointerup')ev.preventDefault();nav(panel)};document.querySelectorAll('.bottom-btn').forEach(b=>{b.addEventListener('pointerup',ev=>handleNav(b,ev),{passive:false});b.onclick=ev=>handleNav(b,ev)});$('menuBtn').onclick=menu;$('drawerClose').onclick=close}
-async function main(){db=window.db;if(!db)throw Error('Supabase nicht geladen');const s=await db.auth.getSession();if(!s.data.session)throw Error('Keine Sitzung');uid=s.data.session.user.id;app();initMap();try{await boot();preloadFamilyCache().catch(()=>{});preloadRankCache().catch(()=>{});if(map){const lat=Number(profile.gps_lat),lng=Number(profile.gps_lng);if(Number.isFinite(lat)&&Number.isFinite(lng))map.setView([lat,lng],map.getZoom(),{animate:false});requestAnimationFrame(()=>map.invalidateSize({pan:false,animate:false}));setTimeout(()=>map.invalidateSize({pan:false,animate:false}),500)}}catch(e){console.warn('MAFIVERA Bootstrap:',e)}loadWorld().catch(e=>console.warn('MAFIVERA Welt:',e));startGps();await consumeInvite();db.channel('mafivera-world').on('postgres_changes',{event:'*',schema:'public',table:'world_territories'},()=>loadWorld()).subscribe();let economyBusy=false;setInterval(async()=>{if(economyBusy)return;economyBusy=true;try{await boot()}catch(e){}finally{economyBusy=false}},60000);setInterval(()=>refresh().catch(()=>{}),30000)}
+async function main(){db=window.db;if(!db)throw Error('Supabase nicht geladen');const s=await db.auth.getSession();if(!s.data.session)throw Error('Keine Sitzung');uid=s.data.session.user.id;/* MAP-ONLY MODE: do not bootstrap legacy economy, territory ownership, family, ranks or cached world state. */app();initMap();requestAnimationFrame(()=>map?.invalidateSize({pan:false,animate:false}));setTimeout(()=>map?.invalidateSize({pan:false,animate:false}),500);startGps();}
 main().catch(e=>{console.error(e);const root=$('gameRoot');if(root)root.innerHTML='<div style="padding:30px;color:#fff;font-family:system-ui"><h2>MAFIVERA konnte nicht gestartet werden.</h2><p>'+esc(e.message||e)+'</p></div>'});
 window.addEventListener('mtrw:heist-cells-updated',()=>{if(typeof renderGrid==='function')renderGrid()});window.addEventListener('mtrw:march-finished',async e=>{try{await loadWorld();const r=e.detail?.result;if(r?.captured)toast('⚔️ Gebiet erfolgreich erobert! Das Gebiet gehört jetzt dir.');else if(r?.success===false&&r?.defense_left!=null)toast(`⚔️ Angriff beendet · Verteidigung noch ${fmt(r.defense_left)}`,true)}catch(_){}});})();
 const mtrwSocialRankStyle=document.createElement('style');mtrwSocialRankStyle.textContent=`
