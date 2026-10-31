@@ -1,8 +1,9 @@
-/* MAFIVERA – radar/GPS: player-centered 500 m radar + persistent player GPS */
+/* MAFIVERA – radar/GPS: compact player-centered 320 m radius + persistent player GPS */
 (()=>{'use strict';
 if(window.__mtrwRadarGpsLoaded)return;
 window.__mtrwRadarGpsLoaded=true;
-const RADIUS=500;
+const RADIUS=320;
+window.__mtrwPlayerRadiusMeters=RADIUS;
 let timer=null,watchId=null;
 
 function valid(lat,lng){
