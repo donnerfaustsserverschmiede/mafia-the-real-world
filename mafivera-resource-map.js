@@ -69,7 +69,7 @@ function scan(lat,lng){
  }
  return RESOURCES.map(r=>({id:r.id,label:r.label,color:r.color,concentration:found[r.id]||0}));
 }
-let map=null,canvas=null,ctx=null,legend=null,drawnKey='';
+let map=null,canvas=null,ctx=null,drawnKey='';
 function render(){
  if(!map||!canvas||!ctx)return;
  const zoom=map.getZoom(),size=map.getSize(),bounds=map.getBounds();
@@ -110,18 +110,12 @@ function popup(lat,lng){
   .setContent('<section class="mf-resource-popup-card"><strong>Ressourcen-Scan</strong>'+rows+'</section>')
   .openOn(map);
 }
-function buildLegend(){
- if(legend)return;
- legend=document.createElement('aside');legend.className='mafivera-resource-legend';
- legend.innerHTML='<div class="mafivera-legend-title">ROHSTOFFE</div>'+RESOURCES.map(r=>'<div class="mafivera-legend-row"><span class="mafivera-legend-dot" style="--resource-color:'+r.color+'"></span><span>'+r.label+'</span></div>').join('');
- map.getContainer().appendChild(legend);
-}
 function init(){
  if(map||!window.__mtrwMap||!window.L)return false;
  map=window.__mtrwMap;map.getContainer().style.background='#101820';canvas=document.createElement('canvas');canvas.className='mafivera-resource-heatmap';canvas.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:450';ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return false;map.getPanes().overlayPane.appendChild(canvas);
  map.on('move moveend zoom zoomend viewreset resize',()=>{drawnKey='';render()});
  map.on('click',e=>popup(e.latlng.lat,e.latlng.lng));
- buildLegend();render();
+ render();
  window.mtrwRefreshResourceMap=()=>{drawnKey='';render()};
  window.MAFIVERA_RESOURCE_MAP=Object.freeze({
   version:3,resources:RESOURCES.map(x=>({...x})),scan,
@@ -136,36 +130,6 @@ const style=document.createElement('style');style.id='mafivera-resource-legend-s
 .mf-map,.leaflet-container{background:#18232b!important}
 .mf-map .leaflet-shadow-pane,.mf-map .leaflet-tooltip-pane{display:none!important}
 .mafivera-resource-heatmap{z-index:450!important}
-.mf-map .mafivera-resource-legend{
- all:initial!important;position:absolute!important;display:block!important;z-index:1200!important;
- top:12px!important;right:12px!important;left:auto!important;bottom:auto!important;
- width:126px!important;min-width:126px!important;max-width:126px!important;
- height:auto!important;max-height:calc(100% - 24px)!important;overflow:hidden!important;
- box-sizing:border-box!important;padding:7px 8px!important;margin:0!important;
- background:rgba(8,14,21,.94)!important;border:1px solid rgba(255,255,255,.22)!important;
- border-radius:11px!important;box-shadow:0 5px 18px #0008!important;color:#f5f7fa!important;
- font:11px/1.25 system-ui,sans-serif!important;pointer-events:none!important;
- backdrop-filter:blur(8px)!important;transform:none!important;text-align:left!important;
-}
-.mf-map .mafivera-resource-legend *{box-sizing:border-box!important}
-.mf-map .mafivera-resource-legend .mafivera-legend-title{
- display:block!important;margin:0 0 5px!important;padding:0!important;
- color:#d9e1ea!important;font:800 9px/1.2 system-ui,sans-serif!important;
- letter-spacing:.12em!important;white-space:nowrap!important
-}
-.mf-map .mafivera-resource-legend .mafivera-legend-row{
- display:flex!important;position:static!important;align-items:center!important;gap:6px!important;
- width:100%!important;height:auto!important;min-height:0!important;margin:0!important;
- padding:3px 0!important;background:transparent!important;border:0!important;
- color:#f4f6f8!important;font:11px/1.2 system-ui,sans-serif!important;
- white-space:nowrap!important;transform:none!important
-}
-.mf-map .mafivera-resource-legend .mafivera-legend-dot{
- display:inline-block!important;position:static!important;width:8px!important;height:8px!important;
- min-width:8px!important;max-width:8px!important;min-height:8px!important;
- border-radius:50%!important;background:var(--resource-color)!important;
- box-shadow:0 0 8px var(--resource-color)!important;flex:0 0 8px!important
-}
 .mafivera-resource-popup .leaflet-popup-content-wrapper{width:250px!important;max-width:calc(100vw - 40px)!important;background:#111923!important;color:#f3f4f6!important;border-radius:10px!important}
 .mafivera-resource-popup .leaflet-popup-content{width:220px!important;max-width:calc(100vw - 64px)!important;margin:10px 12px!important;font:13px/1.35 system-ui,sans-serif!important;color:#f3f4f6!important}
 .mf-resource-popup-card{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;background:#111923!important;color:#f3f4f6!important;font:13px/1.35 system-ui,sans-serif!important}
