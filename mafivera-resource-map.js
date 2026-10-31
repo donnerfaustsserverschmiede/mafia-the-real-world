@@ -175,4 +175,5 @@ const style=document.createElement('style');style.id='mafivera-resource-legend-s
 .mf-resource-popup-row i{display:inline-block!important;width:8px!important;height:8px!important;min-width:8px!important;border-radius:50%!important;background:var(--resource-color)!important}
 .mf-resource-popup-row b{font:700 13px/1.3 system-ui,sans-serif!important;color:#fff!important}
 `;
+document.head.appendChild(style);
 })();
