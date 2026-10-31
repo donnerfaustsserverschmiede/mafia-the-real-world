@@ -115,19 +115,28 @@ function scanArea(lat,lng,radius=500){
  }
  return RESOURCES.map(r=>({id:r.id,label:r.label,color:r.color,concentration:samples?Math.round(totals[r.id]/samples):0}));
 }
+function scanCursorArea(){
+ const center=map.getSize().divideBy(2),centerLatLng=map.containerPointToLatLng(center);
+ const cursorRadiusPx=14,stepPx=4,totals=Object.fromEntries(RESOURCES.map(r=>[r.id,0]));let samples=0;
+ for(let y=-cursorRadiusPx;y<=cursorRadiusPx;y+=stepPx){
+  for(let x=-cursorRadiusPx;x<=cursorRadiusPx;x+=stepPx){
+   if(Math.hypot(x,y)>cursorRadiusPx)continue;
+   const point=map.containerPointToLatLng([center.x+x,center.y+y]);
+   scan(point.lat,point.lng).forEach(v=>{totals[v.id]+=v.concentration});
+   samples++;
+  }
+ }
+ const edge=map.containerPointToLatLng([center.x+cursorRadiusPx,center.y]);
+ const radiusMeters=distance({lat:centerLatLng.lat,lng:centerLatLng.lng},{lat:edge.lat,lng:edge.lng});
+ return {center:{lat:centerLatLng.lat,lng:centerLatLng.lng},radiusMeters,values:RESOURCES.map(r=>({id:r.id,label:r.label,color:r.color,concentration:samples?Math.round(totals[r.id]/samples):0}))};
+}
 function closeScanPanel(){const panel=map?.getContainer()?.querySelector('.mf-resource-scan-panel');if(panel)panel.remove()}
 function showScanPanel(){
- const location=window.__mtrwPlayerLocation;
- if(!location||!Number.isFinite(Number(location.lat))||!Number.isFinite(Number(location.lng))){
-  window.dispatchEvent(new CustomEvent('mtrw:resource-scan-error',{detail:{message:'Bitte zuerst GPS aktivieren.'}}));return;
- }
  const panel=map.getContainer().querySelector('.mf-resource-scan-panel');
  if(panel){panel.remove();return}
- const lat=Number(location.lat),lng=Number(location.lng),radius=Number(window.__mtrwPlayerRadiusMeters)||500;
- const values=scanArea(lat,lng,radius);
- const rows=values.map(v=>'<div class="mf-resource-scan-row"><span><i style="--resource-color:'+v.color+'"></i>'+v.label+'</span><b>'+v.concentration+'%</b></div>').join('');
+ const result=scanCursorArea(),rows=result.values.map(v=>'<div class="mf-resource-scan-row"><span><i style="--resource-color:'+v.color+'"></i>'+v.label+'</span><b>'+v.concentration+'%</b></div>').join('');
  const el=document.createElement('section');el.className='mf-resource-scan-panel';
- el.innerHTML='<header><strong>🔎 Ressourcen im Umkreis</strong><button type="button" class="mf-resource-scan-close" aria-label="Schließen">×</button></header><small>Radius '+radius+' m um deinen Standort</small><div class="mf-resource-scan-list">'+rows+'</div>';
+ el.innerHTML='<header><strong>🔎 Ressourcen-Scan</strong><button type="button" class="mf-resource-scan-close" aria-label="Schließen">×</button></header><small>Cursor-Radius ca. '+Math.round(result.radiusMeters)+' m</small><div class="mf-resource-scan-list">'+rows+'</div>';
  map.getContainer().appendChild(el);
  el.querySelector('.mf-resource-scan-close').addEventListener('click',closeScanPanel);
 }
@@ -139,7 +148,7 @@ function init(){
  render();
  window.mtrwRefreshResourceMap=()=>{drawnKey='';render()};
  window.MAFIVERA_RESOURCE_MAP=Object.freeze({
-  version:4,resources:RESOURCES.map(x=>({...x})),scan,scanArea,
+  version:5,resources:RESOURCES.map(x=>({...x})),scan,scanArea,scanCursorArea,
   rules:Object.freeze({globalCoordinates:true,deterministic:true,overlappingResources:true,zeroIsTransparent:true,concentrationFromPatchCenter:true,playerPositionDoesNotSeedWorld:true,independentOfPlots:true,independentOfTerritoryOwnership:true,independentOfBuildings:true,independentOfPlayers:true,serverAuthoritative:false})
  });
  const cursor=document.createElement('div');cursor.className='mf-map-center-cursor';cursor.setAttribute('aria-hidden','true');cursor.innerHTML='<span class="mf-map-center-cursor-h"></span><span class="mf-map-center-cursor-v"></span><i></i>';map.getContainer().appendChild(cursor);
