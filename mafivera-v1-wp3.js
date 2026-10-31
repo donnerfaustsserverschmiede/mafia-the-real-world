@@ -75,7 +75,7 @@ async function loadWorld(){
  const initialLat=Number(profile.gps_lat),initialLng=Number(profile.gps_lng);
  if(Number.isFinite(initialLat)&&Number.isFinite(initialLng)&&Math.abs(initialLat)>0&&Math.abs(initialLng)>0)renderPlayerLocation(initialLat,initialLng,Number(profile.gps_accuracy)||0);
  map.on('moveend',()=>{renderGrid();window.mtrwSyncHeistMarkers?.()});
- map.on('zoomend',()=>{renderGrid();window.mtrwSyncHeistMarkers?.()});
+ map.on('zoomend',()=>{renderGrid();window.mtrwSyncHeistMarkers?.();if(Number.isFinite(Number(profile.gps_lat))&&Number.isFinite(Number(profile.gps_lng)))renderPlayerLocation(Number(profile.gps_lat),Number(profile.gps_lng),Number(profile.gps_accuracy)||0)});
  const resize=()=>{if(!map)return;requestAnimationFrame(()=>map.invalidateSize({pan:false,animate:false}))};
  resize();
  [50,150,300,800,1500,3000].forEach(ms=>setTimeout(resize,ms));
@@ -146,6 +146,7 @@ function renderPlayerLocation(lat,lng,acc){
   playerMarker=L.marker(ll,{icon,keyboard:false,title:'Dein Standort',zIndexOffset:1000}).addTo(map);
   playerMarker.bindTooltip('Dein Standort',{direction:'top',offset:[0,-13]});
  }else playerMarker.setLatLng(ll);
+ var showGps=map.getZoom()>8;if(playerMarker){if(showGps&&!map.hasLayer(playerMarker))playerMarker.addTo(map);else if(!showGps&&map.hasLayer(playerMarker))map.removeLayer(playerMarker)}if(playerRadius){if(showGps&&!map.hasLayer(playerRadius))playerRadius.addTo(map);else if(!showGps&&map.hasLayer(playerRadius))map.removeLayer(playerRadius)}
  window.__mtrwPlayerRadiusMeters=500;
 }
 function updateGps(lat,lng,acc){
