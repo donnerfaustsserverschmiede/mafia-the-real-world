@@ -139,9 +139,9 @@ function showScanPanel(){
   window.dispatchEvent(new CustomEvent('mtrw:resource-scan-error',{detail:{message:'Dein Standort ist nicht verfügbar. Bitte aktiviere GPS.'}}));return;
  }
  const playerDistance=distance({lat:Number(player.lat),lng:Number(player.lng)},result.center);
- const playerRadius=Number(window.__mtrwPlayerRadiusMeters)||500;
+ const playerRadius=Number(window.__mtrwPlayerRadiusMeters)||320;
  if(playerDistance>playerRadius){
-  window.dispatchEvent(new CustomEvent('mtrw:resource-scan-error',{detail:{message:'Scan nicht ausgeführt: Außerhalb deines 500-m-Radius benötigst du einen Helikopter oder 1 Goldmünze pro Scan.'}}));return;
+  window.dispatchEvent(new CustomEvent('mtrw:resource-scan-error',{detail:{message:'Scan nicht ausgeführt: Außerhalb deines Spieler-Radius benötigst du einen Helikopter oder 1 Goldmünze pro Scan.'}}));return;
  }
  const rows=result.values.map(v=>'<div class="mf-resource-scan-row"><span><i style="--resource-color:'+v.color+'"></i>'+v.label+'</span><b>'+v.concentration+'%</b></div>').join('');
  const el=document.createElement('section');el.className='mf-resource-scan-panel';
