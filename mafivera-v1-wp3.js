@@ -63,28 +63,10 @@ async function loadWorld(){
  const el=$('mfMap');if(!el)throw Error('Kartencontainer fehlt');
  map=L.map(el,{zoomControl:false,preferCanvas:true,worldCopyJump:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false,zoomSnap:1,zoomDelta:1}).setView(pos,15);
  window.__mtrwMap=map;
- let tileErrors=0,tileSource=0;
- const tileSources=[
-  {url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OpenStreetMap contributors'},
-  {url:'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',attr:'© OpenStreetMap contributors'},
-  {url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',attr:'© OpenStreetMap contributors © CARTO'}
- ];
- const makeTiles=(src)=>L.tileLayer(src.url,{subdomains:'abc',maxZoom:19,attribution:src.attr,updateWhenIdle:false,keepBuffer:3,crossOrigin:true});
- let tiles=makeTiles(tileSources[0]);
- tiles.on('tileerror',()=>{
-   tileErrors++;
-   if(tileErrors>=3&&tileSource<tileSources.length-1){
-     tileSource++;
-     tileErrors=0;
-     try{map.removeLayer(tiles)}catch(_){}
-     tiles=makeTiles(tileSources[tileSource]);
-     tiles.addTo(map);
-   }
- });
- tiles.addTo(map);
- L.control.zoom({position:'topright'}).addTo(map);
- markers=L.layerGroup().addTo(map);
- playerMarker=L.marker(pos,{icon:L.divIcon({className:'player-marker',html:'',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map);
+ /* Pure resource canvas: no map tiles, imagery, legacy markers or building overlays. */
+ L.control.zoom({position:'bottomright'}).addTo(map);
+ markers=L.layerGroup();
+ playerMarker=null;
  map.on('moveend',()=>{renderGrid();window.mtrwSyncHeistMarkers?.()});
  map.on('zoomend',()=>{renderGrid();window.mtrwSyncHeistMarkers?.()});
  const resize=()=>{if(!map)return;requestAnimationFrame(()=>map.invalidateSize({pan:false,animate:false}))};
