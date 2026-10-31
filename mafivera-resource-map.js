@@ -103,7 +103,7 @@ function render(){
 }
 function hexRgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255].join(',')}
 function scanArea(lat,lng,radius=500){
- const step=50,totals=Object.fromEntries(RESOURCES.map(r=>[r.id,0])),samples=0;
+ const step=50,totals=Object.fromEntries(RESOURCES.map(r=>[r.id,0]));let samples=0;
  for(let north=-radius;north<=radius;north+=step){
   for(let east=-radius;east<=radius;east+=step){
    if(Math.hypot(north,east)>radius)continue;
@@ -142,7 +142,7 @@ function init(){
   version:4,resources:RESOURCES.map(x=>({...x})),scan,scanArea,
   rules:Object.freeze({globalCoordinates:true,deterministic:true,overlappingResources:true,zeroIsTransparent:true,concentrationFromPatchCenter:true,playerPositionDoesNotSeedWorld:true,independentOfPlots:true,independentOfTerritoryOwnership:true,independentOfBuildings:true,independentOfPlayers:true,serverAuthoritative:false})
  });
- const scanButton=document.createElement('button');scanButton.type='button';scanButton.className='mf-resource-scan-button';scanButton.textContent='🔎 Scan';scanButton.addEventListener('click',showScanPanel);map.getContainer().appendChild(scanButton);
+ const scanButton=document.createElement('button');scanButton.type='button';scanButton.className='mf-resource-scan-button';scanButton.textContent='🔎';scanButton.setAttribute('aria-label','Ressourcen im Umkreis scannen');scanButton.title='Ressourcen scannen';scanButton.addEventListener('click',showScanPanel);map.getContainer().appendChild(scanButton);
  window.addEventListener('mtrw:location-updated',()=>{const panel=map.getContainer().querySelector('.mf-resource-scan-panel');if(panel)panel.remove()});
  window.addEventListener('mtrw:resource-scan-error',e=>{const msg=e.detail?.message||'GPS nicht verfügbar';const old=map.getContainer().querySelector('.mf-resource-scan-error');old?.remove();const note=document.createElement('div');note.className='mf-resource-scan-error';note.textContent=msg;map.getContainer().appendChild(note);setTimeout(()=>note.remove(),2600)});
  window.dispatchEvent(new CustomEvent('mtrw:resource-map-ready'));
@@ -162,7 +162,7 @@ const style=document.createElement('style');style.id='mafivera-resource-legend-s
 .mf-resource-popup-row span{display:flex!important;align-items:center!important;gap:7px!important;font:13px/1.3 system-ui,sans-serif!important;color:#f3f4f6!important}
 .mf-resource-popup-row i{display:inline-block!important;width:8px!important;height:8px!important;min-width:8px!important;border-radius:50%!important;background:var(--resource-color)!important}
 .mf-resource-popup-row b{font:700 13px/1.3 system-ui,sans-serif!important;color:#fff!important}
-.mf-resource-scan-button{position:absolute!important;right:12px!important;bottom:86px!important;z-index:1100!important;border:1px solid #5277bd!important;border-radius:12px!important;background:#172b4b!important;color:#fff!important;padding:11px 16px!important;min-height:44px!important;font:700 14px/1 system-ui,sans-serif!important;box-shadow:0 3px 12px #0007!important}
+.mf-resource-scan-button{position:absolute!important;right:14px!important;bottom:54px!important;z-index:1100!important;display:flex!important;align-items:center!important;justify-content:center!important;width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;max-width:54px!important;max-height:54px!important;box-sizing:border-box!important;padding:0!important;border:1px solid #5277bd!important;border-radius:50%!important;background:#172b4b!important;color:#fff!important;font:700 23px/1 system-ui,sans-serif!important;box-shadow:0 3px 12px #0007!important;}
 .mf-resource-scan-panel{position:absolute!important;top:12px!important;right:12px!important;z-index:1200!important;width:min(230px,calc(100% - 24px))!important;max-height:calc(100% - 110px)!important;overflow:auto!important;box-sizing:border-box!important;padding:12px!important;border:1px solid #40516c!important;border-radius:12px!important;background:rgba(15,23,38,.97)!important;color:#f3f6fc!important;box-shadow:0 8px 28px #0009!important;font-family:system-ui,sans-serif!important}
 .mf-resource-scan-panel header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin:0 0 5px!important}
 .mf-resource-scan-panel header strong{font:700 14px/1.25 system-ui,sans-serif!important;color:#fff!important}
